@@ -1,0 +1,10 @@
+{
+  "help": "Shows the list of available commands",
+  "set_prefix": "Sets bot's prefix for current server",
+  "join": "Makes the bot join the voice channel you're in",
+  "leave": "Makes the bot leave the voice channel he's in on this server",
+  "play {url}/{title}": "Makes the bot play music from youtube.com",
+  "search {title}": "Searching for a song on youtube",
+  "stop": "Stops the bot from playing music",
+  "volume {volume}": "Sets the volume for currently playing track"
+}
