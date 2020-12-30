@@ -3,7 +3,7 @@ from youtubesearchpython import SearchVideos
 import discord
 import os
 from collections import defaultdict
-from asyncio import get_running_loop, run_coroutine_threadsafe
+from asyncio import get_running_loop, run_coroutine_threadsafe, sleep
 from utils import get_prefix
 
 
@@ -67,15 +67,14 @@ class Music:
         elif command == 'queue':
             await self.queue(argv, msg)
         elif command == 'stop':
-            await self.stop(argv)
+            await self.stop(msg)
         elif command == 'repeat':
             await self.repeat(msg)
 
     @staticmethod
     def get_voice_instance(msg: discord.Message, client: discord.client):
-        id = msg.guild.id
         for voice_client in client.voice_clients:
-            if voice_client.guild.id == id:
+            if voice_client.guild.id == msg.guild.id:
                 return voice_client
         else:
             return None
@@ -203,7 +202,7 @@ class Music:
 
         if instance:
             instance.stop()
-            await self.leave(msg)
+            await sleep(0.5)
             queue.play_after = True
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
