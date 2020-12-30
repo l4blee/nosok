@@ -197,6 +197,8 @@ class Music:
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
 
-    def repeat(self, msg):
+    async def repeat(self, msg):
         queue = self.__queues[msg.guild.id]
         queue.repeat = not queue.repeat
+
+        await msg.channel.send('Queue repeating has been successfully ' + ['disabled', 'enabled'][queue.repeat])
