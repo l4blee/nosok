@@ -213,7 +213,10 @@ class Music:
         instance = self.get_voice_instance(msg, self.__client)
 
         if instance:
-            instance.pause()
+            if instance.is_paused():
+                await msg.channel.send('Audio is already paused')
+            else:
+                instance.pause()
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
 
@@ -221,7 +224,10 @@ class Music:
         instance = self.get_voice_instance(msg, self.__client)
 
         if instance:
-            instance.resume()
+            if instance.is_playing():
+                await msg.channel.send('Audio is already playing')
+            else:
+                instance.resume()
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
 
