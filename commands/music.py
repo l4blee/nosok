@@ -225,6 +225,10 @@ class Music:
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
 
+    async def clear(self, msg):
+        queue = self.__queues[msg.guild.id]
+        queue = SongQueue()
+
     async def repeat(self, msg):
         queue = self.__queues[msg.guild.id]
         queue.repeat = not queue.repeat
