@@ -232,8 +232,9 @@ class Music:
             await msg.channel.send('I am not connected to a voice channel yet')
 
     async def clear(self, msg):
-        queue = self.__queues[msg.guild.id]
-        queue = SongQueue()
+        self.__queues[msg.guild.id] = SongQueue()
+        
+        await msg.channel.send('Queue has been successdully cleared')
 
     async def repeat(self, msg):
         queue = self.__queues[msg.guild.id]
