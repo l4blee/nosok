@@ -3,7 +3,7 @@ from os import getenv
 import utils
 from commands import music, help, set_prefix
 
-CMDS = {'music': ('search', 'play', 'join', 'leave', 'queue', 'stop', 'repeat'),
+CMDS = {'music': ('search', 'play', 'join', 'leave', 'queue', 'repeat', 'stop'),
         'other': ('help', 'set_prefix')}
 
 ALL_CMDS = list()

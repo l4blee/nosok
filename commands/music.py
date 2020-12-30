@@ -23,6 +23,7 @@ class SongQueue:
 
     def __init__(self):
         self.repeat = False
+        self.play_after = True
 
     def add_song(self, title: str, url: str, mentionable: discord.Member.mention):
         song = QueueElement(title, url, mentionable)
@@ -139,12 +140,17 @@ class Music:
                 await msg.channel.send('Please specify a url/title of a track you want to play')
                 return -1
 
+            instance = self.get_voice_instance(msg, self.__client)
             if argv:
                 url = self.search(argv)[0]
                 info = YoutubeDL({'quiet': True}).extract_info(url, download=False)
                 this_queue.add_song(info['title'], url, msg.author.mention)
 
-            instance = self.get_voice_instance(msg, self.__client)
+                if instance.is_playing():
+                    embed = discord.Embed(color=discord.Colour.from_rgb(209, 178, 25))
+                    embed.description = f'Queued [{info["title"]}]({url})'
+                    await msg.channel.send(embed=embed)
+
             if not instance.is_playing():
                 song = next(this_queue)
                 if not isinstance(song, QueueElement):
@@ -167,7 +173,9 @@ class Music:
             await self.play(argv, msg, repeat=False)
 
     def __after(self, argv, msg, loop):
-        run_coroutine_threadsafe(self.play(argv, msg), loop)
+        queue = self.__queues[msg.guild.id]
+        if queue.play_after:
+            run_coroutine_threadsafe(self.play(argv, msg), loop)
 
     async def queue(self, argv, msg):
         if argv:
@@ -189,11 +197,14 @@ class Music:
                 await msg.channel.send(embed=embed)
 
     async def stop(self, msg):
-        instance = self.get_voice_instance(self.__client, msg)
+        instance = self.get_voice_instance(msg, self.__client)
+        queue = self.__queues[msg.guild.id]
+        queue.play_after = False
 
         if instance:
             instance.stop()
             await self.leave(msg)
+            queue.play_after = True
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
 
