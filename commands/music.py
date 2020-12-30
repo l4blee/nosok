@@ -68,7 +68,7 @@ class Music:
         elif command == 'stop':
             await self.stop(argv)
         elif command == 'repeat':
-            self.repeat(msg)
+            await self.repeat(msg)
 
     @staticmethod
     def get_voice_instance(msg: discord.Message, client: discord.client):
