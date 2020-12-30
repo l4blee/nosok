@@ -204,6 +204,23 @@ class Music:
             instance.stop()
             await sleep(0.5)
             queue.play_after = True
+            queue.now_playing = -1
+        else:
+            await msg.channel.send('I am not connected to a voice channel yet')
+
+    async def pause(self, msg):
+        instance = self.get_voice_instance(msg, self.__client)
+
+        if instance:
+            instance.pause()
+        else:
+            await msg.channel.send('I am not connected to a voice channel yet')
+
+    async def resume(self, msg):
+        instance = self.get_voice_instance(msg, self.__client)
+
+        if instance:
+            instance.resume()
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
 
