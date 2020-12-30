@@ -1,10 +1,18 @@
 import discord
 from os import getenv
 import utils
-from commands import *
-from commands import __all__ as cmds
+from commands import music, help, set_prefix
+
+CMDS = {'music': ('search', 'play', 'join', 'leave', 'queue'),
+        'other': ('help', 'set_prefix')}
+
+ALL_CMDS = list()
+for i in CMDS.values():
+    ALL_CMDS.extend(i)
+ALL_CMDS = set(ALL_CMDS)
 
 client = discord.Client()
+music_client = music.Music(client)
 
 
 @client.event
@@ -20,11 +28,13 @@ async def on_message(msg):
         cmd, *argv = msg.content[len(prefix):].split(' ')
 
         print('Detected command "' + cmd + '" on server', msg.guild.id)
-        if cmd in cmds:
-            await eval(f'{cmd}.main(argv, msg)')
+        if cmd not in ALL_CMDS:
+            await msg.channel.send('There is no such a command. Type `!help` to get a list of available commands.')
         else:
-            if await music.__main(argv, msg, cmd, client):
-                await msg.channel.send('There is no such a command. Type `!help` to get a list of available commands.')
+            if cmd in CMDS['music']:
+                await music_client.main(argv, msg, cmd)
+            else:
+                await eval(f'{cmd}.main(argv, msg)')
 
 
 client.run(getenv('BOT_TOKEN'))

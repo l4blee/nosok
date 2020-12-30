@@ -9,15 +9,3 @@ def get_prefix(msg):
             return cfg[str(id)]['prefix']
         else:
             return '!'
-
-
-def get_voice_instance(msg, client):
-    if not client.voice_clients:
-        return None
-
-    id = msg.guild.id
-    for cli in client.voice_clients:
-        if cli.guild.id == id:
-            return cli
-    else:
-        return None
