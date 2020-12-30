@@ -4,6 +4,7 @@ import discord
 import os
 from collections import defaultdict
 from asyncio import get_running_loop, run_coroutine_threadsafe
+from utils import get_prefix
 
 
 class QueueElement:
@@ -66,6 +67,8 @@ class Music:
             await self.queue(argv, msg)
         elif command == 'stop':
             await self.stop(argv)
+        elif command == 'repeat':
+            self.repeat(msg)
 
     @staticmethod
     def get_voice_instance(msg: discord.Message, client: discord.client):
@@ -149,7 +152,8 @@ class Music:
                         await msg.channel.send('Queue is empty, add something')
                         return -1
                     elif isinstance(song, str):
-                        await msg.channel.send('Use command `repeat` to enable queue repeating')
+                        prefix = get_prefix(msg)
+                        await msg.channel.send(f'Use command `{prefix}repeat` to enable queue repeating')
 
                 loop = get_running_loop()
 
@@ -192,3 +196,7 @@ class Music:
             await self.leave(msg)
         else:
             await msg.channel.send('I am not connected to a voice channel yet')
+
+    def repeat(self, msg):
+        queue = self.__queues[msg.guild.id]
+        queue.repeat = not queue.repeat
