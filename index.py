@@ -3,16 +3,16 @@ from os import getenv
 import utils
 from commands import music, help, set_prefix
 
-CMDS = {'music': ('search', 'play', 'join', 'leave', 'queue', 'repeat', 'stop', 'pause', 'resume', 'clear'),
-        'other': ('help', 'set_prefix')}
+client = discord.Client()
+music_client = music.Music(client)
+
+CMDS = {'music': music_client.CMDS,
+        'other': {'help', 'set_prefix'}}
 
 ALL_CMDS = list()
 for i in CMDS.values():
     ALL_CMDS.extend(i)
 ALL_CMDS = set(ALL_CMDS)
-
-client = discord.Client()
-music_client = music.Music(client)
 
 
 @client.event

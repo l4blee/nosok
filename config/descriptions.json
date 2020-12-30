@@ -6,5 +6,8 @@
   "play {url}/{title}": "Makes the bot play music from youtube.com",
   "search {title}": "Searching for a song on youtube",
   "stop": "Stops the bot from playing music",
-  "volume {volume}": "Sets the volume for currently playing track"
+  "volume {volume}": "Sets the volume for currently playing track",
+  "pause": "Pauses current playing track",
+  "resume": "Resumes current playing track",
+  "clear": "Clears current playlist"
 }
