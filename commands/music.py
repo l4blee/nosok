@@ -70,6 +70,12 @@ class Music:
             await self.stop(msg)
         elif command == 'repeat':
             await self.repeat(msg)
+        elif command == 'pause':
+            await self.pause(msg)
+        elif command == 'resume':
+            await self.resume(msg)
+        elif command == 'clear':
+            await self.clear(msg)
 
     @staticmethod
     def get_voice_instance(msg: discord.Message, client: discord.client):
@@ -233,7 +239,7 @@ class Music:
 
     async def clear(self, msg):
         self.__queues[msg.guild.id] = SongQueue()
-        
+
         await msg.channel.send('Queue has been successdully cleared')
 
     async def repeat(self, msg):
