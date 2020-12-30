@@ -159,6 +159,7 @@ class Music:
                     elif isinstance(song, str):
                         prefix = get_prefix(msg)
                         await msg.channel.send(f'Use command `{prefix}repeat` to enable queue repeating')
+                        return -1
 
                 loop = get_running_loop()
 
