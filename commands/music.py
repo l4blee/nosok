@@ -30,6 +30,10 @@ class SongQueue:
         song = QueueElement(title, url, mentionable)
         self.__queue.append(song)
 
+    def remove_song(self, index: int):
+        if index < len(self.__queue):
+            del self.__queue[index]
+
     def __next__(self):
         if not self.__queue:
             return None
@@ -47,7 +51,10 @@ class SongQueue:
         return self.__queue[item]
 
     def __repr__(self):
-        return ' '.join(self.__queue)
+        return ' '.join(str(i) for i in self.__queue)
+
+    def __len__(self):
+        return len(self.__queue)
 
 
 class Music:
@@ -242,7 +249,9 @@ class Music:
             await msg.channel.send('I am not connected to a voice channel yet')
 
     async def clear(self, argv: list, msg: discord.Message):
-        self.__queues[msg.guild.id] = SongQueue()
+        queue = self.__queues[msg.guild.id]
+        for _ in range(len(queue)):
+            queue.remove_song(0)
 
         await msg.channel.send('Queue has been successfully cleared')
 
