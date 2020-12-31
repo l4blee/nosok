@@ -70,7 +70,6 @@ class Music:
         'pause',
         'resume',
         'clear',
-        'volume',
         'skip'
     }
 
@@ -88,6 +87,33 @@ class Music:
         else:
             return None
 
+    async def create_ytdl_source(self, url: str, outtmpl: str):
+        if os.path.isfile(outtmpl + '.opus'):
+            os.remove(outtmpl + '.opus')
+
+        YoutubeDL({
+            'format': 'worstaudio/worst',
+            'extractaudio': True,
+            'audioformat': 'opus',
+            'quiet': True,
+            'outtmpl': outtmpl + '.opus',
+            'ignoreerrors': True,
+            'restrictfilenames': True
+        }).download([url])
+
+        source = discord.FFmpegPCMAudio(outtmpl + '.opus')
+        source = discord.PCMVolumeTransformer(source)
+
+        return source
+
+    async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
+        info = YoutubeDL({'quiet': True}).extract_info(song.url, download=False)
+        embed = discord.Embed(color=discord.Colour.from_rgb(209, 178, 25)
+                              ).set_thumbnail(url=info['thumbnails'][0]['url']
+                                              ).set_author(name='Now playing:')
+        embed.description = f'[{info["title"]}]({song.url})'
+        await channel.send(embed=embed)
+
     async def search(self, argv: list, msg: discord.Message = None, return_to_user=True):
         search = SearchVideos(' '.join(argv), max_results=5, mode='dict')
         links = [i['link'] for i in search.result()['search_result']]
@@ -97,22 +123,6 @@ class Music:
             pass
 
         return links[0]
-
-    async def create_ytdl_source(self, url: str, path: os.path):
-        if os.path.isfile(path):
-            os.remove(path)
-
-        YoutubeDL({
-            'format': 'bestaudio/best',
-            'extractaudio': True,
-            'quiet': True,
-            'outtmpl': path
-        }).download([url])
-
-        source = discord.FFmpegPCMAudio(path)
-        source = discord.PCMVolumeTransformer(source)
-
-        return source
 
     async def join(self, argv: list, msg: discord.Message):
         voice = msg.author.voice
@@ -133,13 +143,7 @@ class Music:
         else:
             await msg.channel.send('I am not connected to a voice channel yet!')
 
-    async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
-        info = YoutubeDL({'quiet': True}).extract_info(song.url, download=False)
-        embed = discord.Embed(color=discord.Colour.from_rgb(209, 178, 25)
-                              ).set_thumbnail(url=info['thumbnails'][0]['url']
-                                              ).set_author(name='Now playing:')
-        embed.description = f'[{info["title"]}]({song.url})'
-        await channel.send(embed=embed)
+
 
     async def play(self, argv: list, msg: discord.Message, repeat=True, skipped=True):
         instance = self.get_voice_instance(msg, self.__client)
@@ -175,8 +179,8 @@ class Music:
 
                 loop = get_running_loop()
 
-                filepath = os.path.relpath(f'downloads/{msg.guild.id}.mp3')
-                source = await self.create_ytdl_source(song.url, filepath)
+                outtmpl = f'downloads/{msg.guild.id}'
+                source = await self.create_ytdl_source(song.url, outtmpl)
                 instance.play(source, after=lambda e: self.__after([], msg, loop))
                 if skipped:
                     this_queue.play_after = True
@@ -260,16 +264,6 @@ class Music:
         queue.repeat = not queue.repeat
 
         await msg.channel.send('Queue repeating has been successfully ' + ['disabled', 'enabled'][queue.repeat])
-
-    async def volume(self, argv: list, msg: discord.Message):
-        if len(argv) != 1:
-            await msg.channel.send('Wrong volume level specified (0 to 100)')
-            return -1
-
-        self.__queues[msg.guild.id] = argv[0]
-        instance = self.get_voice_instance(msg, self.__client)
-        instance.volume = argv[0] / 100
-        await msg.channel.send(f'Volume has been successfully changed to `{argv[0]}`')
 
     async def skip(self, argv, msg):
         instance = self.get_voice_instance(msg, self.__client)
