@@ -40,9 +40,8 @@ class SongQueue:
 
         self.now_playing += 1
         if self.now_playing >= len(self.__queue):
+            self.now_playing = 0
             if self.repeat:
-                self.now_playing = 0
-            else:
                 return str()
 
         return self.__queue[self.now_playing]
