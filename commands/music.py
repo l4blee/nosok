@@ -107,7 +107,7 @@ class Music:
                               ).set_thumbnail(url=info['thumbnails'][0]['url']
                                               ).set_author(name='Now playing:')
         embed.description = f'[{info["title"]}]({song.url})'
-        await channel.send(embed=embed)
+        return await channel.send(embed=embed)
 
     async def search(self, argv: list, msg: discord.Message = None, return_to_user=True):
         search = SearchVideos(' '.join(argv), max_results=5, mode='dict')
@@ -137,8 +137,6 @@ class Music:
             await instance.disconnect()
         else:
             await msg.channel.send('I am not connected to a voice channel yet!')
-
-
 
     async def play(self, argv: list, msg: discord.Message, repeat=True, skipped=True):
         instance = self.get_voice_instance(msg, self.__client)
@@ -174,13 +172,12 @@ class Music:
 
                 loop = get_running_loop()
 
-                outtmpl = f'downloads/{msg.guild.id}'
-                source = await self.create_ytdl_source(song.url, outtmpl)
-                instance.play(source, after=lambda e: self.__after([], msg, loop))
+                notification = await self.now_playing(msg.channel, song)
+                source = await self.create_ytdl_source(song.url, f'downloads/{msg.guild.id}')
+                instance.play(source, after=lambda e: self.__after([], msg, loop, notification))
+
                 if skipped:
                     this_queue.play_after = True
-
-                await self.now_playing(msg.channel, song)
             elif instance.is_paused():
                 prefix = get_prefix(msg)
                 await msg.channel.send(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`')
@@ -188,10 +185,11 @@ class Music:
             await self.join([], msg)
             await self.play(argv, msg, repeat=False)
 
-    def __after(self, argv, msg, loop):
+    def __after(self, argv, msg, loop, notification):
         queue = self.__queues[msg.guild.id]
         if queue.play_after:
             run_coroutine_threadsafe(self.play(argv, msg), loop)
+        notification.delete()
 
     async def queue(self, argv: list, msg: discord.Message):
         if argv:
