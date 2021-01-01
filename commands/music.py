@@ -97,14 +97,10 @@ class Music:
             'audioformat': 'opus',
             'quiet': True,
             'outtmpl': outtmpl + '.opus',
-            'ignoreerrors': True,
             'restrictfilenames': True
         }).download([url])
 
-        source = discord.FFmpegPCMAudio(outtmpl + '.opus')
-        source = discord.PCMVolumeTransformer(source)
-
-        return source
+        return discord.FFmpegOpusAudio(outtmpl + '.opus')
 
     async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
         info = YoutubeDL({'quiet': True}).extract_info(song.url, download=False)
