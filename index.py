@@ -18,7 +18,6 @@ ALL_CMDS = set(ALL_CMDS)
 @client.event
 async def on_ready():
     print(f'{client.user} has been successfully launched!')
-    await client.change_presence(activity=discord.Game('!help'))
 
 
 @client.event
@@ -29,7 +28,7 @@ async def on_message(msg):
 
         print('Detected command "' + cmd + '" on server', msg.guild.id)
         if cmd not in ALL_CMDS:
-            await msg.channel.send('There is no such a command. Type `!help` to get a list of available commands.')
+            await msg.channel.send(f'There is no such a command. Type `{prefix}help` to get a list of available commands.')
         else:
             if cmd in CMDS['music']:
                 await music_client.main(argv, msg, cmd)
