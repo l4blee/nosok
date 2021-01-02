@@ -159,6 +159,9 @@ class Music:
                     embed.description = f'Queued [{info["title"]}]({url})'
                     await msg.channel.send(embed=embed)
 
+                if not instance.is_playing():
+                    this_queue.now_playing = len(this_queue) - 2
+
             if not instance.is_playing() and not instance.is_paused():
                 song = next(this_queue)
                 if not isinstance(song, QueueElement):
