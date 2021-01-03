@@ -5,6 +5,7 @@ import os
 from collections import defaultdict
 from asyncio import get_running_loop, run_coroutine_threadsafe, sleep
 from utils import get_prefix, create_embed
+from urllib.parse import urlparse
 
 WAIT_UNTIL_DELETE = float(5)
 
@@ -109,12 +110,14 @@ class Music:
         return await channel.send(embed=embed)
 
     async def search(self, argv: list, msg: discord.Message = None, return_to_user=True):
+        if urlparse(argv[0]).scheme != '':
+            return argv[0]
+
         search = SearchVideos(' '.join(argv), max_results=5, mode='dict')
         links = [i['link'] for i in search.result()['search_result']]
 
         if return_to_user:
-            # TODO: search func: list found tracks
-            pass
+            await msg.channel.send(create_embed('\n'.join(links)))
 
         return links[0]
 
