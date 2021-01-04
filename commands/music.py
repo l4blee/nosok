@@ -106,8 +106,7 @@ class Music:
 
     async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
         info = YoutubeDL({'quiet': True}).extract_info(song.url, download=False)
-        embed = create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
-        return await channel.send(embed=embed)
+        return await channel.send(embed=create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url']))
 
     async def search(self, argv: list, msg: discord.Message = None, return_to_user=True):
         if urlparse(argv[0]).scheme != '':
@@ -117,7 +116,7 @@ class Music:
         links = [i['link'] for i in search.result()['search_result']]
 
         if return_to_user:
-            await msg.channel.send(create_embed('\n'.join(links)))
+            await msg.channel.send(embed=create_embed('\n'.join(links)), delete_after=WAIT_UNTIL_DELETE)
 
         return links[0]
 

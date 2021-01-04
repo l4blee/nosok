@@ -1,6 +1,6 @@
 import discord
 from os import getenv
-import utils
+from utils import get_prefix, create_embed
 from commands import music, help, set_prefix
 
 client = discord.Client()
@@ -22,13 +22,14 @@ async def on_ready():
 
 @client.event
 async def on_message(msg):
-    prefix = utils.get_prefix(msg)
+    prefix = get_prefix(msg)
     if msg.content.startswith(prefix) and msg.author.id is not client.user.id:
-        cmd, *argv = msg.content[len(prefix):].split(' ')
+        cmd, *argv = msg.content[len(prefix):].lower().split(' ')
 
         print('Detected command "' + cmd + '" on server', msg.guild.id)
         if cmd not in ALL_CMDS:
-            await msg.channel.send(f'There is no such a command. Type `{prefix}help` to get a list of available commands.')
+            await msg.channel.send(embed=create_embed(f'There is no such a command.'
+                                   f' Type `{prefix}help` to get a list of available commands.'))
         else:
             if cmd in CMDS['music']:
                 await music_client.main(argv, msg, cmd)
