@@ -39,4 +39,13 @@ async def on_message(msg):
                 await eval(f'{cmd}.main(args, msg)')
 
 
+@client.event
+async def on_voice_state_update(member: discord.Member, before, after):
+    if not member.id == client.user.id:
+        if isinstance(before.channel, discord.VoiceChannel):
+            members = before.channel.members
+            if len(members) == 1 and members[0].id == client.user.id:
+                await music_client.leave(tuple(), member)
+
+
 client.run(getenv('BOT_TOKEN'))
