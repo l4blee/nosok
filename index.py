@@ -24,7 +24,9 @@ async def on_ready():
 async def on_message(msg):
     prefix = get_prefix(msg)
     if msg.content.startswith(prefix) and msg.author.id is not client.user.id:
-        cmd, *argv = msg.content[len(prefix):].lower().split(' ')
+        cmd, *args = msg.content[len(prefix):].split(' ')
+        cmd = cmd.lower()
+        args = tuple(args)
 
         print('Detected command "' + cmd + '" on server', msg.guild.id)
         if cmd not in ALL_CMDS:
@@ -32,9 +34,9 @@ async def on_message(msg):
                                    f' Type `{prefix}help` to get a list of available commands.'))
         else:
             if cmd in CMDS['music']:
-                await music_client.main(argv, msg, cmd)
+                await music_client.main(args, msg, cmd)
             else:
-                await eval(f'{cmd}.main(argv, msg)')
+                await eval(f'{cmd}.main(args, msg)')
 
 
 client.run(getenv('BOT_TOKEN'))

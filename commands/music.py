@@ -1,11 +1,11 @@
 from youtube_dl import YoutubeDL
 from youtubesearchpython import SearchVideos
 import discord
-import os
 from collections import defaultdict
-from asyncio import get_running_loop, run_coroutine_threadsafe, sleep
+import asyncio
 from utils import get_prefix, create_embed
 from urllib.parse import urlparse
+from subprocess import DEVNULL
 
 WAIT_UNTIL_DELETE = float(5)
 
@@ -78,8 +78,8 @@ class Music:
     def __init__(self, client):
         self.__client = client
 
-    async def main(self, argv, msg, command):
-        await eval(f'self.{command}(argv, msg)')
+    async def main(self, args: tuple, msg: discord.Message, command: str):
+        await eval(f'self.{command}(args, msg)')
 
     @staticmethod
     def get_voice_instance(msg: discord.Message, client: discord.client):
@@ -89,30 +89,28 @@ class Music:
         else:
             return None
 
-    async def create_ytdl_source(self, url: str, outtmpl: str):
-        if os.path.isfile(outtmpl + '.opus'):
-            os.remove(outtmpl + '.opus')
-
-        YoutubeDL({
-            'format': 'worstaudio/worst',
-            'extractaudio': True,
-            'audioformat': 'opus',
+    async def create_ytdl_source(self, source_url: str):
+        url = YoutubeDL({
+            'format': 'bestaudio/best',
             'quiet': True,
-            'outtmpl': outtmpl + '.opus',
-            'restrictfilenames': True
-        }).download([url])
+        }).extract_info(source_url, download=False)['formats'][0]['url']
 
-        return discord.FFmpegOpusAudio(outtmpl + '.opus')
+        source = discord.FFmpegPCMAudio(url, stderr=DEVNULL,
+                                        before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')
+        source = discord.PCMVolumeTransformer(source)
+        return source
 
     async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
         info = YoutubeDL({'quiet': True}).extract_info(song.url, download=False)
-        return await channel.send(embed=create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url']))
+        return await channel.send(
+            embed=create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
+        )
 
-    async def search(self, argv: list, msg: discord.Message = None, return_to_user=True):
-        if urlparse(argv[0]).scheme != '':
-            return argv[0]
+    async def search(self, args: tuple, msg: discord.Message, return_to_user=True):
+        if urlparse(args[0]).scheme != '':
+            return args[0]
 
-        search = SearchVideos(' '.join(argv), max_results=5, mode='dict')
+        search = SearchVideos(' '.join(args), max_results=5, mode='dict')
         links = [i['link'] for i in search.result()['search_result']]
 
         if return_to_user:
@@ -120,7 +118,7 @@ class Music:
 
         return links[0]
 
-    async def join(self, argv: list, msg: discord.Message):
+    async def join(self, args: tuple, msg: discord.Message):
         voice = msg.author.voice
         if voice:
             voice_clients = [i.guild.id for i in self.__client.voice_clients]
@@ -133,7 +131,7 @@ class Music:
             embed = create_embed('Connect to a voice channel first')
             await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def leave(self, argv: list, msg: discord.Message):
+    async def leave(self, args: tuple, msg: discord.Message):
         instance = self.get_voice_instance(msg, self.__client)
         if instance:
             await instance.disconnect()
@@ -141,20 +139,20 @@ class Music:
             embed = create_embed('I am not connected to a voice channel yet!')
             await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def play(self, argv: list, msg: discord.Message, repeat=True, skipped=True):
+    async def play(self, args: tuple, msg: discord.Message, repeat=True, skipped=True):
         instance = self.get_voice_instance(msg, self.__client)
 
         if instance:
             this_queue = self.__queues[msg.guild.id]
 
-            if not this_queue and not argv:
+            if not this_queue and not args:
                 embed = create_embed('Please specify a url/title of a track you want to play')
                 await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
                 return -1
 
             instance = self.get_voice_instance(msg, self.__client)
-            if argv:
-                url = await self.search(argv, return_to_user=False)
+            if args:
+                url = await self.search(args, msg, return_to_user=False)
                 info = YoutubeDL({'quiet': True}).extract_info(url, download=False)
                 this_queue.add_song(info['title'], url, msg.author.mention)
 
@@ -178,10 +176,10 @@ class Music:
                         await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
                         return -1
 
-                loop = get_running_loop()
-                source = await self.create_ytdl_source(song.url, f'downloads/{msg.guild.id}')
+                loop = asyncio.get_running_loop()
+                source = await self.create_ytdl_source(song.url)
                 notification = await self.now_playing(msg.channel, song)
-                instance.play(source, after=lambda e: self.__after([], msg, loop, notification))
+                instance.play(source, after=lambda e: self.__after(tuple(), msg, loop, notification))
 
                 if skipped:
                     this_queue.play_after = True
@@ -190,18 +188,18 @@ class Music:
                 embed = create_embed(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`')
                 await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
         elif repeat:
-            await self.join([], msg)
-            await self.play(argv, msg, repeat=False)
+            await self.join(tuple(), msg)
+            await self.play(args, msg, repeat=False)
 
-    def __after(self, argv, msg, loop, notification):
+    def __after(self, argv: tuple, msg: discord.Message, loop: asyncio.AbstractEventLoop, notification: discord.Message):
         queue = self.__queues[msg.guild.id]
         if queue.play_after:
-            run_coroutine_threadsafe(self.play(argv, msg), loop)
-        run_coroutine_threadsafe(notification.delete(), loop)
+            asyncio.run_coroutine_threadsafe(self.play(argv, msg), loop)
+        asyncio.run_coroutine_threadsafe(notification.delete(), loop)
 
-    async def queue(self, argv: list, msg: discord.Message):
-        if argv:
-            url = await self.search(argv, return_to_user=False)
+    async def queue(self, args: tuple, msg: discord.Message):
+        if args:
+            url = await self.search(args, return_to_user=False)
             info = YoutubeDL({'quiet': True}).extract_info(url, download=False)
             self.__queues[msg.guild.id].add_song(info['title'], url, msg.author.mention)
 
@@ -215,21 +213,21 @@ class Music:
                 embed = create_embed(desc, title='Current playlist:')
                 await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def stop(self, argv: list, msg: discord.Message):
+    async def stop(self, args: tuple, msg: discord.Message):
         instance = self.get_voice_instance(msg, self.__client)
         queue = self.__queues[msg.guild.id]
         queue.play_after = False
 
         if instance:
             instance.stop()
-            await sleep(0.5)
+            await asyncio.sleep(0.5)
             queue.play_after = True
             queue.now_playing = -1
         else:
             embed = create_embed('I am not connected to a voice channel yet')
             await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def pause(self, argv: list, msg: discord.Message):
+    async def pause(self, args: tuple, msg: discord.Message):
         instance = self.get_voice_instance(msg, self.__client)
 
         if instance:
@@ -242,7 +240,7 @@ class Music:
             embed = create_embed('I am not connected to a voice channel yet')
             await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def resume(self, argv: list, msg: discord.Message):
+    async def resume(self, args: tuple, msg: discord.Message):
         instance = self.get_voice_instance(msg, self.__client)
 
         if instance:
@@ -255,7 +253,7 @@ class Music:
             embed = create_embed('I am not connected to a voice channel yet')
             await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def clear(self, argv: list, msg: discord.Message):
+    async def clear(self, args: tuple, msg: discord.Message):
         queue = self.__queues[msg.guild.id]
         for _ in range(len(queue)):
             queue.remove_song(0)
@@ -263,14 +261,14 @@ class Music:
         embed = create_embed('Queue has been successfully cleared')
         await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def repeat(self, argv: list, msg: discord.Message):
+    async def repeat(self, args: tuple, msg: discord.Message):
         queue = self.__queues[msg.guild.id]
         queue.repeat = not queue.repeat
 
         embed = create_embed('Queue repeating has been successfully ' + ['disabled', 'enabled'][queue.repeat])
         await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
-    async def skip(self, argv, msg):
+    async def skip(self, args: tuple, msg: discord.Message):
         instance = self.get_voice_instance(msg, self.__client)
 
         if not instance:
@@ -281,5 +279,5 @@ class Music:
         if instance.is_playing():
             instance.stop()
             self.__queues[msg.guild.id].play_after = False
-            await sleep(0.5)
-            await self.play([], msg, skipped=True)
+            await asyncio.sleep(0.5)
+            await self.play(tuple(), msg, skipped=True)
