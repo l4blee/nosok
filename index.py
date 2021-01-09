@@ -28,7 +28,7 @@ async def on_message(msg):
             )
         else:
             cmd_type = [i[0] for i in commands.CMDS_BY_TYPES.items() if cmd in i[1]][0]
-            await eval(f'{["commands", "music"][cmd_type == "music"]}.{cmd}(args, msg)')
+            await eval(f'{cmd_type}.{cmd}(args, msg)')
 
 
 @client.event

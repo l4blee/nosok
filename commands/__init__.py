@@ -4,7 +4,7 @@ from .music import *
 
 
 CMDS_BY_TYPES = {
-    'ext': (
+    'commands': (
         'help',
         'set_prefix'
     ),
