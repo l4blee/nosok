@@ -287,7 +287,7 @@ class MusicClient:
         queue.repeat = not queue.repeat
 
         await msg.channel.send(
-            embed=utils.create_embed('Queue repeating has been successfully ' + ['disabled', 'enabled'][queue.repeat]),
+            embed=utils.create_embed(f'Queue repeating has been successfully `{["disabled", "enabled"][queue.repeat]}`'),
             delete_after=WAIT_UNTIL_DELETE
         )
 
@@ -322,6 +322,6 @@ class MusicClient:
             instance.source.volume = new_volume
         else:
             await msg.channel.send(
-                embed=utils.create_embed('Volume level must be between 0 and 100, not {0}'.format(new_volume)),
+                embed=utils.create_embed('Volume level must be between 0 and 100, not `{0}`'.format(new_volume)),
                 delete_after=WAIT_UNTIL_DELETE
             )
