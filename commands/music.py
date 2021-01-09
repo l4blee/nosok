@@ -4,7 +4,7 @@ from youtubesearchpython import SearchVideos
 import discord
 from collections import defaultdict
 import asyncio
-from utils import get_prefix, create_embed
+from commands import utils
 from urllib.parse import urlparse
 from subprocess import DEVNULL
 
@@ -60,21 +60,8 @@ class SongQueue:
         return len(self.__queue)
 
 
-class Music:
+class MusicClient:
     __queues = defaultdict(SongQueue)
-    CMDS = {
-        'play',
-        'join',
-        'leave',
-        'stop',
-        'search',
-        'queue',
-        'repeat',
-        'pause',
-        'resume',
-        'clear',
-        'skip'
-    }
 
     ytdl_opts = {
         'format': 'bestaudio/best',
@@ -105,7 +92,7 @@ class Music:
     async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
         info = YoutubeDL(self.ytdl_opts).extract_info(song.url, download=False)
         return await channel.send(
-            embed=create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
+            embed=utils.create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
         )
 
     async def search(self, args: tuple, msg: discord.Message, return_to_user=True):
@@ -116,7 +103,7 @@ class Music:
         links = [i['link'] for i in search.result()['search_result']]
 
         if return_to_user:
-            await msg.channel.send(embed=create_embed('\n'.join(links)), delete_after=WAIT_UNTIL_DELETE)
+            await msg.channel.send(embed=utils.create_embed('\n'.join(links)), delete_after=WAIT_UNTIL_DELETE)
 
         return links[0]
 
@@ -126,14 +113,14 @@ class Music:
             voice_clients = [i.guild.id for i in self.__client.voice_clients]
             if msg.guild.id in voice_clients:
                 await msg.channel.send(
-                    embed=create_embed('I am already connected to a voice channel!'),
+                    embed=utils.create_embed('I am already connected to a voice channel!'),
                     delete_after=WAIT_UNTIL_DELETE
                 )
             else:
                 await voice.channel.connect()
         else:
             await msg.channel.send(
-                embed=create_embed('Connect to a voice channel first'),
+                embed=utils.create_embed('Connect to a voice channel first'),
                 delete_after=WAIT_UNTIL_DELETE
             )
 
@@ -143,7 +130,7 @@ class Music:
             await instance.disconnect()
         else:
             await msg.channel.send(
-                embed=create_embed('I am not connected to a voice channel yet!'),
+                embed=utils.create_embed('I am not connected to a voice channel yet!'),
                 delete_after=WAIT_UNTIL_DELETE
             )
 
@@ -155,7 +142,7 @@ class Music:
 
             if not this_queue and not args:
                 await msg.channel.send(
-                    embed=create_embed('Please specify a url/title of a track you want to play'),
+                    embed=utils.create_embed('Please specify a url/title of a track you want to play'),
                     delete_after=WAIT_UNTIL_DELETE
                 )
                 return -1
@@ -168,7 +155,7 @@ class Music:
 
                 if instance.is_playing():
                     await msg.channel.send(
-                        embed=create_embed(f'Queued [{info["title"]}]({url})'),
+                        embed=utils.create_embed(f'Queued [{info["title"]}]({url})'),
                         delete_after=WAIT_UNTIL_DELETE
                     )
 
@@ -180,13 +167,13 @@ class Music:
                 if not isinstance(song, QueueElement):
                     if song is None:
                         await msg.channel.send(
-                            embed=create_embed('Queue is empty, add something'),
+                            embed=utils.create_embed('Queue is empty, add something'),
                             delete_after=WAIT_UNTIL_DELETE)
                         return -1
                     elif isinstance(song, str):
-                        prefix = get_prefix(msg)
+                        prefix = utils.get_prefix(msg)
                         await msg.channel.send(
-                            embed=create_embed(f'Use command `{prefix}repeat` to enable queue repeating'),
+                            embed=utils.create_embed(f'Use command `{prefix}repeat` to enable queue repeating'),
                             delete_after=WAIT_UNTIL_DELETE
                         )
                         return -1
@@ -200,9 +187,9 @@ class Music:
                     this_queue.play_after = True
 
             elif instance.is_paused():
-                prefix = get_prefix(msg)
+                prefix = utils.get_prefix(msg)
                 await msg.channel.send(
-                    embed=create_embed(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`'),
+                    embed=utils.create_embed(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`'),
                     delete_after=WAIT_UNTIL_DELETE
                 )
 
@@ -224,14 +211,14 @@ class Music:
             self.__queues[msg.guild.id].add_song(info['title'], url, msg.author.mention)
 
             await msg.channel.send(
-                embed=create_embed(f'Queued [{info["title"]}]({url})'),
+                embed=utils.create_embed(f'Queued [{info["title"]}]({url})'),
                 delete_after=WAIT_UNTIL_DELETE
             )
         else:
             desc = '\n'.join([f'[{song.title}]({song.url}) [{song.added_by}]' for song in self.__queues[msg.guild.id]])
 
             await msg.channel.send(
-                embed=create_embed(desc, title='Current playlist:'),
+                embed=utils.create_embed(desc, title='Current playlist:'),
                 delete_after=WAIT_UNTIL_DELETE
             )
 
@@ -247,7 +234,7 @@ class Music:
             queue.now_playing = -1
         else:
             await msg.channel.send(
-                embed=create_embed('I am not connected to a voice channel yet'),
+                embed=utils.create_embed('I am not connected to a voice channel yet'),
                 delete_after=WAIT_UNTIL_DELETE
             )
 
@@ -257,14 +244,14 @@ class Music:
         if instance:
             if instance.is_paused():
                 await msg.channel.send(
-                    embed=create_embed('Audio is already paused'),
+                    embed=utils.create_embed('Audio is already paused'),
                     delete_after=WAIT_UNTIL_DELETE
                 )
             else:
                 instance.pause()
         else:
             await msg.channel.send(
-                embed=create_embed('I am not connected to a voice channel yet'),
+                embed=utils.create_embed('I am not connected to a voice channel yet'),
                 delete_after=WAIT_UNTIL_DELETE
             )
 
@@ -274,14 +261,14 @@ class Music:
         if instance:
             if instance.is_playing():
                 await msg.channel.send(
-                    embed=create_embed('Audio is already playing'),
+                    embed=utils.create_embed('Audio is already playing'),
                     delete_after=WAIT_UNTIL_DELETE
                 )
             else:
                 instance.resume()
         else:
             await msg.channel.send(
-                embed=create_embed('I am not connected to a voice channel yet'),
+                embed=utils.create_embed('I am not connected to a voice channel yet'),
                 delete_after=WAIT_UNTIL_DELETE
             )
 
@@ -291,7 +278,7 @@ class Music:
             queue.remove_song(0)
 
         await msg.channel.send(
-            embed=create_embed('Queue has been successfully cleared'),
+            embed=utils.create_embed('Queue has been successfully cleared'),
             delete_after=WAIT_UNTIL_DELETE
         )
 
@@ -300,7 +287,7 @@ class Music:
         queue.repeat = not queue.repeat
 
         await msg.channel.send(
-            embed=create_embed('Queue repeating has been successfully ' + ['disabled', 'enabled'][queue.repeat]),
+            embed=utils.create_embed('Queue repeating has been successfully ' + ['disabled', 'enabled'][queue.repeat]),
             delete_after=WAIT_UNTIL_DELETE
         )
 
@@ -309,7 +296,7 @@ class Music:
 
         if not instance:
             await msg.channel.send(
-                embed=create_embed('I am not connected to a voice channel yet'),
+                embed=utils.create_embed('I am not connected to a voice channel yet'),
                 delete_after=WAIT_UNTIL_DELETE
             )
             return -1
@@ -325,7 +312,7 @@ class Music:
 
         if not instance:
             await msg.channel.send(
-                embed=create_embed('I am not connected to a voice channel yet'),
+                embed=utils.create_embed('I am not connected to a voice channel yet'),
                 delete_after=WAIT_UNTIL_DELETE
             )
             return -1
@@ -333,7 +320,7 @@ class Music:
         new_volume = args[0] / 100
         if 0 < new_volume < 100:
             await msg.channel.send(
-                embed=create_embed('Volume level must be between 0 and 100, not {0}'.format(new_volume)),
+                embed=utils.create_embed('Volume level must be between 0 and 100, not {0}'.format(new_volume)),
                 delete_after=WAIT_UNTIL_DELETE
             )
         instance.source.volume = new_volume

@@ -8,5 +8,6 @@
   "stop": "Stops the bot from playing music",
   "pause": "Pauses current playing track",
   "resume": "Resumes current playing track",
-  "clear": "Clears current playlist"
+  "clear": "Clears current playlist",
+  "volume": "Sets the bot's volume level"
 }
