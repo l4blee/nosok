@@ -317,11 +317,11 @@ class MusicClient:
             )
             return -1
 
-        new_volume = int(args[0]) / 100
-        if 0 < new_volume < 1:
-            instance.source.volume = new_volume
+        volume = int(args[0])
+        if 0 < volume <= 100:
+            instance.source.volume = volume / 100
         else:
             await msg.channel.send(
-                embed=utils.create_embed('Volume level must be between 0 and 100, not `{0}`'.format(new_volume)),
+                embed=utils.create_embed('Volume level must be between 0 and 100, not `{0}`'.format(volume)),
                 delete_after=WAIT_UNTIL_DELETE
             )
