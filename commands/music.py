@@ -127,6 +127,8 @@ class MusicClient:
     async def leave(self, args: tuple, msg: Union[discord.Message, discord.Member]):
         instance = self.get_voice_instance(msg.guild.id, self.__client)
         if instance:
+            if instance.is_playing():
+                await self.stop(args, msg)
             await instance.disconnect()
         else:
             await msg.channel.send(
@@ -318,10 +320,10 @@ class MusicClient:
             return -1
 
         volume = int(args[0])
-        if 0 < volume <= 100:
+        if 0 <= volume <= 100:
             instance.source.volume = volume / 100
         else:
             await msg.channel.send(
-                embed=utils.create_embed('Volume level must be between 0 and 100, not `{0}`'.format(volume)),
+                embed=utils.create_embed('Volume level must be between `0` and `100`, not `{0}`'.format(volume)),
                 delete_after=WAIT_UNTIL_DELETE
             )
