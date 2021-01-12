@@ -1,13 +1,15 @@
 {
   "help": "Shows the list of available commands",
-  "set_prefix": "Sets bot's prefix for current server",
+  "set_prefix {prefix}": "Sets bot's prefix for current server",
   "join": "Makes the bot join the voice channel you're in",
   "leave": "Makes the bot leave the voice channel he's in on this server",
-  "play {url}/{title}": "Makes the bot play music from youtube.com",
+  "play {url/title}": "Makes the bot play music from youtube",
   "search {title}": "Searching for a song on youtube",
+  "queue <title/url>": "Shows current playlist or adds a new track to it",
   "stop": "Stops the bot from playing music",
   "pause": "Pauses current playing track",
   "resume": "Resumes current playing track",
   "clear": "Clears current playlist",
-  "volume": "Sets the bot's volume level"
+  "volume {volume level}": "Sets the bot's volume level",
+  "remove {index}": "Removes a specified track from the queue"
 }

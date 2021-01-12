@@ -5,6 +5,7 @@ import commands
 
 client = discord.Client()
 music = commands.MusicClient(client)
+WAIT_UNTIL_DELETE = float(getenv('WAIT_UNTIL_DELETE'))
 
 
 @client.event
@@ -14,7 +15,7 @@ async def on_ready():
 
 @client.event
 async def on_message(msg):
-    prefix = commands.utils.get_prefix(msg)
+    prefix = commands.utils.get_prefix(msg.guild.id)
     if msg.content.startswith(prefix) and msg.author.id is not client.user.id:
         cmd, *args = msg.content[len(prefix):].split(' ')
         cmd = cmd.lower()
@@ -24,7 +25,8 @@ async def on_message(msg):
         if cmd not in commands.CMDS:
             await msg.channel.send(
                 embed=commands.utils.create_embed(f'There is no such a command.'
-                                                  f' Type `{prefix}help` to get a list of available commands.')
+                                                  f' Type `{prefix}help` to get a list of available commands.'),
+                delete_after=WAIT_UNTIL_DELETE
             )
         else:
             cmd_type = [i[0] for i in commands.CMDS_BY_TYPES.items() if cmd in i[1]][0]

@@ -1,15 +1,10 @@
-from json import load
+import json
 from discord import Embed, Colour
 
 
-def get_prefix(msg):
-    id = msg.guild.id
+def get_prefix(guild_id):
     with open('config/servers.json', 'r') as file:
-        cfg = load(file)
-        if str(id) in cfg.keys() and 'prefix' in cfg[str(id)]:
-            return cfg[str(id)]['prefix']
-        else:
-            return '!'
+        return json.load(file).get(str(guild_id)).get('prefix') or '!'
 
 
 def create_embed(content: str, title: str = None, thumbnail: str = None):

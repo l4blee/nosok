@@ -7,8 +7,9 @@ import asyncio
 from commands import utils
 from urllib.parse import urlparse
 from subprocess import DEVNULL
+from os import getenv
 
-WAIT_UNTIL_DELETE = float(5)
+WAIT_UNTIL_DELETE = float(getenv('WAIT_UNTIL_DELETE'))
 
 
 class QueueElement:
@@ -35,8 +36,10 @@ class SongQueue:
         self.__queue.append(song)
 
     def remove_song(self, index: int):
-        if index < len(self.__queue):
-            del self.__queue[index]
+        if 0 <= index < len(self.__queue):
+            return self.__queue.pop(index)
+        else:
+            return -1
 
     def __next__(self):
         if not self.__queue:
@@ -71,9 +74,6 @@ class MusicClient:
     def __init__(self, client):
         self.__client = client
 
-    async def main(self, args: tuple, msg: discord.Message, command: str):
-        await eval(f'self.{command}(args, msg)')
-
     @staticmethod
     def get_voice_instance(guild_id: discord.Guild.id, client: discord.client):
         for voice_client in client.voice_clients:
@@ -82,7 +82,7 @@ class MusicClient:
         else:
             return None
 
-    async def create_ytdl_source(self, source_url: str):
+    def create_ytdl_source(self, source_url: str):
         url = YoutubeDL(self.ytdl_opts).extract_info(source_url, download=False)['formats'][0]['url']
         return discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(
             url, stderr=DEVNULL,
@@ -138,6 +138,7 @@ class MusicClient:
 
     async def play(self, args: tuple, msg: discord.Message, repeat=True, skipped=True):
         instance = self.get_voice_instance(msg.guild.id, self.__client)
+        prefix = utils.get_prefix(msg.guild.id)
 
         if instance:
             this_queue = self.__queues[msg.guild.id]
@@ -173,7 +174,6 @@ class MusicClient:
                             delete_after=WAIT_UNTIL_DELETE)
                         return -1
                     elif isinstance(song, str):
-                        prefix = utils.get_prefix(msg)
                         await msg.channel.send(
                             embed=utils.create_embed(f'Use command `{prefix}repeat` to enable queue repeating'),
                             delete_after=WAIT_UNTIL_DELETE
@@ -181,7 +181,7 @@ class MusicClient:
                         return -1
 
                 loop = asyncio.get_running_loop()
-                source = await self.create_ytdl_source(song.url)
+                source = self.create_ytdl_source(song.url)
                 notification = await self.now_playing(msg.channel, song)
                 instance.play(source, after=lambda e: self.__after(tuple(), msg, loop, notification))
 
@@ -189,7 +189,6 @@ class MusicClient:
                     this_queue.play_after = True
 
             elif instance.is_paused():
-                prefix = utils.get_prefix(msg)
                 await msg.channel.send(
                     embed=utils.create_embed(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`'),
                     delete_after=WAIT_UNTIL_DELETE
@@ -217,7 +216,10 @@ class MusicClient:
                 delete_after=WAIT_UNTIL_DELETE
             )
         else:
-            desc = '\n'.join([f'[{song.title}]({song.url}) [{song.added_by}]' for song in self.__queues[msg.guild.id]])
+            queue = self.__queues[msg.guild.id]
+            desc = str()
+            for index, song in zip(range(1, len(queue) + 1), queue):
+                desc += f'{index}. [{song.title}]({song.url}) [{song.added_by}]\n'
 
             await msg.channel.send(
                 embed=utils.create_embed(desc, title='Current playlist:'),
@@ -325,5 +327,26 @@ class MusicClient:
         else:
             await msg.channel.send(
                 embed=utils.create_embed('Volume level must be between `0` and `100`, not `{0}`'.format(volume)),
+                delete_after=WAIT_UNTIL_DELETE
+            )
+
+    async def remove(self, args, msg):
+        if not args or not args[0].isnumeric():
+            await msg.channel.send(
+                embed=utils.create_embed('Please specify the track you want to remove form the queue'),
+                delete_after=WAIT_UNTIL_DELETE
+            )
+            return -1
+
+        queue = self.__queues[msg.guild.id]
+        res = queue.remove_song(int(args[0]) - 1)
+        if res == -1:
+            await msg.channel.send(
+                embed=utils.create_embed('Please specify index of a track in the queue'),
+                delete_after=WAIT_UNTIL_DELETE
+            )
+        else:
+            await msg.channel.send(
+                embed=utils.create_embed(f'[{res.title}]({res.url}) has been successfully removed form the queue'),
                 delete_after=WAIT_UNTIL_DELETE
             )

@@ -20,7 +20,8 @@ CMDS_BY_TYPES = {
         'resume',
         'clear',
         'skip',
-        'volume'
+        'volume',
+        'remove'
     )
 }
 

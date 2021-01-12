@@ -1,10 +1,13 @@
-from .utils import get_prefix
+from commands import utils
 import json
 import discord
+from os import getenv
+
+WAIT_UNTIL_DELETE = float(getenv('WAIT_UNTIL_DELETE'))
 
 
 async def help(args, msg):
-    prefix = get_prefix(msg)
+    prefix = utils.get_prefix(msg.guild.id)
 
     with open('./config/descriptions.json', 'r') as f:
         cmds = json.load(f)
@@ -14,11 +17,15 @@ async def help(args, msg):
     embed.set_thumbnail(url='https://clck.ru/SVDqZ')
     for cmd in cmds.keys():
         embed.add_field(name=f'`{prefix}{cmd}`', value=cmds[cmd], inline=False)
-    await msg.channel.send(embed=embed)
+    await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
 
 
 async def set_prefix(args, msg):
     new_prefix = args[0]
+    if not new_prefix:
+        await msg.channel.send('Please specify the prefix you want to set', delete_after=WAIT_UNTIL_DELETE)
+        return -1
+
     guild_id = msg.guild.id
     with open('./config/servers.json', 'r') as f:
         cfg = json.load(f)
@@ -28,4 +35,4 @@ async def set_prefix(args, msg):
     with open('./config/servers.json', 'w') as f:
         json.dump(cfg, f, indent=4)
 
-    await msg.channel.send(f'Prefix has been successfully changed to `{new_prefix}`')
+    await msg.channel.send(f'Prefix has been successfully changed to `{new_prefix}`', delete_after=WAIT_UNTIL_DELETE)
