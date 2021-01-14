@@ -10,6 +10,10 @@ from subprocess import DEVNULL
 from os import getenv
 
 WAIT_UNTIL_DELETE = float(getenv('WAIT_UNTIL_DELETE'))
+YTDL_OPTS = {
+    'format': 'worstaudio/worst',
+    'quiet': True
+}
 
 
 class QueueElement:
@@ -49,7 +53,7 @@ class SongQueue:
         if self.now_playing >= len(self.__queue):
             self.now_playing = -1
             if not self.repeat:
-                return str()
+                return -1
 
         return self.__queue[self.now_playing]
 
@@ -66,11 +70,6 @@ class SongQueue:
 class MusicClient:
     __queues = defaultdict(SongQueue)
 
-    ytdl_opts = {
-        'format': 'bestaudio/best',
-        'quiet': True
-    }
-
     def __init__(self, client):
         self.__client = client
 
@@ -82,18 +81,14 @@ class MusicClient:
         else:
             return None
 
-    def create_ytdl_source(self, source_url: str):
-        url = YoutubeDL(self.ytdl_opts).extract_info(source_url, download=False)['formats'][0]['url']
+    @staticmethod
+    def create_ytdl_source(source_url: str):
+        info = YoutubeDL(YTDL_OPTS).extract_info(source_url, download=False)
         return discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(
-            url, stderr=DEVNULL,
+            info['formats'][0]['url'],
+            stderr=DEVNULL,
             before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')
-        )
-
-    async def now_playing(self, channel: discord.TextChannel, song: QueueElement):
-        info = YoutubeDL(self.ytdl_opts).extract_info(song.url, download=False)
-        return await channel.send(
-            embed=utils.create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
-        )
+        ), info
 
     async def search(self, args: tuple, msg: discord.Message, return_to_user=True):
         if urlparse(args[0]).scheme != '':
@@ -153,7 +148,7 @@ class MusicClient:
             instance = self.get_voice_instance(msg.guild.id, self.__client)
             if args:
                 url = await self.search(args, msg, return_to_user=False)
-                info = YoutubeDL(self.ytdl_opts).extract_info(url, download=False)
+                info = YoutubeDL(YTDL_OPTS).extract_info(url, download=False)
                 this_queue.add_song(info['title'], url, msg.author.mention)
 
                 if instance.is_playing():
@@ -173,7 +168,7 @@ class MusicClient:
                             embed=utils.create_embed('Queue is empty, add something'),
                             delete_after=WAIT_UNTIL_DELETE)
                         return -1
-                    elif isinstance(song, str):
+                    elif song == -1:
                         await msg.channel.send(
                             embed=utils.create_embed(f'Use command `{prefix}repeat` to enable queue repeating'),
                             delete_after=WAIT_UNTIL_DELETE
@@ -181,9 +176,11 @@ class MusicClient:
                         return -1
 
                 loop = asyncio.get_running_loop()
-                source = self.create_ytdl_source(song.url)
-                notification = await self.now_playing(msg.channel, song)
-                instance.play(source, after=lambda e: self.__after(tuple(), msg, loop, notification))
+                source, info = self.create_ytdl_source(song.url)
+                notification = await msg.channel.send(
+                    embed=utils.create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
+                )
+                instance.play(source, after=lambda e: self.__after(msg, loop, notification))
 
                 if skipped:
                     this_queue.play_after = True
@@ -198,17 +195,16 @@ class MusicClient:
             await self.join(tuple(), msg)
             await self.play(args, msg, repeat=False)
 
-    def __after(self, argv: tuple, msg: discord.Message, loop: asyncio.AbstractEventLoop,
-                notification: discord.Message):
-        queue = self.__queues[msg.guild.id]
-        if queue.play_after:
-            asyncio.run_coroutine_threadsafe(self.play(argv, msg), loop)
+    def __after(self, msg: discord.Message, loop: asyncio.AbstractEventLoop, notification: discord.Message):
+        if self.__queues[msg.guild.id].play_after:
+            asyncio.run_coroutine_threadsafe(self.play(tuple(), msg), loop)
+
         asyncio.run_coroutine_threadsafe(notification.delete(), loop)
 
     async def queue(self, args: tuple, msg: discord.Message):
         if args:
             url = await self.search(args, msg, return_to_user=False)
-            info = YoutubeDL(self.ytdl_opts).extract_info(url, download=False)
+            info = YoutubeDL(YTDL_OPTS).extract_info(url, download=False)
             self.__queues[msg.guild.id].add_song(info['title'], url, msg.author.mention)
 
             await msg.channel.send(
