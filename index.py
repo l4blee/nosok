@@ -34,7 +34,7 @@ async def join(args: list, msg: discord.Message):
 
 
 @music.command(aliases=['l'])
-async def leave(args: tuple, msg: Union[discord.Message, discord.Member]):
+async def leave(args: list, msg: Union[discord.Message, discord.Member]):
     instance = music.get_voice_instance(msg.guild.id)
     if instance:
         if instance.is_playing():
@@ -46,7 +46,6 @@ async def leave(args: tuple, msg: Union[discord.Message, discord.Member]):
             delete_after=DELETE_DELAY)
 
 
-@music.command()
 async def search(args: list, msg: discord.Message):
     if urlparse(args[0]).scheme != '':
         return args[0]
@@ -140,11 +139,11 @@ async def stop(args: list, msg: discord.Message):
 
 
 @music.command(aliases=['q'])
-async def queue(args: tuple, msg: discord.Message):
+async def queue(args: list, msg: discord.Message):
     current_queue = music.queues[msg.guild.id]
 
     if args:
-        url = await search(args, msg, return_to_user=False)
+        url = await search(args, msg)
         info = YoutubeDL(music.YTDL_OPTS).extract_info(url, download=False)
         current_queue.add_song(info['title'], url, msg.author.mention)
 
@@ -162,7 +161,7 @@ async def queue(args: tuple, msg: discord.Message):
 
 
 @music.command(aliases=['c'])
-async def clear(args: tuple, msg: discord.Message):
+async def clear(args: list, msg: discord.Message):
     queue = music.queues[msg.guild.id]
     for _ in range(len(queue)):
         queue.remove_song(0)
@@ -173,7 +172,7 @@ async def clear(args: tuple, msg: discord.Message):
 
 
 @music.command(aliases=['rm'])
-async def remove(args, msg):
+async def remove(args: list, msg: discord.Message):
     if not args or not args[0].isnumeric():
         await msg.channel.send(
             embed=utils.create_embed('Please specify the track you want to remove form the queue'),
@@ -192,7 +191,7 @@ async def remove(args, msg):
 
 
 @music.command()
-async def skip(args: tuple, msg: discord.Message):
+async def skip(args: list, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
 
     if not instance:
@@ -209,7 +208,7 @@ async def skip(args: tuple, msg: discord.Message):
 
 
 @music.command(aliases=['rep'])
-async def repeat(args: tuple, msg: discord.Message):
+async def repeat(args: list, msg: discord.Message):
     queue = music.queues[msg.guild.id]
     queue.repeat = not queue.repeat
 
@@ -219,7 +218,7 @@ async def repeat(args: tuple, msg: discord.Message):
 
 
 @music.command()
-async def pause(args: tuple, msg: discord.Message):
+async def pause(args: list, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
 
     if instance:
@@ -236,7 +235,7 @@ async def pause(args: tuple, msg: discord.Message):
 
 
 @music.command(aliases=['res'])
-async def resume(args: tuple, msg: discord.Message):
+async def resume(args: list, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
 
     if instance:
@@ -253,7 +252,7 @@ async def resume(args: tuple, msg: discord.Message):
 
 
 @music.command(aliases=['vol'])
-async def volume(args: tuple, msg: discord.Message):
+async def volume(args: list, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
 
     if not instance:

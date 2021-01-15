@@ -8,8 +8,9 @@ DELETE_DELAY = float(getenv('DELETE_DELAY'))
 
 async def help(args, msg):
     prefix = utils.get_prefix(msg.guild.id)
+    lang = args[0] if args else 'en'
 
-    with open('./config/descriptions.json', 'r') as f:
+    with open('./config/descriptions.json', 'r', encoding='utf-8') as f:
         cmds = json.load(f)
 
     embed = discord.Embed(colour=discord.Colour.from_rgb(209, 178, 25))
@@ -17,6 +18,7 @@ async def help(args, msg):
     embed.set_thumbnail(url='https://clck.ru/SVDqZ')
     for cmd in cmds.keys():
         desc, aliases = cmds[cmd]
+        desc = desc[lang]
         aliases = [f'`{prefix}{i}`' for i in aliases]
         value = desc + ('\n`Aliases:` ' + ', '.join(aliases) if aliases else '')
         embed.add_field(name=f'`{prefix}{cmd}`', value=value, inline=False)
