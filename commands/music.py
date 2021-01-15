@@ -1,15 +1,11 @@
-from typing import Union
 from youtube_dl import YoutubeDL
-from youtubesearchpython import SearchVideos
 import discord
 from collections import defaultdict
 import asyncio
-from commands import utils
-from urllib.parse import urlparse
 from subprocess import DEVNULL
 from os import getenv
 
-DELETE_DELAY = float(getenv('WAIT_UNTIL_DELETE'))
+DELETE_DELAY = float(getenv('DELETE_DELAY'))
 YTDL_OPTS = {
     'format': 'worstaudio/worst',
     'quiet': True
@@ -21,9 +17,6 @@ class QueueElement(object):
         self.title = title
         self.url = url
         self.added_by = added_by
-
-    def __repr__(self):
-        return str(self.title)
 
 
 class SongQueue(object):
@@ -42,6 +35,8 @@ class SongQueue(object):
     def remove_song(self, index: int):
         if 0 <= index < len(self.__queue):
             return self.__queue.pop(index)
+        else:
+            raise IndexError('Incorrect index given')
 
     def __next__(self):
         if not self.__queue:
@@ -55,35 +50,31 @@ class SongQueue(object):
 
         return self.__queue[self.now_playing]
 
-    def __getitem__(self, item):
-        return self.__queue[item]
-
-    def __repr__(self):
-        return ' '.join(str(i) for i in self.__queue)
-
     def __len__(self):
         return len(self.__queue)
 
 
 class MusicClient(object):
-    queues = defaultdict(SongQueue)
-
     def __init__(self, client, ytdl_opts: dict = None):
         self.YTDL_OPTS = ytdl_opts
         self.client = client
+        self.aliases = defaultdict(list)
+        self.commands = list()
+        self.queues = defaultdict(SongQueue)
 
-    def command(self, alts: list = None):
-        alts = alts or list()
+    def command(self, aliases: list = None):
+        aliases = aliases or list()
 
-        def wrapper(coro):
+        def decorator(coro):
             if not asyncio.iscoroutinefunction(coro):
                 raise TypeError('Provided function must be a coroutine')
 
             setattr(self, coro.__name__, coro)
-            for name in alts:
+            for name in aliases:
                 setattr(self, name, coro)
 
-        return wrapper
+            return coro
+        return decorator
 
     def get_voice_instance(self, guild_id: discord.Guild.id):
         for voice_client in self.client.voice_clients:

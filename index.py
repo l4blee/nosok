@@ -14,10 +14,10 @@ music = commands.MusicClient(client, ytdl_opts={
     'quiet': True
 })
 
-DELETE_DELAY = float(getenv('WAIT_UNTIL_DELETE'))
+DELETE_DELAY = float(getenv('DELETE_DELAY'))
 
 # ---- Defining music commands ----
-@music.command(alts=['j'])
+@music.command(aliases=['j'])
 async def join(args: list, msg: discord.Message):
     if msg.author.voice:
         if msg.guild.id in [i.guild.id for i in client.voice_clients]:
@@ -33,7 +33,7 @@ async def join(args: list, msg: discord.Message):
         )
 
 
-@music.command(alts=['l'])
+@music.command(aliases=['l'])
 async def leave(args: tuple, msg: Union[discord.Message, discord.Member]):
     instance = music.get_voice_instance(msg.guild.id)
     if instance:
@@ -57,7 +57,7 @@ async def search(args: list, msg: discord.Message):
     return links[0]
 
 
-@music.command(alts=['pl', 'p'])
+@music.command(aliases=['pl', 'p'])
 async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
     instance = music.get_voice_instance(msg.guild.id)
     prefix = utils.get_prefix(msg.guild.id)
@@ -123,7 +123,7 @@ def after_play(msg: discord.Message, loop: asyncio.AbstractEventLoop, notificati
     asyncio.run_coroutine_threadsafe(notification.delete(), loop)
 
 
-@music.command(alts=['st'])
+@music.command(aliases=['st'])
 async def stop(args: list, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
     queue = music.queues[msg.guild.id]
@@ -139,7 +139,7 @@ async def stop(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(alts=['q'])
+@music.command(aliases=['q'])
 async def queue(args: tuple, msg: discord.Message):
     current_queue = music.queues[msg.guild.id]
 
@@ -161,7 +161,7 @@ async def queue(args: tuple, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(alts=['c'])
+@music.command(aliases=['c'])
 async def clear(args: tuple, msg: discord.Message):
     queue = music.queues[msg.guild.id]
     for _ in range(len(queue)):
@@ -172,7 +172,7 @@ async def clear(args: tuple, msg: discord.Message):
         delete_after=DELETE_DELAY)
 
 
-@music.command(alts=['rm'])
+@music.command(aliases=['rm'])
 async def remove(self, args, msg):
     if not args or not args[0].isnumeric():
         await msg.channel.send(
@@ -208,7 +208,7 @@ async def skip(args: tuple, msg: discord.Message):
         await music.play(list(), msg, skipped=True)
 
 
-@music.command()
+@music.command(aliases=['rep'])
 async def repeat(args: tuple, msg: discord.Message):
     queue = music.queues[msg.guild.id]
     queue.repeat = not queue.repeat
@@ -235,7 +235,7 @@ async def pause(args: tuple, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command()
+@music.command(aliases=['res'])
 async def resume(args: tuple, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
 
@@ -252,7 +252,7 @@ async def resume(args: tuple, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(alts=['vol'])
+@music.command(aliases=['vol'])
 async def volume(args: tuple, msg: discord.Message):
     instance = music.get_voice_instance(msg.guild.id)
 
@@ -268,17 +268,17 @@ async def volume(args: tuple, msg: discord.Message):
         instance.source.volume = volume / 100
     else:
         await msg.channel.send(
-            embed=utils.create_embed('Volume level must be between `0` and `100`, not `{0}`'.format(volume)),
+            embed=utils.create_embed(f'Volume level must be between `0` and `100`, not `{volume}`'),
             delete_after=DELETE_DELAY
         )
 
 
 CMDS_BY_TYPES = {
-    'commands': (
+    'commands': {
         'help',
         'set_prefix'
-    ),
-    'music': tuple(filter(lambda s: not s.startswith('_'), music.__dict__))
+    },
+    'music': set(filter(lambda s: not s.startswith('_'), music.__dict__))
 }
 
 CMDS = set()
@@ -298,7 +298,7 @@ async def on_message(msg):
         cmd, *args = msg.content[len(prefix):].split(' ')
         cmd = cmd.lower()
 
-        print('Detected command "' + cmd + '" on server', msg.guild.id)
+        print(f'Detected command "{cmd}" on server {msg.guild.id}')
         if cmd not in CMDS:
             await msg.channel.send(
                 embed=commands.utils.create_embed(f'There is no such a command.'
@@ -317,6 +317,5 @@ async def on_voice_state_update(member: discord.Member, before, after):
             members = before.channel.members
             if len(members) == 1 and members[0].id == client.user.id:
                 await music.leave(tuple(), member)
-
 
 client.run(getenv('BOT_TOKEN'))

@@ -3,7 +3,7 @@ import json
 import discord
 from os import getenv
 
-WAIT_UNTIL_DELETE = float(getenv('WAIT_UNTIL_DELETE'))
+DELETE_DELAY = float(getenv('DELETE_DELAY'))
 
 
 async def help(args, msg):
@@ -16,23 +16,31 @@ async def help(args, msg):
     embed.set_author(name='Available commands', icon_url='https://clck.ru/SWD2D')
     embed.set_thumbnail(url='https://clck.ru/SVDqZ')
     for cmd in cmds.keys():
-        embed.add_field(name=f'`{prefix}{cmd}`', value=cmds[cmd], inline=False)
-    await msg.channel.send(embed=embed, delete_after=WAIT_UNTIL_DELETE)
+        desc, aliases = cmds[cmd]
+        aliases = [f'`{prefix}{i}`' for i in aliases]
+        value = desc + ('\n`Aliases:` ' + ', '.join(aliases) if aliases else '')
+        embed.add_field(name=f'`{prefix}{cmd}`', value=value, inline=False)
+
+    await msg.channel.send(embed=embed)
 
 
 async def set_prefix(args, msg):
     new_prefix = args[0]
     if not new_prefix:
-        await msg.channel.send('Please specify the prefix you want to set', delete_after=WAIT_UNTIL_DELETE)
-        return -1
+        await msg.channel.send(
+            embed=utils.create_embed('Please specify the prefix you want to set'),
+            delete_after=DELETE_DELAY)
+        return
 
     guild_id = msg.guild.id
     with open('./config/servers.json', 'r') as f:
         cfg = json.load(f)
 
-    cfg[str(guild_id)] = dict() if guild_id not in cfg.keys() else cfg[str(guild_id)]
+    cfg[str(guild_id)] = cfg.get(str(guild_id)) or dict()
     cfg[str(guild_id)]['prefix'] = new_prefix
     with open('./config/servers.json', 'w') as f:
         json.dump(cfg, f, indent=4)
 
-    await msg.channel.send(f'Prefix has been successfully changed to `{new_prefix}`', delete_after=WAIT_UNTIL_DELETE)
+    await msg.channel.send(
+        embed=utils.create_embed(f'Prefix has been successfully changed to `{new_prefix}`'),
+        delete_after=DELETE_DELAY)
