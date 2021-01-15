@@ -173,7 +173,7 @@ async def clear(args: tuple, msg: discord.Message):
 
 
 @music.command(aliases=['rm'])
-async def remove(self, args, msg):
+async def remove(args, msg):
     if not args or not args[0].isnumeric():
         await msg.channel.send(
             embed=utils.create_embed('Please specify the track you want to remove form the queue'),
