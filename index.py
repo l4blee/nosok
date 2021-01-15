@@ -295,7 +295,7 @@ async def on_ready():
 async def on_message(msg):
     prefix = commands.utils.get_prefix(msg.guild.id)
     if msg.content.startswith(prefix) and msg.author.id is not client.user.id:
-        cmd, *args = msg.content[len(prefix):].split(' ').strip()
+        cmd, *args = msg.content[len(prefix):].strip().split(' ')
         cmd = cmd.lower()
 
         print(f'Detected command "{cmd}" on server {msg.guild.id}')
