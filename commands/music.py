@@ -53,6 +53,9 @@ class SongQueue(object):
     def __len__(self):
         return len(self.__queue)
 
+    def __getitem__(self, item):
+        return self.__queue[item]
+
 
 class MusicClient(object):
     def __init__(self, client, ytdl_opts: dict = None):
