@@ -46,6 +46,7 @@ async def leave(args: list, msg: Union[discord.Message, discord.Member]):
             delete_after=DELETE_DELAY)
 
 
+@music.commands()
 async def search(args: list, msg: discord.Message):
     if urlparse(args[0]).scheme != '':
         return args[0]
