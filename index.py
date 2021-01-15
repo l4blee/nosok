@@ -316,7 +316,7 @@ async def on_voice_state_update(member: discord.Member, before, after):
         inst = music.get_voice_instance(member.guild.id)
         members = inst.channel.members
         if len(members) == 1 and members[0].id == client.user.id:
-            music.leave([], member)
+            await music.leave([], member)
 
 
 client.run(getenv('BOT_TOKEN'))
