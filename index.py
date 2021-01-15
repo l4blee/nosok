@@ -39,7 +39,7 @@ async def leave(args: list, msg: Union[discord.Message, discord.Member]):
     if instance:
         if instance.is_playing():
             await music.stop(args, msg)
-            await instance.disconnect()
+        await instance.disconnect()
     else:
         await msg.channel.send(
             embed=utils.create_embed('I am not connected to a voice channel yet!'),
@@ -312,10 +312,11 @@ async def on_message(msg):
 
 @client.event
 async def on_voice_state_update(member: discord.Member, before, after):
-    if not member.id == client.user.id:
-        if isinstance(before.channel, discord.VoiceChannel):
-            members = before.channel.members
-            if len(members) == 1 and members[0].id == client.user.id:
-                await music.leave(tuple(), member)
+    if member.id != client.user.id:
+        inst = music.get_voice_instance(member.guild.id)
+        members = inst.channel.members
+        if len(members) == 1 and members[0].id == client.user.id:
+            inst.leave([], member)
+
 
 client.run(getenv('BOT_TOKEN'))
