@@ -347,7 +347,7 @@ async def on_voice_state_update(member: discord.Member, before, after):
         inst = client.get_voice_instance(member.guild.id)
         members = inst.channel.members
         if len(members) == 1 and members[0].id == client.user.id:
-            await music.leave([], member)
+            await client.leave([], member)
 
 
 if __name__ == '__main__':
