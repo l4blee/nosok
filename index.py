@@ -1,23 +1,23 @@
 import discord
-from os import getenv
-import commands
-from commands import utils
+import utils
 import asyncio
-from youtube_dl import YoutubeDL
+import json
+import core
+import os
 from typing import Union
 from urllib.parse import urlparse
+from youtube_dl import YoutubeDL
 from youtubesearchpython import SearchVideos
 
-client = discord.Client()
-music = commands.MusicClient(client, ytdl_opts={
+client = core.Client(ytdl_opts={
     'format': 'worstaudio/worst',
     'quiet': True
 })
 
-DELETE_DELAY = float(getenv('DELETE_DELAY'))
+DELETE_DELAY = float(os.getenv('DELETE_DELAY'))
 
 # ---- Defining music commands ----
-@music.command(aliases=['j'])
+@client.command(aliases=['j'])
 async def join(args: list, msg: discord.Message):
     if msg.author.voice:
         if msg.guild.id in [i.guild.id for i in client.voice_clients]:
@@ -33,12 +33,12 @@ async def join(args: list, msg: discord.Message):
         )
 
 
-@music.command(aliases=['l'])
+@client.command(aliases=['l'])
 async def leave(args: list, msg: Union[discord.Message, discord.Member]):
-    instance = music.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild.id)
     if instance:
         if instance.is_playing():
-            await music.stop(args, msg)
+            await client.stop(args, msg)
         await instance.disconnect()
     else:
         await msg.channel.send(
@@ -46,7 +46,7 @@ async def leave(args: list, msg: Union[discord.Message, discord.Member]):
             delete_after=DELETE_DELAY)
 
 
-@music.command()
+@client.command()
 async def search(args: list, msg: discord.Message):
     if urlparse(args[0]).scheme != '':
         return args[0]
@@ -57,13 +57,13 @@ async def search(args: list, msg: discord.Message):
     return links[0]
 
 
-@music.command(aliases=['pl', 'p'])
+@client.command(aliases=['pl', 'p'])
 async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
-    instance = music.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild.id)
     prefix = utils.get_prefix(msg.guild.id)
 
     if instance:
-        this_queue = music.queues[msg.guild.id]
+        this_queue = client.queues[msg.guild.id]
 
         if not this_queue and not args:
             await msg.channel.send(
@@ -72,8 +72,8 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
             return
 
         if args:
-            url = await music.search(args, msg)
-            info = YoutubeDL(music.YTDL_OPTS).extract_info(url, download=False)
+            url = await client.search(args, msg)
+            info = YoutubeDL(client.YTDL_OPTS).extract_info(url, download=False)
             this_queue.add_song(info['title'], url, msg.author.mention)
 
             if instance.is_playing():
@@ -86,7 +86,7 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
 
         if not instance.is_playing() and not instance.is_paused():
             song = next(this_queue)
-            if not isinstance(song, commands.QueueElement):
+            if not isinstance(song, core.QueueElement):
                 if song is None:
                     await msg.channel.send(
                         embed=utils.create_embed('Queue is empty, add something'),
@@ -99,7 +99,7 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
                     return
 
             loop = asyncio.get_running_loop()
-            source, info = music.create_ytdl_source(song.url)
+            source, info = client.create_ytdl_source(song.url)
             notification = await msg.channel.send(
                 embed=utils.create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
             )
@@ -112,21 +112,21 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
                 embed=utils.create_embed(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`'),
                 delete_after=DELETE_DELAY)
     elif repeat:
-        await music.join(list(), msg)
-        await music.play(args, msg, repeat=False)
+        await client.join(list(), msg)
+        await client.play(args, msg, repeat=False)
 
 
 def after_play(msg: discord.Message, loop: asyncio.AbstractEventLoop, notification: discord.Message):
-    if music.queues[msg.guild.id].play_after:
-        asyncio.run_coroutine_threadsafe(music.play(list(), msg), loop)
+    if client.queues[msg.guild.id].play_after:
+        asyncio.run_coroutine_threadsafe(client.play(list(), msg), loop)
 
     asyncio.run_coroutine_threadsafe(notification.delete(), loop)
 
 
-@music.command(aliases=['st'])
+@client.command(aliases=['st'])
 async def stop(args: list, msg: discord.Message):
-    instance = music.get_voice_instance(msg.guild.id)
-    queue = music.queues[msg.guild.id]
+    instance = client.get_voice_instance(msg.guild.id)
+    queue = client.queues[msg.guild.id]
 
     if instance:
         queue.play_after = False
@@ -139,13 +139,13 @@ async def stop(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(aliases=['q'])
+@client.command(aliases=['q'])
 async def queue(args: list, msg: discord.Message):
-    current_queue = music.queues[msg.guild.id]
+    current_queue = client.queues[msg.guild.id]
 
     if args:
         url = await search(args, msg)
-        info = YoutubeDL(music.YTDL_OPTS).extract_info(url, download=False)
+        info = YoutubeDL(client.YTDL_OPTS).extract_info(url, download=False)
         current_queue.add_song(info['title'], url, msg.author.mention)
 
         await msg.channel.send(
@@ -161,9 +161,9 @@ async def queue(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(aliases=['c'])
+@client.command(aliases=['c'])
 async def clear(args: list, msg: discord.Message):
-    queue = music.queues[msg.guild.id]
+    queue = client.queues[msg.guild.id]
     for _ in range(len(queue)):
         queue.remove_song(0)
 
@@ -172,7 +172,7 @@ async def clear(args: list, msg: discord.Message):
         delete_after=DELETE_DELAY)
 
 
-@music.command(aliases=['rm'])
+@client.command(aliases=['rm'])
 async def remove(args: list, msg: discord.Message):
     if not args or not args[0].isnumeric():
         await msg.channel.send(
@@ -180,8 +180,8 @@ async def remove(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
         return
 
-    res = music.queues[msg.guild.id].remove_song(int(args[0]) - 1)
-    if not isinstance(res, commands.QueueElement):
+    res = client.queues[msg.guild.id].remove_song(int(args[0]) - 1)
+    if not isinstance(res, core.QueueElement):
         await msg.channel.send(
             embed=utils.create_embed('Please specify index of a track in the queue'),
             delete_after=DELETE_DELAY)
@@ -191,9 +191,9 @@ async def remove(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command()
+@client.command()
 async def skip(args: list, msg: discord.Message):
-    instance = music.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild.id)
 
     if not instance:
         await msg.channel.send(
@@ -204,13 +204,13 @@ async def skip(args: list, msg: discord.Message):
 
     if instance.is_playing():
         instance.stop()
-        music.queues[msg.guild.id].play_after = False
-        await music.play(list(), msg, skipped=True)
+        client.queues[msg.guild.id].play_after = False
+        await client.play(list(), msg, skipped=True)
 
 
-@music.command(aliases=['rep'])
+@client.command(aliases=['rep'])
 async def repeat(args: list, msg: discord.Message):
-    queue = music.queues[msg.guild.id]
+    queue = client.queues[msg.guild.id]
     queue.repeat = not queue.repeat
 
     await msg.channel.send(
@@ -218,9 +218,9 @@ async def repeat(args: list, msg: discord.Message):
         delete_after=DELETE_DELAY)
 
 
-@music.command()
+@client.command()
 async def pause(args: list, msg: discord.Message):
-    instance = music.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild.id)
 
     if instance:
         if instance.is_paused():
@@ -235,9 +235,9 @@ async def pause(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(aliases=['res'])
+@client.command(aliases=['res'])
 async def resume(args: list, msg: discord.Message):
-    instance = music.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild.id)
 
     if instance:
         if instance.is_playing():
@@ -252,9 +252,9 @@ async def resume(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
 
 
-@music.command(aliases=['vol'])
+@client.command(aliases=['vol'])
 async def volume(args: list, msg: discord.Message):
-    instance = music.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild.id)
 
     if not instance:
         await msg.channel.send(
@@ -273,17 +273,49 @@ async def volume(args: list, msg: discord.Message):
         )
 
 
-CMDS_BY_TYPES = {
-    'commands': {
-        'help',
-        'set_prefix'
-    },
-    'music': set(filter(lambda s: not s.startswith('_'), music.__dict__))
-}
+@client.command(aliases=['h'])
+async def help(args, msg):
+    prefix = utils.get_prefix(msg.guild.id)
+    lang = args[0] if args else 'en'
 
-CMDS = set()
-for i in CMDS_BY_TYPES.values():
-    CMDS = CMDS.union(i)
+    with open('./config/descriptions.json', 'r', encoding='utf-8') as f:
+        cmds = json.load(f)
+
+    embed = discord.Embed(colour=discord.Colour.from_rgb(209, 178, 25))
+    embed.set_author(name='Available commands', icon_url='https://clck.ru/SWD2D')
+    embed.set_thumbnail(url='https://clck.ru/SVDqZ')
+    for cmd in cmds.keys():
+        desc, aliases = cmds[cmd]
+        desc = desc[lang] if lang in desc else 'en'
+        aliases = [f'`{prefix}{i}`' for i in aliases]
+        value = desc + ('\n`Aliases:` ' + ', '.join(aliases) if aliases else '')
+        embed.add_field(name=f'`{prefix}{cmd}`', value=value, inline=False)
+
+    await msg.channel.send(embed=embed)
+
+
+@client.command(aliases=['prefix', 'setprefix'])
+async def set_prefix(args, msg):
+    new_prefix = args[0]
+    if not new_prefix:
+        await msg.channel.send(
+            embed=utils.create_embed('Please specify the prefix you want to set'),
+            delete_after=DELETE_DELAY)
+        return
+
+    guild_id = msg.guild.id
+    with open('./config/servers.json', 'r') as f:
+        cfg = json.load(f)
+
+    cfg[str(guild_id)] = cfg.get(str(guild_id)) or dict()
+    cfg[str(guild_id)]['prefix'] = new_prefix
+    with open('./config/servers.json', 'w') as f:
+        json.dump(cfg, f, indent=4)
+
+    await msg.channel.send(
+        embed=utils.create_embed(f'Prefix has been successfully changed to `{new_prefix}`'),
+        delete_after=DELETE_DELAY)
+
 
 # ---- Defining discord client methods ----
 @client.event
@@ -293,30 +325,30 @@ async def on_ready():
 
 @client.event
 async def on_message(msg):
-    prefix = commands.utils.get_prefix(msg.guild.id)
+    prefix = utils.get_prefix(msg.guild.id)
     if msg.content.startswith(prefix) and msg.author.id is not client.user.id:
         cmd, *args = msg.content[len(prefix):].split(' ')
         cmd = cmd.lower()
 
         print(f'Detected command "{cmd}" on server {msg.guild.id}')
-        if cmd not in CMDS:
+        if not hasattr(client, cmd):
             await msg.channel.send(
-                embed=commands.utils.create_embed(f'There is no such a command.'
+                embed=utils.create_embed(f'There is no such a command.'
                                                   f' Type `{prefix}help` to get a list of available commands.'),
                 delete_after=DELETE_DELAY
             )
         else:
-            cmd_type = [i[0] for i in CMDS_BY_TYPES.items() if cmd in i[1]][0]
-            await eval(f'{cmd_type}.{cmd}(args, msg)')
+            await eval(f'client.{cmd}(args, msg)')
 
 
 @client.event
 async def on_voice_state_update(member: discord.Member, before, after):
     if member.id != client.user.id:
-        inst = music.get_voice_instance(member.guild.id)
+        inst = client.get_voice_instance(member.guild.id)
         members = inst.channel.members
         if len(members) == 1 and members[0].id == client.user.id:
             inst.leave([], member)
 
 
-client.run(getenv('BOT_TOKEN'))
+if __name__ == '__main__':
+    client.run(os.getenv('BOT_TOKEN'))

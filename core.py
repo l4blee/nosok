@@ -1,15 +1,7 @@
-from youtube_dl import YoutubeDL
 import discord
 from collections import defaultdict
-import asyncio
+from youtube_dl import YoutubeDL
 from subprocess import DEVNULL
-from os import getenv
-
-DELETE_DELAY = float(getenv('DELETE_DELAY'))
-YTDL_OPTS = {
-    'format': 'worstaudio/worst',
-    'quiet': True
-}
 
 
 class QueueElement(object):
@@ -59,10 +51,10 @@ class SongQueue(object):
         return self.__queue[item]
 
 
-class MusicClient(object):
-    def __init__(self, client, ytdl_opts: dict = None):
+class Client(discord.Client):
+    def __init__(self, ytdl_opts: dict = None):
+        super().__init__()
         self.YTDL_OPTS = ytdl_opts
-        self.client = client
         self.aliases = defaultdict(list)
         self.commands = list()
         self.queues = defaultdict(SongQueue)
@@ -71,18 +63,16 @@ class MusicClient(object):
         aliases = aliases or list()
 
         def decorator(coro):
-            if not asyncio.iscoroutinefunction(coro):
-                raise TypeError('Provided function must be a coroutine')
-
             setattr(self, coro.__name__, coro)
             for name in aliases:
                 setattr(self, name, coro)
 
             return coro
+
         return decorator
 
     def get_voice_instance(self, guild_id: discord.Guild.id):
-        for voice_client in self.client.voice_clients:
+        for voice_client in self.voice_clients:
             if voice_client.guild.id == guild_id:
                 return voice_client
         else:

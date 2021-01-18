@@ -1,8 +1,8 @@
 {
   "help <language>}": [{"en": "Shows the list of available commands",
-            "ru": "Показать доступные команды"}, []],
+            "ru": "Показать доступные команды"}, ["h"]],
   "set_prefix {prefix}": [{"en": "Sets bot's commands prefix for current server",
-                           "ru": "Установить префикс команд для этого сервера"}, []],
+                           "ru": "Установить префикс команд для этого сервера"}, ["prefix", "setprefix"]],
   "join": [{"en": "Makes the bot join the voice channel you're in",
             "ru": "Зайти в голосовой канал, в котором вы находитесь"}, ["j"]],
   "leave": [{"en": "Makes the bot leave the voice channel it's in on this server",
