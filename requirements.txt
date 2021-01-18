@@ -2,13 +2,5 @@ discord
 discord.py
 PyNaCl
 youtube-dl
-future
-aiohttp
-async-timeout
-attrs
-chardet
-idna
-multidict
 typing-extensions
-yarl
 youtube-search-python
