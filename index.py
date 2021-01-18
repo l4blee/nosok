@@ -327,7 +327,7 @@ async def on_ready():
 async def on_message(msg):
     prefix = utils.get_prefix(msg.guild.id)
     if msg.content.startswith(prefix) and msg.author.id is not client.user.id:
-        cmd, *args = msg.content[len(prefix):].split(' ')
+        cmd, *args = msg.content[len(prefix):].strip().split(' ')
         cmd = cmd.lower()
 
         print(f'Detected command "{cmd}" on server {msg.guild.id}')
@@ -347,7 +347,7 @@ async def on_voice_state_update(member: discord.Member, before, after):
         inst = client.get_voice_instance(member.guild.id)
         members = inst.channel.members
         if len(members) == 1 and members[0].id == client.user.id:
-            inst.leave([], member)
+            await music.leave([], member)
 
 
 if __name__ == '__main__':
