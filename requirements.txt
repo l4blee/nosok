@@ -2,5 +2,4 @@ discord
 discord.py
 PyNaCl
 youtube-dl
-typing-extensions
 youtube-search-python
