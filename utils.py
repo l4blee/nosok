@@ -15,7 +15,7 @@ def create_embed(content: str, title: str = None, thumbnail: str = None, type: s
     else:
         raise TypeError('Unexpected embed type')
 
-    embed = Embed(color=Colour.from_rgb(209, 178, 25))
+    embed = Embed(color=color)
     embed.description = content
     if thumbnail is not None:
         embed.set_thumbnail(url=thumbnail)
