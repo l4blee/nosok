@@ -7,7 +7,14 @@ def get_prefix(guild_id):
         return json.load(file).get(str(guild_id)).get('prefix') or '!'
 
 
-def create_embed(content: str, title: str = None, thumbnail: str = None):
+def create_embed(content: str, title: str = None, thumbnail: str = None, type: str='success'):
+    if type == 'success':
+        color = Colour.from_rgb(209, 178, 25)
+    elif type == 'error':
+        color = Colour.from_rgb(220, 20, 60)
+    else:
+        raise TypeError('Unexpected embed type')
+
     embed = Embed(color=Colour.from_rgb(209, 178, 25))
     embed.description = content
     if thumbnail is not None:

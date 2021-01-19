@@ -2,6 +2,7 @@ import discord
 from collections import defaultdict
 from youtube_dl import YoutubeDL
 from subprocess import DEVNULL
+from urllib.parse import urlparse
 
 
 class QueueElement(object):
@@ -71,17 +72,20 @@ class Client(discord.Client):
 
         return decorator
 
-    def get_voice_instance(self, guild_id: discord.Guild.id):
+    def get_voice_instance(self, guild_id: discord.Guild.id) -> discord.VoiceClient or None:
         for voice_client in self.voice_clients:
             if voice_client.guild.id == guild_id:
                 return voice_client
         else:
             return None
 
-    def create_ytdl_source(self, source_url: str):
+    def create_ytdl_source(self, source_url: str) -> (discord.AudioSource, dict):
         info = YoutubeDL(self.YTDL_OPTS).extract_info(source_url, download=False)
         return discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(
             info['formats'][0]['url'],
             stderr=DEVNULL,
             before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')
         ), info
+
+    def isurl(self, url) -> bool:
+        return urlparse(url).scheme != ''
