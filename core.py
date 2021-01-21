@@ -1,4 +1,5 @@
 import discord
+from asyncio import iscoroutinefunction
 from collections import defaultdict
 from youtube_dl import YoutubeDL
 from subprocess import DEVNULL
@@ -21,11 +22,11 @@ class SongQueue(object):
         self.volume = 1
         self.now_playing = -1
 
-    def add_song(self, title: str, url: str, mentionable: discord.Member.mention):
+    def add_song(self, title: str, url: str, mentionable: discord.Member.mention) -> None:
         song = QueueElement(title, url, mentionable)
         self.__queue.append(song)
 
-    def remove_song(self, index: int):
+    def remove_song(self, index: int) -> QueueElement:
         if 0 <= index < len(self.__queue):
             return self.__queue.pop(index)
         else:
@@ -64,18 +65,20 @@ class Client(discord.Client):
         aliases = aliases or list()
 
         def decorator(coro):
+            if not iscoroutinefunction(coro):
+                raise TypeError('Provided function must be a coroutine')
+
             setattr(self, coro.__name__, coro)
             for name in aliases:
                 setattr(self, name, coro)
 
             return coro
-
         return decorator
 
     def get_voice_instance(self, guild_id: discord.Guild.id) -> discord.VoiceClient or None:
-        for voice_client in self.voice_clients:
-            if voice_client.guild.id == guild_id:
-                return voice_client
+        for cli in self.voice_clients:
+            if cli.guild.id == guild_id:
+                return cli
         else:
             return None
 

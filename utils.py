@@ -19,6 +19,7 @@ def create_embed(content: str, title: str = None, thumbnail: str = None, type: s
     embed.description = content
     if thumbnail is not None:
         embed.set_thumbnail(url=thumbnail)
+
     if title is not None:
         embed.set_author(name=title)
 

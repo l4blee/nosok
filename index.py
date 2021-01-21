@@ -177,7 +177,7 @@ async def clear(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY
         )
     else:
-        deleted = await msg.channel.purge(int(args[0]))
+        deleted = await msg.channel.purge(limit=int(args[0]))
         await msg.channel.send(
             embed=utils.create_embed(f'Deleted {len(deleted)} messages.'),
             delete_after=DELETE_DELAY
@@ -346,7 +346,8 @@ async def on_message(msg):
         if not hasattr(client, cmd):
             await msg.channel.send(
                 embed=utils.create_embed(f'There is no such a command.'
-                                                  f' Type `{prefix}help` to get a list of available commands.'),
+                                         f' Type `{prefix}help` to get a list of available commands.',
+                                         type='error'),
                 delete_after=DELETE_DELAY
             )
         else:
@@ -356,10 +357,11 @@ async def on_message(msg):
 @client.event
 async def on_voice_state_update(member: discord.Member, before, after):
     if member.id != client.user.id:
-        inst = client.get_voice_instance(member.guild.id)
-        members = inst.channel.members
-        if len(members) == 1 and members[0].id == client.user.id:
-            await client.leave([], member)
+        inst = member.guild.voice_client
+        if inst:
+            members = inst.channel.members
+            if len(members) == 1 and members[0].id == client.user.id:
+                await client.leave([], member)
 
 
 if __name__ == '__main__':
