@@ -47,7 +47,7 @@ async def leave(args: list, msg: Union[discord.Message, discord.Member]):
 
 @client.command()
 async def search(args: list, msg: discord.Message):
-    if client.isurl(args[0]):
+    if client.is_url(args[0]):
         return args[0]
 
     result: dict = SearchVideos(' '.join(args), max_results=5, mode='dict').result()['search_result']

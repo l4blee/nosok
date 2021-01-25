@@ -90,5 +90,5 @@ class Client(discord.Client):
         ), info
 
     @staticmethod
-    def isurl(url) -> bool:
+    def is_url(url) -> bool:
         return urlparse(url).scheme != ''
