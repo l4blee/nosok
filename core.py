@@ -57,7 +57,6 @@ class Client(discord.Client):
     def __init__(self, ytdl_opts: dict = None):
         super().__init__()
         self.YTDL_OPTS = ytdl_opts
-        self.aliases = defaultdict(list)
         self.commands = list()
         self.queues = defaultdict(SongQueue)
 
@@ -90,5 +89,6 @@ class Client(discord.Client):
             before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')
         ), info
 
-    def isurl(self, url) -> bool:
+    @staticmethod
+    def isurl(url) -> bool:
         return urlparse(url).scheme != ''

@@ -9,7 +9,6 @@ from youtube_dl import YoutubeDL
 from youtubesearchpython import SearchVideos
 
 client = core.Client(ytdl_opts={
-    'format': 'worstaudio/worst',
     'quiet': True
 })
 
@@ -21,13 +20,13 @@ async def join(args: list, msg: discord.Message):
     if msg.author.voice:
         if msg.guild.id in [i.guild.id for i in client.voice_clients]:
             await msg.channel.send(
-                embed=utils.create_embed('I am already connected to a voice channel!', type='error'),
+                embed=utils.create_embed('I am already connected to a voice channel!', embed_type='error'),
                 delete_after=DELETE_DELAY)
         else:
             await msg.author.voice.channel.connect()
     else:
         await msg.channel.send(
-            embed=utils.create_embed('Connect to a voice channel first', type='error'),
+            embed=utils.create_embed('Connect to a voice channel first', embed_type='error'),
             delete_after=DELETE_DELAY
         )
 
@@ -38,10 +37,11 @@ async def leave(args: list, msg: Union[discord.Message, discord.Member]):
     if instance:
         if instance.is_playing():
             await client.stop(args, msg)
+            await asyncio.sleep(0.1)
         await instance.disconnect()
     else:
         await msg.channel.send(
-            embed=utils.create_embed('I am not connected to a voice channel yet!', type='error'),
+            embed=utils.create_embed('I am not connected to a voice channel yet!', embed_type='error'),
             delete_after=DELETE_DELAY)
 
 
@@ -66,7 +66,7 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
 
         if not this_queue and not args:
             await msg.channel.send(
-                embed=utils.create_embed('Please specify a url/title of a track you want to play', type='error'),
+                embed=utils.create_embed('Please specify a url/title of a track you want to play', embed_type='error'),
                 delete_after=DELETE_DELAY)
             return
 
@@ -88,7 +88,7 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
             if not isinstance(song, core.QueueElement):
                 if song is None:
                     await msg.channel.send(
-                        embed=utils.create_embed('Queue is empty, add something', type='error'),
+                        embed=utils.create_embed('Queue is empty, add something', embed_type='error'),
                         delete_after=DELETE_DELAY)
                     return
                 elif song == -1:
@@ -134,7 +134,7 @@ async def stop(args: list, msg: discord.Message):
         queue.play_after, queue.now_playing = True, -1
     else:
         await msg.channel.send(
-            embed=utils.create_embed('I am not connected to a voice channel yet', type='error'),
+            embed=utils.create_embed('I am not connected to a voice channel yet', embed_type='error'),
             delete_after=DELETE_DELAY)
 
 
@@ -173,7 +173,7 @@ async def queue(args: list, msg: discord.Message):
 async def clear(args: list, msg: discord.Message):
     if not args:
         await msg.channel.send(
-            embed=utils.create_embed('Please specify the amount of messages to delete', type='error'),
+            embed=utils.create_embed('Please specify the amount of messages to delete', embed_type='error'),
             delete_after=DELETE_DELAY
         )
     else:
@@ -188,14 +188,14 @@ async def clear(args: list, msg: discord.Message):
 async def remove(args: list, msg: discord.Message):
     if not args or not args[0].isnumeric():
         await msg.channel.send(
-            embed=utils.create_embed('Please specify the track you want to remove form the queue', type='error'),
+            embed=utils.create_embed('Please specify the track you want to remove form the queue', embed_type='error'),
             delete_after=DELETE_DELAY)
         return
 
     res = client.queues[msg.guild.id].remove_song(int(args[0]) - 1)
     if not isinstance(res, core.QueueElement):
         await msg.channel.send(
-            embed=utils.create_embed('Please specify index of a track in the queue', type='error'),
+            embed=utils.create_embed('Please specify index of a track in the queue', embed_type='error'),
             delete_after=DELETE_DELAY)
     else:
         await msg.channel.send(
@@ -209,7 +209,7 @@ async def skip(args: list, msg: discord.Message):
 
     if not instance:
         await msg.channel.send(
-            embed=utils.create_embed('I am not connected to a voice channel yet', type='error'),
+            embed=utils.create_embed('I am not connected to a voice channel yet', embed_type='error'),
             delete_after=DELETE_DELAY
         )
         return
@@ -237,13 +237,13 @@ async def pause(args: list, msg: discord.Message):
     if instance:
         if instance.is_paused():
             await msg.channel.send(
-                embed=utils.create_embed('Audio is already paused', type='error'),
+                embed=utils.create_embed('Audio is already paused', embed_type='error'),
                 delete_after=DELETE_DELAY)
         else:
             instance.pause()
     else:
         await msg.channel.send(
-            embed=utils.create_embed('I am not connected to a voice channel yet', type='error'),
+            embed=utils.create_embed('I am not connected to a voice channel yet', embed_type='error'),
             delete_after=DELETE_DELAY)
 
 
@@ -254,13 +254,13 @@ async def resume(args: list, msg: discord.Message):
     if instance:
         if instance.is_playing():
             await msg.channel.send(
-                embed=utils.create_embed('Audio is already playing', type='error'),
+                embed=utils.create_embed('Audio is already playing', embed_type='error'),
                 delete_after=DELETE_DELAY)
         else:
             instance.resume()
     else:
         await msg.channel.send(
-            embed=utils.create_embed('I am not connected to a voice channel yet', type='error'),
+            embed=utils.create_embed('I am not connected to a voice channel yet', embed_type='error'),
             delete_after=DELETE_DELAY)
 
 
@@ -270,7 +270,7 @@ async def volume(args: list, msg: discord.Message):
 
     if not instance:
         await msg.channel.send(
-            embed=utils.create_embed('I am not connected to a voice channel yet', type='error'),
+            embed=utils.create_embed('I am not connected to a voice channel yet', embed_type='error'),
             delete_after=DELETE_DELAY
         )
         return -1
@@ -280,7 +280,7 @@ async def volume(args: list, msg: discord.Message):
         instance.source.volume = volume / 100
     else:
         await msg.channel.send(
-            embed=utils.create_embed(f'Volume level must be between `0` and `100`, not `{volume}`', type='error'),
+            embed=utils.create_embed(f'Volume level must be between `0` and `100`, not `{volume}`', embed_type='error'),
             delete_after=DELETE_DELAY
         )
 
@@ -311,7 +311,7 @@ async def set_prefix(args, msg):
     new_prefix = args[0]
     if not new_prefix:
         await msg.channel.send(
-            embed=utils.create_embed('Please specify the prefix you want to set', type='error'),
+            embed=utils.create_embed('Please specify the prefix you want to set', embed_type='error'),
             delete_after=DELETE_DELAY)
         return
 
@@ -347,11 +347,12 @@ async def on_message(msg):
             await msg.channel.send(
                 embed=utils.create_embed(f'There is no such a command.'
                                          f' Type `{prefix}help` to get a list of available commands.',
-                                         type='error'),
+                                         embed_type='error'),
                 delete_after=DELETE_DELAY
             )
         else:
-            await eval(f'client.{cmd}(args, msg)')
+            func = eval(f'client.{cmd}')
+            await func(args, msg)
 
 
 @client.event
