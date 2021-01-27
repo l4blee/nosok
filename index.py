@@ -193,14 +193,19 @@ async def remove(args: list, msg: discord.Message):
             delete_after=DELETE_DELAY)
         return
 
-    res = client.queues[msg.guild.id].remove_song(int(args[0]) - 1)
-    if not isinstance(res, core.QueueElement):
+    try:
+        res = client.queues[msg.guild.id].remove_song(int(args[0]) - 1)
+        if not isinstance(res, core.QueueElement):
+            await msg.channel.send(
+                embed=utils.create_embed('Please specify index of a track in the queue', embed_type='error'),
+                delete_after=DELETE_DELAY)
+        else:
+            await msg.channel.send(
+                embed=utils.create_embed(f'[{res.title}]({res.url}) has been successfully removed form the queue'),
+                delete_after=DELETE_DELAY)
+    except IndexError:
         await msg.channel.send(
-            embed=utils.create_embed('Please specify index of a track in the queue', embed_type='error'),
-            delete_after=DELETE_DELAY)
-    else:
-        await msg.channel.send(
-            embed=utils.create_embed(f'[{res.title}]({res.url}) has been successfully removed form the queue'),
+            embed=utils.create_embed('Wrong index given, choose another track if queue is not empty', embed_type='error'),
             delete_after=DELETE_DELAY)
 
 

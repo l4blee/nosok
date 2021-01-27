@@ -4,7 +4,10 @@ from discord import Embed, Colour
 
 def get_prefix(guild_id):
     with open('config/servers.json', 'r') as file:
-        return load(file).get(str(guild_id)).get('prefix') or '!'
+        try:
+            return load(file).get(str(guild_id)).get('prefix')
+        except AttributeError:
+            return '!'
 
 
 def create_embed(content: str, title: str = None, thumbnail: str = None, embed_type: str = 'success'):
