@@ -1,5 +1,5 @@
 {
-  "help <language>}": [{"en": "Shows the list of available commands",
+  "help <language>": [{"en": "Shows the list of available commands",
             "ru": "Показать доступные команды"}, ["h"]],
   "set_prefix {prefix}": [{"en": "Sets bot's commands prefix for current server",
                            "ru": "Установить префикс команд для этого сервера"}, ["prefix", "setprefix"]],

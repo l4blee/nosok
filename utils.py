@@ -1,10 +1,10 @@
-import json
+from json import load
 from discord import Embed, Colour
 
 
 def get_prefix(guild_id):
     with open('config/servers.json', 'r') as file:
-        return json.load(file).get(str(guild_id)).get('prefix') or '!'
+        return load(file).get(str(guild_id)).get('prefix') or '!'
 
 
 def create_embed(content: str, title: str = None, thumbnail: str = None, embed_type: str = 'success'):
