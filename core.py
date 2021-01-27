@@ -74,12 +74,9 @@ class Client(discord.Client):
             return coro
         return decorator
 
-    def get_voice_instance(self, guild_id: discord.Guild.id) -> discord.VoiceClient or None:
-        for cli in self.voice_clients:
-            if cli.guild.id == guild_id:
-                return cli
-        else:
-            return None
+    @staticmethod
+    def get_voice_instance(guild: discord.Guild) -> discord.VoiceClient or None:
+        return guild.voice_client
 
     def create_ytdl_source(self, source_url: str) -> (discord.AudioSource, dict):
         info = YoutubeDL(self.YTDL_OPTS).extract_info(source_url, download=False)

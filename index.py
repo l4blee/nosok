@@ -14,6 +14,7 @@ client = core.Client(ytdl_opts={
 
 DELETE_DELAY = float(os.getenv('DELETE_DELAY'))
 
+
 # ---- Defining music commands ----
 @client.command(aliases=['j'])
 async def join(args: list, msg: discord.Message):
@@ -33,7 +34,7 @@ async def join(args: list, msg: discord.Message):
 
 @client.command(aliases=['l'])
 async def leave(args: list, msg: Union[discord.Message, discord.Member]):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
     if instance:
         if instance.is_playing():
             await client.stop(args, msg)
@@ -58,7 +59,7 @@ async def search(args: list, msg: discord.Message):
 
 @client.command(aliases=['pl', 'p'])
 async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
     prefix = utils.get_prefix(msg.guild.id)
 
     if instance:
@@ -124,7 +125,7 @@ def after_play(msg: discord.Message, loop: asyncio.AbstractEventLoop, notificati
 
 @client.command(aliases=['st'])
 async def stop(args: list, msg: discord.Message):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
     queue = client.queues[msg.guild.id]
 
     if instance:
@@ -205,7 +206,7 @@ async def remove(args: list, msg: discord.Message):
 
 @client.command()
 async def skip(args: list, msg: discord.Message):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
 
     if not instance:
         await msg.channel.send(
@@ -232,7 +233,7 @@ async def repeat(args: list, msg: discord.Message):
 
 @client.command()
 async def pause(args: list, msg: discord.Message):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
 
     if instance:
         if instance.is_paused():
@@ -249,7 +250,7 @@ async def pause(args: list, msg: discord.Message):
 
 @client.command(aliases=['res'])
 async def resume(args: list, msg: discord.Message):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
 
     if instance:
         if instance.is_playing():
@@ -266,7 +267,7 @@ async def resume(args: list, msg: discord.Message):
 
 @client.command(aliases=['vol'])
 async def volume(args: list, msg: discord.Message):
-    instance = client.get_voice_instance(msg.guild.id)
+    instance = client.get_voice_instance(msg.guild)
 
     if not instance:
         await msg.channel.send(
