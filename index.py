@@ -51,10 +51,15 @@ async def search(args: list, msg: discord.Message):
     if client.is_url(args[0]):
         return args[0]
 
-    result: dict = SearchVideos(' '.join(args), max_results=5, mode='dict').result()['search_result']
-    links = [i['link'] for i in result]
+    try:
+        result: dict = SearchVideos(' '.join(args), max_results=5, mode='dict').result()['search_result']
+        links = [i['link'] for i in result]
 
-    return links[0]
+        return links[0]
+    except Exception:
+        await msg.channel.send(
+            embed=utils.create_embed('An error occurred during searching, try to play another song or search this one again'),
+            delete_after=DELETE_DELAY)
 
 
 @client.command(aliases=['pl', 'p'])
@@ -222,8 +227,8 @@ async def skip(args: list, msg: discord.Message):
 
     if instance.is_playing():
         instance.stop()
-        client.queues[msg.guild.id].play_after = False
-        await client.play(list(), msg, skipped=True)
+        '''client.queues[msg.guild.id].play_after = False
+        await client.play(list(), msg, skipped=True)'''
 
 
 @client.command(aliases=['rep'])
