@@ -56,10 +56,15 @@ async def search(args: list, msg: discord.Message):
         links = [i['link'] for i in result]
 
         return links[0]
-    except Exception:
+    except Exception as e:
         await msg.channel.send(
-            embed=utils.create_embed('An error occurred during searching, try to play another song or search this one again'),
+            embed=utils.create_embed(
+                'An error occurred during searching, try to play another song or search this one again',
+                embed_type='error'),
             delete_after=DELETE_DELAY)
+
+        print('Error occured during searching: ', e)
+        return None
 
 
 @client.command(aliases=['pl', 'p'])
@@ -78,6 +83,9 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
 
         if args:
             url = await client.search(args, msg)
+            if not url:
+                return
+
             info = YoutubeDL(client.YTDL_OPTS).extract_info(url, download=False)
             this_queue.add_song(info['title'], url, msg.author.mention)
 
@@ -210,7 +218,8 @@ async def remove(args: list, msg: discord.Message):
                 delete_after=DELETE_DELAY)
     except IndexError:
         await msg.channel.send(
-            embed=utils.create_embed('Wrong index given, choose another track if queue is not empty', embed_type='error'),
+            embed=utils.create_embed('Wrong index given, choose another track if queue is not empty',
+                                     embed_type='error'),
             delete_after=DELETE_DELAY)
 
 
@@ -227,8 +236,6 @@ async def skip(args: list, msg: discord.Message):
 
     if instance.is_playing():
         instance.stop()
-        '''client.queues[msg.guild.id].play_after = False
-        await client.play(list(), msg, skipped=True)'''
 
 
 @client.command(aliases=['rep'])
@@ -376,5 +383,4 @@ async def on_voice_state_update(member: discord.Member, before, after):
                 await client.leave([], member)
 
 
-if __name__ == '__main__':
-    client.run(os.getenv('BOT_TOKEN'))
+client.run(os.getenv('BOT_TOKEN'))
