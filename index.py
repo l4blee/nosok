@@ -53,9 +53,9 @@ async def search(args: list, msg: discord.Message):
 
     try:
         result: dict = SearchVideos(' '.join(args), max_results=5, mode='dict').result()['search_result']
-        links = [i['link'] for i in result]
+        link = result[0]['link']
 
-        return links[0]
+        return link
     except Exception as e:
         await msg.channel.send(
             embed=utils.create_embed(
