@@ -4,6 +4,7 @@ from collections import defaultdict
 from youtube_dl import YoutubeDL
 from subprocess import DEVNULL
 from urllib.parse import urlparse
+import pafy
 
 
 class QueueElement(object):
@@ -78,13 +79,14 @@ class Client(discord.Client):
     def get_voice_instance(guild: discord.Guild) -> discord.VoiceClient or None:
         return guild.voice_client
 
-    def create_ytdl_source(self, source_url: str) -> (discord.AudioSource, dict):
-        info = YoutubeDL(self.YTDL_OPTS).extract_info(source_url, download=False)
+    @staticmethod
+    def create_ytdl_source(source_url: str) -> (discord.AudioSource, dict):
+        audio = pafy.new(source_url)
         return discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(
-            info['formats'][0]['url'],
+            audio.getbestaudio().url,
             stderr=DEVNULL,
             before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')
-        ), info
+        ), audio
 
     @staticmethod
     def is_url(url) -> bool:

@@ -5,8 +5,8 @@ import json
 import core
 import os
 from typing import Union
-from youtube_dl import YoutubeDL
-from youtubesearchpython import SearchVideos
+from youtubesearchpython import VideosSearch
+import pafy
 
 client = core.Client(ytdl_opts={
     'quiet': True
@@ -52,7 +52,7 @@ async def search(args: list, msg: discord.Message):
         return args[0]
 
     try:
-        result: dict = SearchVideos(' '.join(args), max_results=5, mode='dict').result()['search_result']
+        result: dict = VideosSearch(' '.join(args), limit=1).result()['result']
         link = result[0]['link']
 
         return link
@@ -86,12 +86,12 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
             if not url:
                 return
 
-            info = YoutubeDL(client.YTDL_OPTS).extract_info(url, download=False)
-            this_queue.add_song(info['title'], url, msg.author.mention)
+            audio = pafy.new(url)
+            this_queue.add_song(audio.title, url, msg.author.mention)
 
             if instance.is_playing():
                 await msg.channel.send(
-                    embed=utils.create_embed(f'Queued [{info["title"]}]({url})'),
+                    embed=utils.create_embed(f'Queued [{audio.title}]({url})'),
                     delete_after=DELETE_DELAY)
 
             if not instance.is_playing():
@@ -112,9 +112,9 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
                     return
 
             loop = asyncio.get_running_loop()
-            source, info = client.create_ytdl_source(song.url)
+            source, audio = client.create_ytdl_source(song.url)
             notification = await msg.channel.send(
-                embed=utils.create_embed(f'[{info["title"]}]({song.url})', 'Now playing:', info['thumbnails'][0]['url'])
+                embed=utils.create_embed(f'[{audio.title}]({song.url})', 'Now playing:', audio.getbestthumb())
             )
             instance.play(source, after=lambda e: after_play(msg, loop, notification))
 
@@ -167,11 +167,12 @@ async def queue(args: list, msg: discord.Message):
                 delete_after=DELETE_DELAY)
         else:
             url = await search(args, msg)
-            info = YoutubeDL(client.YTDL_OPTS).extract_info(url, download=False)
-            current_queue.add_song(info['title'], url, msg.author.mention)
+
+            audio = pafy.new(url)
+            current_queue.add_song(audio.title, url, msg.author.mention)
 
             await msg.channel.send(
-                embed=utils.create_embed(f'Queued [{info["title"]}]({url})'),
+                embed=utils.create_embed(f'Queued [{audio.title}]({url})'),
                 delete_after=DELETE_DELAY)
     else:
         desc = str()
