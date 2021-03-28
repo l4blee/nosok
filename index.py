@@ -68,7 +68,7 @@ async def search(args: list, msg: discord.Message):
 
 
 @client.command(aliases=['pl', 'p'])
-async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
+async def play(args: list, msg: discord.Message, repeat=True):
     instance = client.get_voice_instance(msg.guild)
     prefix = utils.get_prefix(msg.guild.id)
 
@@ -117,9 +117,6 @@ async def play(args: list, msg: discord.Message, repeat=True, skipped=True):
                 embed=utils.create_embed(f'[{audio.title}]({song.url})', 'Now playing:', audio.getbestthumb())
             )
             instance.play(source, after=lambda e: after_play(msg, loop, notification))
-
-            if skipped:
-                this_queue.play_after = True
         elif instance.is_paused():
             await msg.channel.send(
                 embed=utils.create_embed(f'Current track is paused, type `{prefix}resume` or `{prefix}stop`'),
@@ -237,6 +234,12 @@ async def skip(args: list, msg: discord.Message):
 
     if instance.is_playing():
         instance.stop()
+    else:
+        await msg.channel.send(
+            embed=utils.create_embed('I am not playing anything right now', embed_type='error'),
+            delete_after=DELETE_DELAY
+        )
+        return
 
 
 @client.command(aliases=['rep'])

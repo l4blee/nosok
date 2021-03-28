@@ -1,7 +1,6 @@
 import discord
 from asyncio import iscoroutinefunction
 from collections import defaultdict
-from youtube_dl import YoutubeDL
 from subprocess import DEVNULL
 from urllib.parse import urlparse
 import pafy
@@ -37,15 +36,18 @@ class SongQueue(object):
         if not self.__queue:
             return None
 
-        self.now_playing += 1
-        if self.now_playing >= len(self.__queue):
-            if self.repeat:
-                self.now_playing = 0
-            else:
-                self.now_playing = -1
-                return -1
+        if self.repeat:
+            self.now_playing += 1
+            if self.now_playing >= len(self.__queue):
+                if self.repeat:
+                    self.now_playing = 0
+                else:
+                    self.now_playing = -1
+                    return -1
 
-        return self.__queue[self.now_playing]
+            return self.__queue[self.now_playing]
+        else:
+            return self.__queue.pop(0)
 
     def __len__(self):
         return len(self.__queue)
