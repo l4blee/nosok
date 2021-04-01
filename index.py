@@ -10,6 +10,7 @@ import pafy
 
 client = core.Client(ytdl_opts={
     'quiet': True
+    'verbose': True
 })
 
 DELETE_DELAY = float(os.getenv('DELETE_DELAY'))
