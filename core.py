@@ -81,9 +81,8 @@ class Client(discord.Client):
     def get_voice_instance(guild: discord.Guild) -> discord.VoiceClient or None:
         return guild.voice_client
 
-    @staticmethod
-    def create_ytdl_source(source_url: str) -> (discord.AudioSource, dict):
-        audio = pafy.new(source_url)
+    def create_ytdl_source(self, source_url: str):
+        audio = pafy.new(source_url, ydl_opts=self.YTDL_OPTS)
         return discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(
             audio.getbestaudio().url,
             stderr=DEVNULL,
