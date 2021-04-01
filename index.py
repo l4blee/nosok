@@ -11,6 +11,7 @@ import pafy
 client = core.Client(ytdl_opts={
     'quiet': True,
     'verbose': True,
+    'usenetrc': True,
     'username': os.getenv('ydl_username'),
     'password': os.getenv('ydl_password')
 })
