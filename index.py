@@ -9,7 +9,7 @@ from youtubesearchpython import VideosSearch
 import pafy
 
 client = core.Client(ytdl_opts={
-    'quiet': True
+    'quiet': True,
     'verbose': True
 })
 
