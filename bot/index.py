@@ -33,6 +33,6 @@ for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
 
 bot.run(os.getenv('TOKEN'))
 
-logger.info('The bot has been shut down...')
 core.config.save()
+logger.info('The bot has been shut down...')
 logger.info('#' * 40)
