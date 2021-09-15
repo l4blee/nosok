@@ -1,30 +1,21 @@
 import os
 
-import peewee
+import sqlalchemy as sa
+from sqlalchemy.orm import Session
 from googleapiclient.discovery import build
 from pytube import YouTube
 import typing
 
-name = os.getenv('db-name')
-host = os.getenv('db-host')
-port = int(os.getenv('db-port'))
-user = os.getenv('db-username')
-password = os.getenv('db-password')
-google_api_token = os.getenv('google-api-token')
-
-db = peewee.MySQLDatabase(name,
-                          host=host,
-                          port=port,
-                          user=user,
-                          password=password)
+from base import Base, engine
 
 
-class Config(peewee.Model):
-    guild_id = peewee.IntegerField(unique=True)
-    prefix = peewee.CharField()
+class Config(Base):
+    __tablename__ = 'config'
 
-    class Meta:
-        database = db
+    id = sa.Column('config_id', sa.Integer, primary_key=True)
+    created_at = sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now())
+    guild_id = sa.Column('guild_id', sa.Integer, unique=True)
+    prefix = sa.Column('prefix', sa.String)
 
 
 class YoutubeHandler:
@@ -55,7 +46,5 @@ class YoutubeHandler:
         return max(streams, key=lambda x: x.bitrate).url
 
 
-config = Config()
-config.create_table()
-
+google_api_token = None
 yt_handler = YoutubeHandler(google_api_token)
