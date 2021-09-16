@@ -5,12 +5,21 @@ from pathlib import Path
 
 import discord
 from discord.ext import commands
+from sqlalchemy.orm import sessionmaker
 
 import core
+from base import Base, engine
+from core import Config
 
+
+Session = sessionmaker(engine)
 
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
-    return core.config.get_or_none(guild_id=msg.guild.id) or '!'
+    # return core.config.get_or_none(guild_id=msg.guild.id) or '!'
+    Base.metadata.create_all()
+    with Session() as s:
+        prefix = s.query(Config).filter_by(guild_id=msg.guild.id).first() or '!'
+        return prefix
 
 
 bot = commands.Bot(get_prefix)

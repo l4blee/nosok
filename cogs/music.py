@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from collections import defaultdict
-from bot.core import yt_handler as _yt
+from core import yt_handler as _yt
 import asyncio
 
 

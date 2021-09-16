@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 from pytube import YouTube
 import typing
 
-from base import Base, engine
+from base import Base
 
 
 class Config(Base):
@@ -46,5 +46,5 @@ class YoutubeHandler:
         return max(streams, key=lambda x: x.bitrate).url
 
 
-google_api_token = None
+google_api_token = os.environ.get('KEY')
 yt_handler = YoutubeHandler(google_api_token)
