@@ -5,12 +5,20 @@ from pathlib import Path
 
 import discord
 from discord.ext import commands
+import sqlalchemy as sa
+from sqlalchemy import orm
 
+import base
 import core
 
 
+Session = orm.sessionmaker(base.engine)
+
+
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
-    return core.config.get_or_none(guild_id=msg.guild.id) or '!'
+    with Session() as s:
+        prefix = s.query(core.Config).filter_by(guild_id=msg.guild.id)
+        return prefix
 
 
 bot = commands.Bot(get_prefix)
@@ -22,6 +30,7 @@ logger = logging.getLogger('index')
 
 @bot.event
 async def on_ready():
+    base.Base.metadata.create_all()
     logger.info('Bot has been launched successfully')
 
 
@@ -33,6 +42,5 @@ for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
 
 bot.run(os.getenv('TOKEN'))
 
-core.config.save()
 logger.info('The bot has been shut down...')
 logger.info('#' * 40)

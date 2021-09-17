@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from collections import defaultdict
-from bot.core import yt_handler as _yt
+from core import yt_handler as _yt
 import asyncio
 
 
@@ -119,7 +119,10 @@ class Music(commands.Cog):
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
-            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream)),
+            voice.play(discord.FFmpegPCMAudio(stream,
+                                              before_options='-reconnect 1'
+                                                             ' -reconnect_streamed 1'
+                                                             ' -reconnect_delay_max 5'),
                        after=lambda _: self._after(ctx, loop))
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):

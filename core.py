@@ -1,7 +1,6 @@
 import os
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Session
 from googleapiclient.discovery import build
 from pytube import YouTube
 import typing
@@ -46,5 +45,5 @@ class YoutubeHandler:
         return max(streams, key=lambda x: x.bitrate).url
 
 
-google_api_token = None
+google_api_token = os.environ.get('GOOGLE_API_TOKEN')
 yt_handler = YoutubeHandler(google_api_token)
