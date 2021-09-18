@@ -1,8 +1,10 @@
+import asyncio
+from collections import defaultdict
+
 import discord
 from discord.ext import commands
-from collections import defaultdict
-from bot.core import yt_handler as _yt
-import asyncio
+
+from core import yt_handler as _yt
 
 
 class EndOfQueue(Exception):
@@ -148,6 +150,3 @@ class Music(commands.Cog):
                                   color=discord.Colour.from_rgb(255, 255, 255),
                                   description=desc)
             await ctx.channel.send(embed=embed)
-
-
-music = Music()

@@ -1,10 +1,10 @@
 import os
+import typing
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Session
 from googleapiclient.discovery import build
 from pytube import YouTube
-import typing
+from sqlalchemy.orm import sessionmaker
 
 from base import Base, engine
 
@@ -12,10 +12,10 @@ from base import Base, engine
 class Config(Base):
     __tablename__ = 'config'
 
-    id = sa.Column('config_id', sa.Integer, primary_key=True)
-    created_at = sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now())
-    guild_id = sa.Column('guild_id', sa.Integer, unique=True)
-    prefix = sa.Column('prefix', sa.String)
+    # id = sa.Column('config_id', sa.Integer, primary_key=True)
+    guild_id = sa.Column('guild_id', sa.BigInteger, unique=True, primary_key=True)
+    prefix = sa.Column('prefix', sa.String, server_default='!')
+    # created_at = sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.func.now())
 
 
 class YoutubeHandler:
@@ -46,5 +46,6 @@ class YoutubeHandler:
         return max(streams, key=lambda x: x.bitrate).url
 
 
-google_api_token = None
+google_api_token = os.environ.get('GOOGLE_API_TOKEN')
 yt_handler = YoutubeHandler(google_api_token)
+Session = sessionmaker(bind=engine)
