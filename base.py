@@ -1,15 +1,16 @@
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.declarative import as_declarative
-from dotenv import load_dotenv
 
-
-load_dotenv()
+load_dotenv('.env')
 engine = create_engine(os.environ.get('POSTGRES_URL'))
-metadata = MetaData(bind=engine)
+BASE_PREFIX = os.environ.get('BASE_PREFIX')
 
 
-@as_declarative(metadata=metadata)
+@as_declarative(
+    metadata=MetaData(bind=engine)
+)
 class Base:
-    pass
+    __tablename__ = ...
