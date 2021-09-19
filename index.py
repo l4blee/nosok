@@ -1,3 +1,4 @@
+from cogs.music import Music
 import logging
 import os
 from importlib import import_module
@@ -5,12 +6,15 @@ from pathlib import Path
 
 import discord
 from discord.ext import commands
+from sqlalchemy.orm import sessionmaker
 
 import core
-from base import Base, BASE_PREFIX
+from base import Base, BASE_PREFIX, engine
 
 Session = core.Session
 
+
+Session = sessionmaker(engine)
 
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
     with Session.begin() as s:
@@ -31,8 +35,7 @@ async def on_ready():
     logger.info('Bot has been successfully launched')
 
 
-for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
-            for i in Path('./cogs/').glob('*.py')]:
+for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:
     exec(f'{cls.__name__.lower()} = cls()')
     bot.add_cog(eval(cls.__name__.lower()))
 
@@ -40,4 +43,3 @@ for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
 bot.run(os.getenv('TOKEN'))
 
 logger.info('The bot has been shut down...')
-logger.info('#' * 40)

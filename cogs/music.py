@@ -50,15 +50,21 @@ class Music(commands.Cog):
         self._queues: defaultdict[Queue] = defaultdict(Queue)
 
     @commands.command(aliases=['j'])
-    async def join(self, ctx: commands.Context) -> None:
+    async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel) -> None:
         if ctx.voice_client:
             await ctx.channel.send('Already connected')
             return
+
         voice = ctx.author.voice
+
         if not voice:
             await ctx.channel.send('Connect first')
             return
-        await voice.channel.connect()
+
+        if voice_channel:
+            await voice_channel.connect()
+        else:
+            voice.channel.connect()
 
     @commands.command(aliases=['l'])
     async def leave(self, ctx: commands.Context) -> None:
@@ -107,7 +113,7 @@ class Music(commands.Cog):
 
             query = ' '.join(args)
             stream = _yt.get_stream(query=query)
-            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream)))
+            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')))
         else:
             if voice.is_paused():
                 await voice.resume()

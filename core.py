@@ -33,7 +33,7 @@ class YoutubeHandler:
             yield self._scheme + '://youtube.com/watch?v=' + i['id']['videoId'], i['snippet']  # url, info
 
     def get_url(self, query: str) -> tuple:
-        return self.get_urls(query).__next__()
+        return next(self.get_urls(query))
 
     def get_stream(self, query: str = '', url: str = '') -> str:
         if not query and not url:
