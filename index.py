@@ -1,3 +1,4 @@
+from cogs.music import Music
 import logging
 import os
 from importlib import import_module
@@ -15,7 +16,6 @@ from core import Config
 Session = sessionmaker(engine)
 
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
-    # return core.config.get_or_none(guild_id=msg.guild.id) or '!'
     Base.metadata.create_all()
     with Session() as s:
         prefix = s.query(Config).filter_by(guild_id=msg.guild.id).first() or '!'
@@ -31,17 +31,15 @@ logger = logging.getLogger('index')
 
 @bot.event
 async def on_ready():
+    Base.metadata.create_all()
     logger.info('Bot has been launched successfully')
 
 
-for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
-            for i in Path('./cogs/').glob('*.py')]:
+for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:
     exec(f'{cls.__name__.lower()} = cls()')
     bot.add_cog(eval(cls.__name__.lower()))
 
 
 bot.run(os.getenv('TOKEN'))
 
-core.config.save()
 logger.info('The bot has been shut down...')
-logger.info('#' * 40)

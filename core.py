@@ -13,7 +13,6 @@ class Config(Base):
     __tablename__ = 'config'
 
     id = sa.Column('config_id', sa.Integer, primary_key=True)
-    created_at = sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now())
     guild_id = sa.Column('guild_id', sa.Integer, unique=True)
     prefix = sa.Column('prefix', sa.String)
 
@@ -33,7 +32,7 @@ class YoutubeHandler:
             yield self._scheme + '://youtube.com/watch?v=' + i['id']['videoId'], i['snippet']  # url, info
 
     def get_url(self, query: str) -> tuple:
-        return self.get_urls(query).__next__()
+        return next(self.get_urls(query))
 
     def get_stream(self, query: str = '', url: str = '') -> str:
         if not query and not url:
