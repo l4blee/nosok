@@ -12,10 +12,8 @@ from base import Base, engine
 class Config(Base):
     __tablename__ = 'config'
 
-    # id = sa.Column('config_id', sa.Integer, primary_key=True)
     guild_id = sa.Column('guild_id', sa.BigInteger, unique=True, primary_key=True)
     prefix = sa.Column('prefix', sa.String, server_default='!')
-    # created_at = sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.func.now())
 
 
 class YoutubeHandler:
