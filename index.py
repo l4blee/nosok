@@ -1,4 +1,3 @@
-from cogs.music import Music
 import logging
 import os
 from importlib import import_module
@@ -6,15 +5,12 @@ from pathlib import Path
 
 import discord
 from discord.ext import commands
-from sqlalchemy.orm import sessionmaker
 
 import core
-from base import Base, BASE_PREFIX, engine
+from base import Base, BASE_PREFIX
 
 Session = core.Session
 
-
-Session = sessionmaker(engine)
 
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
     with Session.begin() as s:
