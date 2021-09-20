@@ -112,8 +112,17 @@ class Music(commands.Cog):
                 return
 
             query = ' '.join(args)
-            stream = _yt.get_stream(query=query)
-            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5')))
+            url, info = _yt.get_url(query)
+            q.add(url, info['title'], ctx.author.mention)
+
+            stream = _yt.get_stream(url=url)
+            loop = asyncio.get_running_loop()
+            voice.play(discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stream,
+                                       before_options='-reconnect 1'
+                                                      ' -reconnect_streamed 1'
+                                                      ' -reconnect_delay_max 5')),
+                    after=lambda _: self._after(ctx, loop))
         else:
             if voice.is_paused():
                 await voice.resume()
@@ -125,16 +134,18 @@ class Music(commands.Cog):
                 except EndOfQueue:
                     await ctx.channel.send('Queue ended')
                     q._now_playing = 0
+                    return
             else:
                 await ctx.channel.send('No songs left')
                 return
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
-            voice.play(discord.FFmpegPCMAudio(stream,
+            voice.play(discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stream,
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
-                                                             ' -reconnect_delay_max 5'),
+                                                             ' -reconnect_delay_max 5')),
                        after=lambda _: self._after(ctx, loop))
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
