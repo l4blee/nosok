@@ -143,15 +143,17 @@ class Music(commands.Cog):
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(stream,
-                                              before_options='-reconnect 1'
-                                                             ' -reconnect_streamed 1'
-                                                             ' -reconnect_delay_max 5')),
+                                       before_options='-reconnect 1'
+                                                      ' -reconnect_streamed 1'
+                                                      ' -reconnect_delay_max 5')),
                        after=lambda _: self._after(ctx, loop))
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
         if not q.play_next:
-            res = asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
+            res = loop.run_until_complete(self.play(ctx))
+            loop.stop()
+            return res
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context) -> None:
