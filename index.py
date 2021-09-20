@@ -9,20 +9,21 @@ from discord.ext import commands
 from sqlalchemy.orm import sessionmaker
 
 import core
-from base import Base, engine
-from core import Config
+from base import Base, BASE_PREFIX, engine
+
+Session = core.Session
 
 
 Session = sessionmaker(engine)
 
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
-    Base.metadata.create_all()
-    with Session() as s:
-        prefix = s.query(Config).filter_by(guild_id=msg.guild.id).first() or '!'
-        return prefix
+    with Session.begin() as s:
+        res = s.query(core.Config).filter_by(guild_id=msg.guild.id).first()
+        return res.prefix if res is not None else BASE_PREFIX
 
 
 bot = commands.Bot(get_prefix)
+Base.metadata.create_all()
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
                     datefmt='%y.%b.%Y %H:%M:%S')
@@ -31,8 +32,7 @@ logger = logging.getLogger('index')
 
 @bot.event
 async def on_ready():
-    Base.metadata.create_all()
-    logger.info('Bot has been launched successfully')
+    logger.info('Bot has been successfully launched')
 
 
 for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:

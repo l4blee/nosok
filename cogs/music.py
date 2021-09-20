@@ -1,8 +1,10 @@
+import asyncio
+from collections import defaultdict
+
 import discord
 from discord.ext import commands
-from collections import defaultdict
+
 from core import yt_handler as _yt
-import asyncio
 
 
 class EndOfQueue(Exception):
@@ -24,7 +26,7 @@ class Queue:
 
         self._now_playing += int(self._loop != 2)
         if self._now_playing > len(self._tracks):
-            if self._loop == 1:
+            if self._loop == 0:
                 raise EndOfQueue
             else:
                 self._now_playing = 0
@@ -118,14 +120,21 @@ class Music(commands.Cog):
                 return
 
             if not q.is_empty:
-                url, title, mention = q.get_next()
+                try:
+                    url, title, mention = q.get_next()
+                except EndOfQueue:
+                    await ctx.channel.send('Queue ended')
+                    q._now_playing = 0
             else:
                 await ctx.channel.send('No songs left')
                 return
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
-            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream)),
+            voice.play(discord.FFmpegPCMAudio(stream,
+                                              before_options='-reconnect 1'
+                                                             ' -reconnect_streamed 1'
+                                                             ' -reconnect_delay_max 5'),
                        after=lambda _: self._after(ctx, loop))
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
@@ -154,6 +163,3 @@ class Music(commands.Cog):
                                   color=discord.Colour.from_rgb(255, 255, 255),
                                   description=desc)
             await ctx.channel.send(embed=embed)
-
-
-music = Music()
