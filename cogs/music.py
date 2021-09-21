@@ -181,6 +181,7 @@ class Music(commands.Cog):
                                                       ' -reconnect_streamed 1'
                                                       ' -reconnect_delay_max 5')),
                 after=lambda _: self._after(ctx, loop))
+            await self.current()
         else:
             if voice.is_paused():
                 voice.resume()
@@ -205,6 +206,7 @@ class Music(commands.Cog):
                                                       ' -reconnect_streamed 1'
                                                       ' -reconnect_delay_max 5')),
                 after=lambda _: self._after(ctx, loop))
+            await self.current()
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
