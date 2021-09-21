@@ -14,8 +14,8 @@ class EndOfQueue(Exception):
 class Queue:
     def __init__(self):
         self._tracks: list[tuple] = []
-        self._loop: int = 1  # 0 - None; 1 - Current queue; 2 - Current track
-        self.now_playing: int = 0 # even if there's only one track in the queue it's equals 1. Why?
+        self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
+        self.now_playing: int = 0
         self.play_next: bool = True
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
@@ -130,14 +130,17 @@ class Music(commands.Cog):
         current = q.current
 
         if not voice:
-            await ctx.send('No songs are playing')
+            await ctx.send('Not connected')
+            return
+
+        if not voice.is_playing():
+            await ctx.send('Not playing now')
             return
         
         embed = discord.Embed(
-            title='The current song',
-            description=current[1],
-            url=current[0],
-            colour=discord.Color.from_rgb(255, 0, 0)
+            title='Current song:',
+            description=f'[{current[1]}]({current[0]}) | {current[2]}',
+            colour=discord.Color.from_rgb(255, 255, 255)
         )
         await ctx.send(embed=embed)
 
