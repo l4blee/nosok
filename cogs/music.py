@@ -228,7 +228,8 @@ class Music(commands.Cog):
             await ctx.send(embed=embed)
         else:
             desc = ''
-            for index, url, title, mention in enumerate(q.queue):
+            for index, item in enumerate(q.queue):
+                url, title, mention = item
                 desc += f'{index + 1}. [{title}]({url}) | {mention}\n'
 
             embed = discord.Embed(title='Current queue:',
