@@ -227,7 +227,7 @@ class Music(commands.Cog):
         else:
             desc = ''
             for index, url, title, mention in enumerate(q.queue):
-                desc += f'{index}. [{title}]({url}) | {mention}\n'
+                desc += f'{index + 1}. [{title}]({url}) | {mention}\n'
 
             embed = discord.Embed(title='Current queue:',
                                   color=discord.Colour.from_rgb(255, 255, 255),
