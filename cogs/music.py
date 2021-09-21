@@ -15,7 +15,7 @@ class Queue:
     def __init__(self):
         self._tracks: list[tuple] = []
         self._loop: int = 1  # 0 - None; 1 - Current queue; 2 - Current track
-        self.now_playing: int = 0
+        self.now_playing: int = 0 # even if there's only one track in the queue it's equals 1. Why?
         self.play_next: bool = True
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
@@ -48,6 +48,10 @@ class Queue:
     @property
     def queue(self) -> list:
         return self._tracks
+
+    @property
+    def current(self):
+        return self._tracks[self.now_playing - 1]
 
 
 class Music(commands.Cog):
@@ -92,6 +96,51 @@ class Music(commands.Cog):
         q.play_next = False
         voice.stop()
 
+    @commands.command(aliases=['ps'])
+    async def pause(self, ctx: commands.Context) -> None:
+        """
+        Pauses the current song. You can resume, just by typing `!p`.
+        """
+        voice = ctx.voice_client
+        if not voice:
+            await ctx.send('Not connected yet')
+            return
+
+        if voice.is_playing():
+            voice.pause()
+
+    @commands.command(aliases=['left'])
+    async def continue_where_left_off(self, ctx: commands.Context): # TODO: finish it
+        """
+        Pauses the song in its current length. When you levave the voice channel,
+        you can resume where you left off.
+        """
+        voice = ctx.voice_client
+        if not voice:
+            await ctx.send('Not connected yet')
+            return
+
+    @commands.command(aliases=['c'])
+    async def current(self, ctx: commands.Context) -> None:
+        """
+        Displays the current song.
+        """
+        voice = ctx.voice_client
+        q: Queue = self._queues[ctx.guild.id]
+        current = q.current
+
+        if not voice:
+            await ctx.send('No songs are playing')
+            return
+        
+        embed = discord.Embed(
+            title='The current song',
+            description=current[1],
+            url=current[0],
+            colour=discord.Color.from_rgb(255, 0, 0)
+        )
+        await ctx.send(embed=embed)
+
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context) -> None:
         voice = ctx.voice_client
@@ -131,7 +180,7 @@ class Music(commands.Cog):
                 after=lambda _: self._after(ctx, loop))
         else:
             if voice.is_paused():
-                await voice.resume()
+                voice.resume()
                 return
 
             if not q.is_empty:
