@@ -14,8 +14,8 @@ class EndOfQueue(Exception):
 class Queue:
     def __init__(self):
         self._tracks: list[tuple] = []
-        self._loop: int = 1  # 0 - None; 1 - Current queue; 2 - Current track
-        self.now_playing: int = 0 # even if there's only one track in the queue it's equals 1. Why?
+        self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
+        self.now_playing: int = 0
         self.play_next: bool = True
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
@@ -34,6 +34,9 @@ class Queue:
         self.now_playing += int(self._loop != 2)
 
         return ret
+
+    def __len__(self):
+        return len(self._tracks)
 
     def remove(self, index: int) -> None:
         self._tracks.pop(index)
@@ -130,14 +133,17 @@ class Music(commands.Cog):
         current = q.current
 
         if not voice:
-            await ctx.send('No songs are playing')
+            await ctx.send('Not connected')
+            return
+
+        if not voice.is_playing():
+            await ctx.send('Not playing now')
             return
         
         embed = discord.Embed(
-            title='The current song',
-            description=current[1],
-            url=current[0],
-            colour=discord.Color.from_rgb(255, 0, 0)
+            title='Current song:',
+            description=f'[{current[1]}]({current[0]}) | {current[2]}',
+            colour=discord.Color.from_rgb(255, 255, 255)
         )
         await ctx.send(embed=embed)
 
@@ -168,7 +174,7 @@ class Music(commands.Cog):
             query = ' '.join(args)
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
-            q.now_playing += 1
+            q.now_playing = len(q)
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
@@ -178,6 +184,7 @@ class Music(commands.Cog):
                                                       ' -reconnect_streamed 1'
                                                       ' -reconnect_delay_max 5')),
                 after=lambda _: self._after(ctx, loop))
+            await self.current(ctx)
         else:
             if voice.is_paused():
                 voice.resume()
@@ -202,6 +209,7 @@ class Music(commands.Cog):
                                                       ' -reconnect_streamed 1'
                                                       ' -reconnect_delay_max 5')),
                 after=lambda _: self._after(ctx, loop))
+            await self.current(ctx)
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
@@ -223,8 +231,9 @@ class Music(commands.Cog):
             await ctx.send(embed=embed)
         else:
             desc = ''
-            for url, title, mention in q.queue:
-                desc += f'[{title}]({url}) | {mention}\n'
+            for index, item in enumerate(q.queue):
+                url, title, mention = item
+                desc += f'{index + 1}. [{title}]({url}) | {mention}\n'
 
             embed = discord.Embed(title='Current queue:',
                                   color=discord.Colour.from_rgb(255, 255, 255),
@@ -245,3 +254,13 @@ class Music(commands.Cog):
 
         loop_setting = ['None', 'Current queue', 'Current track'][q._loop]
         await cxt.send(f'Now looping is set to: `{loop_setting}`')
+
+    @commands.command(aliases=['rm'])
+    async def remove(self, ctx: commands.Context, index: int):
+        q = self._queues[ctx.guild.id]
+        res = q.remove(index - 1)
+
+        embed = discord.Embed(
+            description=f'Removed: [{res[1]}]({res[0]})'
+        )
+        await ctx.send(embed=embed)
