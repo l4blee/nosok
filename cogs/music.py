@@ -35,6 +35,9 @@ class Queue:
 
         return ret
 
+    def __len__(self):
+        return len(self._tracks)
+
     def remove(self, index: int) -> None:
         self._tracks.pop(index)
 
@@ -171,7 +174,7 @@ class Music(commands.Cog):
             query = ' '.join(args)
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
-            q.now_playing += 1
+            q.now_playing = len(q)
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
@@ -251,3 +254,13 @@ class Music(commands.Cog):
 
         loop_setting = ['None', 'Current queue', 'Current track'][q._loop]
         await cxt.send(f'Now looping is set to: `{loop_setting}`')
+
+    @commands.command(aliases=['rm'])
+    async def remove(self, ctx: commands.Context, index: int):
+        q = self._queues[ctx.guild.id]
+        res = q.remove(index - 1)
+
+        embed = discord.Embed(
+            description=f'Removed: [{res[1]}]({res[0]})'
+        )
+        await ctx.send(embed=embed)
