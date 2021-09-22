@@ -5,10 +5,7 @@ import discord
 from discord.ext import commands
 
 from core import yt_handler as _yt
-
-
-class EndOfQueue(Exception):
-    pass
+from base import BASE_COLOR
 
 
 class Queue:
@@ -38,7 +35,7 @@ class Queue:
     def __len__(self):
         return len(self._tracks)
 
-    def remove(self, index: int) -> int:
+    def remove(self, index: int) -> tuple:
         return self._tracks.pop(index)
 
     def clear(self) -> None:
@@ -63,6 +60,10 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
+        """
+        Makes the bot join your current voice channel
+        """
+
         if ctx.voice_client:
             await ctx.send('Already connected')
             return
@@ -80,6 +81,9 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['l'])
     async def leave(self, ctx: commands.Context) -> None:
+        """
+        Makes bot leave your current channel.
+        """
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
@@ -90,6 +94,9 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['s'])
     async def stop(self, ctx: commands.Context) -> None:
+        """
+        Stops bot from playing current song.
+        """
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
@@ -102,7 +109,7 @@ class Music(commands.Cog):
     @commands.command(aliases=['ps'])
     async def pause(self, ctx: commands.Context) -> None:
         """
-        Pauses the current song. You can resume, just by typing `!p`.
+        Pauses current song. Use command `play` to resume.
         """
         voice = ctx.voice_client
         if not voice:
@@ -113,9 +120,10 @@ class Music(commands.Cog):
             voice.pause()
 
     @commands.command(aliases=['left'])
-    async def continue_where_left_off(self, ctx: commands.Context): # TODO: finish it
+    async def _continue_where_left_off(self, ctx: commands.Context):  # TODO: finish it
+        # Made this private not to appear in help command, temporary ofc
         """
-        Pauses the song in its current length. When you levave the voice channel,
+        Pauses the song in its current length. When you leave the voice channel,
         you can resume where you left off.
         """
         voice = ctx.voice_client
@@ -126,7 +134,7 @@ class Music(commands.Cog):
     @commands.command(aliases=['c'])
     async def current(self, ctx: commands.Context) -> None:
         """
-        Displays the current song.
+        Displays current playing song.
         """
         voice = ctx.voice_client
         q: Queue = self._queues[ctx.guild.id]
@@ -139,16 +147,19 @@ class Music(commands.Cog):
         if not voice.is_playing():
             await ctx.send('Not playing now')
             return
-        
+
         embed = discord.Embed(
             title='Current song:',
             description=f'[{current[1]}]({current[0]}) | {current[2]}',
-            colour=discord.Color.from_rgb(255, 0, 0)
+            colour=BASE_COLOR
         )
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['p'])
-    async def play(self, ctx: commands.Context) -> None:
+    async def play(self, ctx: commands.Context, *query) -> None:
+        """
+        Plays current song.
+        """
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
@@ -161,8 +172,7 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = True
 
-        args = ctx.message.content.split(' ')[1:]
-        if args:
+        if query:
             if voice.is_playing():
                 await self.queue(ctx)
                 return
@@ -171,7 +181,7 @@ class Music(commands.Cog):
                 await voice.resume()
                 return
 
-            query = ' '.join(args)
+            query = ' '.join(query)
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
             q.now_playing = len(q)
@@ -219,6 +229,9 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context) -> None:
+        """
+        Displays current queue.
+        """
         q: Queue = self._queues[ctx.guild.id]
         args = ctx.message.content.split(' ')[1:]
         if args:
@@ -227,7 +240,7 @@ class Music(commands.Cog):
             q.add(url, info['title'], ctx.author.mention)
 
             embed = discord.Embed(description=f'Queued: [{info["title"]}]({url})',
-                                  color=discord.Colour.from_rgb(255, 255, 255))
+                                  color=BASE_COLOR)
             await ctx.send(embed=embed)
         else:
             desc = ''
@@ -236,31 +249,47 @@ class Music(commands.Cog):
                 desc += f'{index + 1}. [{title}]({url}) | {mention}\n'
 
             embed = discord.Embed(title='Current queue:',
-                                  color=discord.Colour.from_rgb(255, 255, 255),
+                                  color=BASE_COLOR,
                                   description=desc)
             await ctx.send(embed=embed)
 
     @commands.command(aliases=['clr'])
     async def clear(self, ctx: commands.Context):
+        """
+        Clears current queue.
+        """
         q = self._queues[ctx.guild.id]
         q.clear()
 
     @commands.command()
-    async def loop(self, cxt: commands.Context):
-        q = self._queues[cxt.guild.id]
-        q._loop += 1
-        if q._loop > 2:
-            q._loop = 0
+    async def loop(self, cxt: commands.Context, option: str = ''):
+        """
+        Changes loop option to None, Queue or Track
+        """
+        loop_setting = ['None', 'Current queue', 'Current track']
 
-        loop_setting = ['None', 'Current queue', 'Current track'][q._loop]
-        await cxt.send(f'Now looping is set to: `{loop_setting}`')
+        q = self._queues[cxt.guild.id]
+        if option:
+            q._loop = ['None', 'Queue', 'Track'].index(option.capitalize())
+        else:
+            q._loop += 1
+            if q._loop > 2:
+                q._loop = 0
+
+        embed = discord.Embed(description=f'Now looping is set to: `{loop_setting[q._loop]}`',
+                              color=BASE_COLOR)
+        await cxt.send(embed=embed)
 
     @commands.command(aliases=['rm'])
     async def remove(self, ctx: commands.Context, index: int):
+        """
+        Removes a song from queue by index.
+        """
         q = self._queues[ctx.guild.id]
         res = q.remove(index - 1)
 
         embed = discord.Embed(
-            description=f'Removed: [{res[1]}]({res[0]})'
+            description=f'Removed: [{res[1]}]({res[0]})',
+            color=BASE_COLOR
         )
         await ctx.send(embed=embed)

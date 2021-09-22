@@ -1,6 +1,9 @@
-from discord.ext import commands
+import discord
 import sqlalchemy as sa
+from discord.ext import commands
+
 import core
+from base import BASE_COLOR
 
 
 class Other(commands.Cog):
@@ -17,4 +20,6 @@ class Other(commands.Cog):
                           where(core.Config.guild_id == ctx.guild.id).
                           values(prefix=pref))
 
-            await ctx.channel.send('Prefix has been successfully changed to `%s`' % pref)
+            embed = discord.Embed(description=f'Prefix has been successfully changed to `{pref}`',
+                                  color=BASE_COLOR)
+            await ctx.channel.send(embed=embed)
