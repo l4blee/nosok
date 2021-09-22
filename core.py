@@ -1,6 +1,7 @@
 import os
 import typing
 
+import discord
 import sqlalchemy as sa
 from googleapiclient.discovery import build
 from pytube import YouTube
