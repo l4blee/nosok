@@ -38,8 +38,8 @@ class Queue:
     def __len__(self):
         return len(self._tracks)
 
-    def remove(self, index: int) -> None:
-        self._tracks.pop(index)
+    def remove(self, index: int) -> int:
+        return self._tracks.pop(index)
 
     def clear(self) -> None:
         self._tracks = []
@@ -143,7 +143,7 @@ class Music(commands.Cog):
         embed = discord.Embed(
             title='Current song:',
             description=f'[{current[1]}]({current[0]}) | {current[2]}',
-            colour=discord.Color.from_rgb(255, 255, 255)
+            colour=discord.Color.from_rgb(255, 0, 0)
         )
         await ctx.send(embed=embed)
 
