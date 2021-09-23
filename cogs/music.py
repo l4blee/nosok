@@ -4,6 +4,7 @@ from collections import defaultdict
 import discord
 from discord.ext import commands
 
+import exceptions
 from core import yt_handler as _yt
 from base import BASE_COLOR
 
@@ -14,6 +15,7 @@ class Queue:
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
         self.now_playing: int = 0
         self.play_next: bool = True
+        self._prev: int = 0
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))
@@ -41,6 +43,20 @@ class Queue:
     def clear(self) -> None:
         self._tracks = []
 
+    def get_previous(self) -> tuple:
+        """
+        Returns either a previous or the first track in the queue if there's only one song.
+        """
+        enum = enumerate(self._tracks)
+        tracks_indices = [index for index, _ in enum]
+        self._prev = tracks_indices[self.now_playing - 2]
+
+        if self._prev < 0:
+            self._prev = 0
+            return self._prev
+
+        return self._tracks[self._prev]
+
     @property
     def is_empty(self) -> bool:
         return not bool(self._tracks)
@@ -50,7 +66,7 @@ class Queue:
         return self._tracks
 
     @property
-    def current(self):
+    def current(self) -> tuple:
         return self._tracks[self.now_playing - 1]
 
 
@@ -66,13 +82,13 @@ class Music(commands.Cog):
 
         if ctx.voice_client:
             await ctx.send('Already connected')
-            return
+            raise exceptions.AlreadyConnectedToChannel
 
         voice = ctx.author.voice
 
         if not voice:
             await ctx.send('Connect first')
-            return
+            raise exceptions.NotConnectedToChannel
 
         if voice_channel:
             await voice_channel.connect()
@@ -87,7 +103,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
         if voice.is_playing():
             await self.stop(ctx)
         await voice.disconnect()
@@ -100,7 +116,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
 
         q = self._queues[ctx.guild.id]
         q.play_next = False
@@ -114,7 +130,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
 
         if voice.is_playing():
             voice.pause()
@@ -129,7 +145,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
 
     @commands.command(aliases=['c'])
     async def current(self, ctx: commands.Context) -> None:
@@ -155,6 +171,61 @@ class Music(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=['n'])
+    async def next(self, ctx: commands.Context):
+        voice = ctx.voice_client
+        if not voice:
+            if not ctx.author.voice:
+                await ctx.send('Connect first')
+                raise exceptions.NotConnectedToChannel
+
+        q: Queue = self._queues[ctx.guild.id]
+        track = q.get_next()
+        print(not len(track))
+        if len(track):
+            if voice.is_playing():
+                await self.stop(ctx)
+
+            url, title, mention = track
+            stream = _yt.get_stream(url=url)
+            loop = asyncio.get_running_loop()
+            voice.play(discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stream,
+                                        before_options='-reconnect 1'
+                                                        ' -reconnect_streamed 1'
+                                                        ' -reconnect_delay_max 5')),
+                after=lambda _: self._after(ctx, loop))
+            await self.current(ctx)
+        else:
+            await ctx.send('Queue ended')
+            raise exceptions.NoMoreTracks
+
+    @commands.command(aliases=['prev'])
+    async def previous(self, ctx: commands.Context):
+        voice = ctx.voice_client
+        if not voice:
+            if not ctx.author.voice:
+                await ctx.send('Connect first')
+                raise exceptions.NotConnectedToChannel
+
+        if voice.is_playing():
+            await self.stop(ctx)
+        
+        q: Queue = self._queues[ctx.guild.id]
+        url, title, mention = q.get_previous()
+
+        stream = _yt.get_stream(url=url)
+        loop = asyncio.get_running_loop()
+        voice.play(discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(stream,
+                                    before_options='-reconnect 1'
+                                                    ' -reconnect_streamed 1'
+                                                    ' -reconnect_delay_max 5')),
+            after=lambda _: self._after(ctx, loop))
+        
+        q.now_playing -= 1
+        await self.current(ctx)
+
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context, *query) -> None:
         """
@@ -164,7 +235,7 @@ class Music(commands.Cog):
         if not voice:
             if not ctx.author.voice:
                 await ctx.send('Connect first')
-                return
+                raise exceptions.NotConnectedToChannel
 
             await ctx.author.voice.channel.connect()
 
