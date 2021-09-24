@@ -14,6 +14,7 @@ class Queue:
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
         self.now_playing: int = 0
         self.play_next: bool = True
+        self._prev: int = 0
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))
@@ -41,6 +42,20 @@ class Queue:
     def clear(self) -> None:
         self._tracks = []
 
+    def get_previous(self) -> tuple:
+        """
+        Returns either a previous or the first track in the queue if there's only one song.
+        """
+        enum = enumerate(self._tracks)
+        tracks_indices = [index for index, _ in enum]
+        self._prev = tracks_indices[self.now_playing - 2]
+
+        if self._prev < 0:
+            self._prev = 0
+            return self._prev
+
+        return self._tracks[self._prev]
+
     @property
     def is_empty(self) -> bool:
         return not bool(self._tracks)
@@ -50,7 +65,7 @@ class Queue:
         return self._tracks
 
     @property
-    def current(self):
+    def current(self) -> tuple:
         return self._tracks[self.now_playing - 1]
 
 
@@ -154,6 +169,56 @@ class Music(commands.Cog):
             colour=BASE_COLOR
         )
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=['n'])
+    async def next(self, ctx: commands.Context):
+        voice = ctx.voice_client
+        if not voice:
+            if not ctx.author.voice:
+                await ctx.send('Connect first')
+                return
+
+        if voice.is_playing():
+            await self.stop(ctx)
+
+        q: Queue = self._queues[ctx.guild.id]
+        url, title, mention = q.get_next()
+
+        stream = _yt.get_stream(url=url)
+        loop = asyncio.get_running_loop()
+        voice.play(discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(stream,
+                                    before_options='-reconnect 1'
+                                                    ' -reconnect_streamed 1'
+                                                    ' -reconnect_delay_max 5')),
+            after=lambda _: self._after(ctx, loop))
+        await self.current(ctx)
+
+    @commands.command(aliases=['prev'])
+    async def previous(self, ctx: commands.Context):
+        voice = ctx.voice_client
+        if not voice:
+            if not ctx.author.voice:
+                await ctx.send('Connect first')
+                return
+
+        if voice.is_playing():
+            await self.stop(ctx)
+        
+        q: Queue = self._queues[ctx.guild.id]
+        url, title, mention = q.get_previous()
+
+        stream = _yt.get_stream(url=url)
+        loop = asyncio.get_running_loop()
+        voice.play(discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(stream,
+                                    before_options='-reconnect 1'
+                                                    ' -reconnect_streamed 1'
+                                                    ' -reconnect_delay_max 5')),
+            after=lambda _: self._after(ctx, loop))
+        
+        q.now_playing -= 1
+        await self.current(ctx)
 
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context, *query) -> None:
