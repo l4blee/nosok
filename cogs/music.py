@@ -1,4 +1,5 @@
 import asyncio
+import typing
 from collections import defaultdict
 
 import discord
@@ -18,12 +19,12 @@ class Queue:
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))
 
-    def get_next(self) -> tuple:
+    def get_next(self) -> typing.Any[tuple, None]:
         if self.now_playing >= len(self._tracks):
             if self._loop == 0:
                 self.now_playing = 0
                 self.play_next = False
-                return ()
+                return None
             else:
                 self.now_playing = 0
 
@@ -50,8 +51,8 @@ class Queue:
         return self._tracks
 
     @property
-    def current(self):
-        return self._tracks[self.now_playing - 1]
+    def current(self) -> typing.Any[tuple, None]:
+        return self._tracks[self.now_playing - 1] if len(self._tracks) > 0 else None
 
 
 class Music(commands.Cog):
@@ -104,12 +105,13 @@ class Music(commands.Cog):
 
         q = self._queues[ctx.guild.id]
         q.play_next = False
+        q.now_playing += 1
         voice.stop()
 
     @commands.command(aliases=['ps'])
     async def pause(self, ctx: commands.Context) -> None:
         """
-        Pauses current song. Use command `play` to resume.
+        Pauses current song. Use `play` command to resume.
         """
         voice = ctx.voice_client
         if not voice:
@@ -119,8 +121,8 @@ class Music(commands.Cog):
         if voice.is_playing():
             voice.pause()
 
-    @commands.command(aliases=['left'])
-    async def _continue_where_left_off(self, ctx: commands.Context):  # TODO: finish it
+    '''@commands.command(aliases=['left'])
+    async def continue_where_left_off(self, ctx: commands.Context):  # TODO: finish it
         # Made this private not to appear in help command, temporary ofc
         """
         Pauses the song in its current length. When you leave the voice channel,
@@ -129,7 +131,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            return'''
 
     @commands.command(aliases=['c'])
     async def current(self, ctx: commands.Context) -> None:
@@ -198,20 +200,17 @@ class Music(commands.Cog):
         else:
             if voice.is_paused():
                 voice.resume()
-                return
 
             if not q.is_empty:
                 res = q.get_next()
-                if res == ():
+                if not res:
                     await ctx.send('Queue ended')
                     return
-                else:
-                    url, title, mention = res
             else:
                 await ctx.send('No songs left')
                 return
 
-            stream = _yt.get_stream(url=url)
+            stream = _yt.get_stream(url=res[0])
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(stream,
