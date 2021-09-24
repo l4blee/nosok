@@ -9,6 +9,9 @@ from base import BASE_COLOR
 class Other(commands.Cog):
     @commands.command(aliases=['sp'])
     async def set_prefix(self, ctx: commands.Context):
+        """
+        Sets the current prefix for the current server
+        """
         with core.Session.begin() as s:
             res = s.query(core.Config).filter_by(guild_id=ctx.guild.id).first()
             pref = ctx.message.content.split(' ')[1]
