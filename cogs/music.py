@@ -274,7 +274,7 @@ class Music(commands.Cog):
                 desc = ''
                 for index, item in enumerate(q.queue):
                     url, title, mention = item
-                    desc += f'{["", "Current --> "][int(index == q.now_playing)]}' \
+                    desc += f'{["", "Current ==> "][int(index == q.now_playing)]}' \
                             f'{index + 1}. [{title}]({url}) | {mention}\n'
             else:
                 desc = 'No tracks are in the queue for now!'
