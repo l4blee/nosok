@@ -20,7 +20,7 @@ def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
 
 bot = commands.Bot(get_prefix)
 Base.metadata.create_all()
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.WARNING,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
                     datefmt='%y.%b.%Y %H:%M:%S')
 logger = logging.getLogger('index')
@@ -28,7 +28,7 @@ logger = logging.getLogger('index')
 
 @bot.event
 async def on_ready():
-    logger.info('Bot has been successfully launched')
+    logger.warning('Bot has been successfully launched')
 
 
 for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:
