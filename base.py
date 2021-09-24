@@ -8,7 +8,7 @@ import discord
 load_dotenv('.env')
 engine = create_engine(os.environ.get('POSTGRES_URL'))
 BASE_PREFIX = os.environ.get('BASE_PREFIX')
-BASE_COLOR = discord.Colour.from_rgb(230, 126, 34)
+BASE_COLOR = discord.Colour.from_rgb(241, 184, 19)
 
 
 @as_declarative(

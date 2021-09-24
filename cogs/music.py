@@ -277,7 +277,7 @@ class Music(commands.Cog):
                     desc += f'{["", "Current ==> "][int(index == q.now_playing)]}' \
                             f'{index + 1}. [{title}]({url}) | {mention}\n'
             else:
-                desc = 'No tracks are in the queue for now!'
+                desc = 'There are no tracks in the queue for now!'
 
             embed = discord.Embed(title='Current queue:',
                                   color=BASE_COLOR,
@@ -291,6 +291,10 @@ class Music(commands.Cog):
         """
         q = self._queues[ctx.guild.id]
         q.clear()
+
+        embed = discord.Embed(description='Queue has been successfully cleared',
+                              color=BASE_COLOR)
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def loop(self, cxt: commands.Context, option: str = ''):
