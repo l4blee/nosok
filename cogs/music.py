@@ -4,6 +4,7 @@ from collections import defaultdict
 import discord
 from discord.ext import commands
 
+import exceptions
 from core import yt_handler as _yt
 from base import BASE_COLOR
 
@@ -81,13 +82,13 @@ class Music(commands.Cog):
 
         if ctx.voice_client:
             await ctx.send('Already connected')
-            return
+            raise exceptions.AlreadyConnectedToChannel
 
         voice = ctx.author.voice
 
         if not voice:
             await ctx.send('Connect first')
-            return
+            raise exceptions.NotConnectedToChannel
 
         if voice_channel:
             await voice_channel.connect()
@@ -102,7 +103,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
         if voice.is_playing():
             await self.stop(ctx)
         await voice.disconnect()
@@ -115,7 +116,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
 
         q = self._queues[ctx.guild.id]
         q.play_next = False
@@ -129,7 +130,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
 
         if voice.is_playing():
             voice.pause()
@@ -144,7 +145,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             await ctx.send('Not connected yet')
-            return
+            raise exceptions.BotNotConnectedToChannel
 
     @commands.command(aliases=['c'])
     async def current(self, ctx: commands.Context) -> None:
@@ -176,23 +177,28 @@ class Music(commands.Cog):
         if not voice:
             if not ctx.author.voice:
                 await ctx.send('Connect first')
-                return
-
-        if voice.is_playing():
-            await self.stop(ctx)
+                raise exceptions.NotConnectedToChannel
 
         q: Queue = self._queues[ctx.guild.id]
-        url, title, mention = q.get_next()
+        track = q.get_next()
+        print(not len(track))
+        if len(track):
+            if voice.is_playing():
+                await self.stop(ctx)
 
-        stream = _yt.get_stream(url=url)
-        loop = asyncio.get_running_loop()
-        voice.play(discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(stream,
-                                    before_options='-reconnect 1'
-                                                    ' -reconnect_streamed 1'
-                                                    ' -reconnect_delay_max 5')),
-            after=lambda _: self._after(ctx, loop))
-        await self.current(ctx)
+            url, title, mention = track
+            stream = _yt.get_stream(url=url)
+            loop = asyncio.get_running_loop()
+            voice.play(discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stream,
+                                        before_options='-reconnect 1'
+                                                        ' -reconnect_streamed 1'
+                                                        ' -reconnect_delay_max 5')),
+                after=lambda _: self._after(ctx, loop))
+            await self.current(ctx)
+        else:
+            await ctx.send('Queue ended')
+            raise exceptions.NoMoreTracks
 
     @commands.command(aliases=['prev'])
     async def previous(self, ctx: commands.Context):
@@ -200,7 +206,7 @@ class Music(commands.Cog):
         if not voice:
             if not ctx.author.voice:
                 await ctx.send('Connect first')
-                return
+                raise exceptions.NotConnectedToChannel
 
         if voice.is_playing():
             await self.stop(ctx)
@@ -229,7 +235,7 @@ class Music(commands.Cog):
         if not voice:
             if not ctx.author.voice:
                 await ctx.send('Connect first')
-                return
+                raise exceptions.NotConnectedToChannel
 
             await ctx.author.voice.channel.connect()
 
