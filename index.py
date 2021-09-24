@@ -37,5 +37,4 @@ for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Pa
 
 
 bot.run(os.getenv('TOKEN'))
-print(bot.commands)
 logger.info('The bot has been shut down...')
