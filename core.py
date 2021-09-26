@@ -1,5 +1,6 @@
 import re
 
+from discord.ext import commands
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
 import requests

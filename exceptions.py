@@ -1,35 +1,40 @@
 from discord.ext import commands
 
 
-class AlreadyConnectedToChannel(commands.CommandError):
+class AlreadyConnected(commands.CommandError):
     """
-    Player is already connected to the channel.
+    Occurs when the bot is already connected to the channel.
     """
     pass
 
-class NotConnectedToChannel(commands.CommandError):
+
+class UserNotConnected(commands.CommandError):
     """
     Occurs when a user isn't connected to a voice channel.
     """
     pass
 
-class AlreadyPlayinAudio(commands.CommandError):
+
+class AlreadyPlaying(commands.CommandError):
     """
     Occurs when the audio is already playing.
     """
     pass
 
+
 class NoMoreTracks(commands.CommandError):
     """
-    Occurs when there're no more tracks in the queue.
+    Occurs when there are no more tracks in the queue.
     """
     pass
 
+
 class NoPreviousTracks(commands.CommandError):
     """
-    Occurs when there're no previous tracks.
+    Occurs when there are no previous tracks.
     """
     pass
+
 
 class QueueEmpty(commands.CommandError):
     """
@@ -37,13 +42,15 @@ class QueueEmpty(commands.CommandError):
     """
     pass
 
-class PlayerIsAlreadyPaused(commands.CommandError):
+
+class AlreadyPaused(commands.CommandError):
     """
     Occurs when the player is already paused, but the user is trying to pause it one more time.
     """
     pass
 
-class BotNotConnectedToChannel(commands.CommandError):
+
+class BotNotConnected(commands.CommandError):
     """
     Occurs when the bot isn't connected to a voice channel yet.
     """
