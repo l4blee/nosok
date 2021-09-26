@@ -1,7 +1,11 @@
+import functools
+import typing
+
 import discord
 from discord.ext import commands
+
 from base import ERROR_COLOR
-import exceptions
+from bot import MusicBot
 
 
 async def send_embed(description: str, color: discord.Colour, ctx: commands.Context, title: str = ''):
@@ -23,12 +27,6 @@ async def is_connected(ctx: commands.Context):
         return False
     else:
         return True
-=======
-import asyncio
-import typing
-import functools
-
-from bot import MusicBot
 
 
 async def run_blocking(blocking_func: typing.Callable, bot: MusicBot, *args, **kwargs) -> typing.Any:

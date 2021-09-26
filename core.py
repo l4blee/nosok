@@ -1,11 +1,10 @@
 import re
 
-from discord.ext import commands
-import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
 import requests
-from bs4 import BeautifulSoup
+import sqlalchemy as sa
 import youtube_dl
+from bs4 import BeautifulSoup
+from sqlalchemy.orm import sessionmaker
 
 from base import Base, engine
 from config import config
@@ -22,7 +21,7 @@ class YoutubeHandler:
     def __init__(self, scheme: str = 'https'):
         self._scheme = scheme
 
-    def get_tracks(self, query: tuple, max_number: int = 5) -> tuple:
+    def get_tracks(self, query: tuple, max_number: int = 5) -> list[tuple]:
         """
         Gets a tuple containing the song's url and the title.
         """
@@ -38,7 +37,11 @@ class YoutubeHandler:
 
         return tracks
 
-    def get_stream(self, url: str) -> str:
+    def get_track(self, query: tuple, max_number: int = 5) -> tuple:
+        return self.get_tracks(query, max_number)[0]
+
+    @staticmethod
+    def get_stream(url: str) -> str:
         with youtube_dl.YoutubeDL(config.YDL_OPTS) as ydl:
             return ydl.extract_info(url, download=False).get('url')
 

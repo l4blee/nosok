@@ -5,11 +5,12 @@ from collections import defaultdict
 import discord
 from discord.ext import commands
 
+import config.config as config
 import exceptions
 import utils
 from base import BASE_COLOR, ERROR_COLOR
+from bot import bot
 from core import yt_handler as _yt
-
 from utils import is_connected
 
 
@@ -230,8 +231,8 @@ class Music(commands.Cog):
                 return
 
             query = ' '.join(query)
-            url, info = _yt.get_url(query)
-            q.add(url, info['title'], ctx.author.mention)
+            url, title = _yt.get_track(query)
+            q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
 
             stream = _yt.get_stream(url=url)
@@ -314,8 +315,8 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
-            url, info = _yt.get_url(query)
-            q.add(url, info['title'], ctx.author.mention)
+            url, title = _yt.get_track(query)
+            q.add(url, title, ctx.author.mention)
 
             embed = discord.Embed(description=f'Queued: [{title}]({url})',
                                   color=BASE_COLOR)
