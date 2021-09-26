@@ -7,6 +7,9 @@ from discord.ext import commands
 import exceptions
 from core import yt_handler as _yt
 from base import BASE_COLOR
+from bot import bot
+import utils
+from config import config
 
 
 class Queue:
@@ -73,6 +76,7 @@ class Queue:
 class Music(commands.Cog):
     def __init__(self):
         self._queues: defaultdict[Queue] = defaultdict(Queue)
+        self.bot = bot
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
@@ -181,19 +185,18 @@ class Music(commands.Cog):
 
         q: Queue = self._queues[ctx.guild.id]
         track = q.get_next()
-        print(not len(track))
         if len(track):
             if voice.is_playing():
                 await self.stop(ctx)
 
             url, title, mention = track
-            stream = _yt.get_stream(url=url)
+            print(url)
+
+            stream = _yt.get_stream(url)
+            
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stream,
-                                        before_options='-reconnect 1'
-                                                        ' -reconnect_streamed 1'
-                                                        ' -reconnect_delay_max 5')),
+                discord.FFmpegPCMAudio(stream)),
                 after=lambda _: self._after(ctx, loop))
             await self.current(ctx)
         else:
@@ -217,10 +220,7 @@ class Music(commands.Cog):
         stream = _yt.get_stream(url=url)
         loop = asyncio.get_running_loop()
         voice.play(discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(stream,
-                                    before_options='-reconnect 1'
-                                                    ' -reconnect_streamed 1'
-                                                    ' -reconnect_delay_max 5')),
+            discord.FFmpegPCMAudio(stream)),
             after=lambda _: self._after(ctx, loop))
         
         q.now_playing -= 1
@@ -252,18 +252,14 @@ class Music(commands.Cog):
                 await voice.resume()
                 return
 
-            query = ' '.join(query)
-            url, info = _yt.get_url(query)
-            q.add(url, info['title'], ctx.author.mention)
+            tracks = await utils.run_blocking(blocking_func=_yt.get_tracks, bot=self.bot, query=query)
+            url, title = await self._choose_track(ctx, tracks)
+            stream = _yt.get_stream(url)
+            q.add(url, title, ctx.author.mention)
             q.now_playing = len(q)
-
-            stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stream,
-                                       before_options='-reconnect 1'
-                                                      ' -reconnect_streamed 1'
-                                                      ' -reconnect_delay_max 5')),
+                discord.FFmpegPCMAudio(stream)),
                 after=lambda _: self._after(ctx, loop))
             await self.current(ctx)
         else:
@@ -285,10 +281,7 @@ class Music(commands.Cog):
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stream,
-                                       before_options='-reconnect 1'
-                                                      ' -reconnect_streamed 1'
-                                                      ' -reconnect_delay_max 5')),
+                discord.FFmpegPCMAudio(stream)),
                 after=lambda _: self._after(ctx, loop))
             await self.current(ctx)
 
@@ -297,6 +290,39 @@ class Music(commands.Cog):
         if q.play_next:
             ctx.message.content = ''
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
+
+    async def _choose_track(self, ctx: commands.Context, tracks):
+        def _check(reaction, user):
+            return (
+                reaction.emoji in config.OPTIONS.keys()
+                and user == ctx.author
+            )
+
+        description = ''
+        for index, track in enumerate(tracks):
+            description += f"{index + 1}. [{track[1]}]({track[0]})\n\n"
+
+        embed = discord.Embed(
+            title='Choose one of these songs',
+            description=description,
+            color=BASE_COLOR
+        )
+        message = await ctx.send(embed=embed)
+
+        for reaction in list(config.OPTIONS.keys())[:min(len(tracks), len(config.OPTIONS))]:
+            await message.add_reaction(reaction)
+
+        try:
+            reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=_check)
+        except asyncio.TimeoutError:
+            await message.delete()
+            await ctx.message.delete()
+            await ctx.send('Timeout has been exceeded')
+            raise exceptions.TimeoutExceeded
+        else:
+            await message.delete()
+            url, title = tracks[config.OPTIONS[reaction.emoji]]
+            return url, title
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context) -> None:
@@ -307,10 +333,11 @@ class Music(commands.Cog):
         args = ctx.message.content.split(' ')[1:]
         if args:
             query = ' '.join(args)
-            url, info = _yt.get_url(query)
-            q.add(url, info['title'], ctx.author.mention)
+            tracks = await utils.run_blocking(blocking_func=_yt.get_tracks, bot=self.bot, query=query)
+            url, title = await self._choose_track(ctx, tracks)
+            q.add(url, title, ctx.author.mention)
 
-            embed = discord.Embed(description=f'Queued: [{info["title"]}]({url})',
+            embed = discord.Embed(description=f'Queued: [{title}]({url})',
                                   color=BASE_COLOR)
             await ctx.send(embed=embed)
         else:

@@ -48,3 +48,9 @@ class BotNotConnectedToChannel(commands.CommandError):
     Occurs when the bot isn't connected to a voice channel yet.
     """
     pass
+
+class TimeoutExceeded(commands.CommandError):
+    """
+    Occurs, when a user chooses one of the songs more than 1 minute.
+    """
+    pass
