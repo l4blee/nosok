@@ -1,13 +1,14 @@
-import os
-import typing
+import re
 
 from discord.ext import commands
 import sqlalchemy as sa
-from googleapiclient.discovery import build
-from pytube import YouTube
 from sqlalchemy.orm import sessionmaker
+import requests
+from bs4 import BeautifulSoup
+import youtube_dl
 
 from base import Base, engine
+from config import config
 
 
 class Config(Base):
@@ -18,33 +19,29 @@ class Config(Base):
 
 
 class YoutubeHandler:
-    def __init__(self, api_key: str, scheme: str = 'https'):
+    def __init__(self, scheme: str = 'https'):
         self._scheme = scheme
-        self._service = build('youtube', 'v3', developerKey=api_key)
 
-    def get_urls(self, query: str, max_results: int = 5) -> typing.Generator:
-        response = self._service.search().list(
-            q=query,
-            part='id, snippet',
-            maxResults=max_results).execute()
+    def get_tracks(self, query: tuple, max_number: int = 5) -> tuple:
+        """
+        Gets a tuple containing the song's url and the title.
+        """
+        response = requests.get(f"{self._scheme}://www.youtube.com/results?search_query={'+'.join(query)}&sp=EgIQAQ%253D%253D")
+        video_ids = re.findall(r"watch\?v=(\S{11})", response.text)[:max_number]
+        video_titles = []
+        for v in video_ids:
+            video_titles.append(BeautifulSoup(requests.get(f'https://www.youtube.com/watch?v={v}').text, 'html.parser').find('meta', property='og:title')['content'])
 
-        for i in response.get('items'):
-            yield self._scheme + '://youtube.com/watch?v=' + i['id']['videoId'], i['snippet']  # url, info
+        tracks: list[tuple] = []
+        for i in range(max_number):
+            tracks.append((f'https://www.youtube.com/watch?v={video_ids[i]}', video_titles[i]))
 
-    def get_url(self, query: str) -> tuple:
-        return next(self.get_urls(query))
+        return tracks
 
-    def get_stream(self, query: str = '', url: str = '') -> str:
-        if not query and not url:
-            raise ValueError('Neither query nor url given')
-
-        if not url:
-            url = self.get_url(query)[0]
-
-        streams = YouTube(url).streams.filter(type='audio')
-        return max(streams, key=lambda x: x.bitrate).url
+    def get_stream(self, url: str) -> str:
+        with youtube_dl.YoutubeDL(config.YDL_OPTS) as ydl:
+            return ydl.extract_info(url, download=False).get('url')
 
 
-google_api_token = os.environ.get('GOOGLE_API_TOKEN')
-yt_handler = YoutubeHandler(google_api_token)
+yt_handler = YoutubeHandler()
 Session = sessionmaker(bind=engine)
