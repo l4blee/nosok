@@ -6,8 +6,10 @@ import discord
 from discord.ext import commands
 
 import exceptions
+import utils
+from base import BASE_COLOR, ERROR_COLOR
 from core import yt_handler as _yt
-from base import BASE_COLOR
+from utils import is_connected
 
 
 class Queue:
@@ -73,61 +75,64 @@ class Music(commands.Cog):
         """
         Makes the bot join your current voice channel
         """
-
         if ctx.voice_client:
-            await ctx.send('Already connected')
-            raise exceptions.AlreadyConnectedToChannel
+            await utils.send_embed(
+                ctx=ctx,
+                description='I am already connected to a voice channel!',
+                color=ERROR_COLOR,
+            )
+            raise exceptions.AlreadyConnected
 
         voice = ctx.author.voice
-
         if not voice:
-            await ctx.send('Connect first')
-            raise exceptions.NotConnectedToChannel
+            await utils.send_embed(
+                ctx=ctx,
+                description='Connect to a voice channel first',
+                color=ERROR_COLOR
+            )
+            raise exceptions.UserNotConnected
 
         if voice_channel:
             await voice_channel.connect()
         else:
             voice.channel.connect()
 
+    @commands.check(is_connected)
     @commands.command(aliases=['l'])
     async def leave(self, ctx: commands.Context) -> None:
         """
         Makes bot leave your current channel.
         """
         voice = ctx.voice_client
-        if not voice:
-            await ctx.send('Not connected yet')
-            raise exceptions.BotNotConnected
         if voice.is_playing():
             await self.stop(ctx)
         await voice.disconnect()
 
+    @commands.check(is_connected)
     @commands.command(aliases=['s'])
     async def stop(self, ctx: commands.Context) -> None:
         """
         Stops bot from playing current song.
         """
-        voice = ctx.voice_client
-        if not voice:
-            await ctx.send('Not connected yet')
-            raise exceptions.BotNotConnected
-
         q = self._queues[ctx.guild.id]
         q.play_next = False
-        voice.stop()
+        ctx.voice_client.stop()
 
+    @commands.check(is_connected)
     @commands.command(aliases=['ps'])
     async def pause(self, ctx: commands.Context) -> None:
         """
         Pauses current song. Use `play` command to resume.
         """
         voice = ctx.voice_client
-        if not voice:
-            await ctx.send('Not connected yet')
-            raise exceptions.BotNotConnected
-
         if voice.is_playing():
             voice.pause()
+        else:
+            await utils.send_embed(
+                ctx=ctx,
+                description='I am not playing yet!',
+                color=ERROR_COLOR
+            )
 
     '''@commands.command(aliases=['left'])
     async def continue_where_left_off(self, ctx: commands.Context):  # TODO: finish it
@@ -141,34 +146,36 @@ class Music(commands.Cog):
             await ctx.send('Not connected yet')
             raise exceptions.BotNotConnectedToChannel'''
 
+    @commands.check(is_connected)
     @commands.command(aliases=['c'])
     async def current(self, ctx: commands.Context) -> None:
         """
         Displays current playing song.
         """
         voice = ctx.voice_client
+        if not voice.is_playing():
+            await utils.send_embed(
+                ctx=ctx,
+                description='I am not playing for now!',
+                color=ERROR_COLOR
+            )
+            return
+
         q: Queue = self._queues[ctx.guild.id]
         current = q.current
-
-        if not voice:
-            await ctx.send('Not connected')
-            return
-
-        if not voice.is_playing():
-            await ctx.send('Not playing now')
-            return
-
-        embed = discord.Embed(
+        await utils.send_embed(
+            ctx=ctx,
             title='Current song:',
             description=f'[{current[1]}]({current[0]}) | {current[2]}',
-            colour=BASE_COLOR
+            color=BASE_COLOR
         )
-        await ctx.send(embed=embed)
 
+    @commands.check(is_connected)
     @commands.command(aliases=['n'])
     async def next(self, ctx: commands.Context):
-        ctx.guild.voice_client.stop()
+        ctx.voice_client.stop()
 
+    @commands.check(is_connected)
     @commands.command(aliases=['prev'])
     async def previous(self, ctx: commands.Context):
         q = self._queues[ctx.guild.id]
@@ -182,7 +189,11 @@ class Music(commands.Cog):
 
             ctx.guild.voice_client.stop()
         else:
-            await ctx.send('Queue empty')
+            await utils.send_embed(
+                ctx=ctx,
+                description='The queue is empty!',
+                color=ERROR_COLOR
+            )
             raise exceptions.QueueEmpty
 
     @commands.command(aliases=['p'])
@@ -193,8 +204,12 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
-                await ctx.send('Connect first')
-                raise exceptions.NotConnectedToChannel
+                await utils.send_embed(
+                    ctx=ctx,
+                    description='Connect to a voice channel first',
+                    color=ERROR_COLOR
+                )
+                raise exceptions.UserNotConnected
 
             await ctx.author.voice.channel.connect()
 
@@ -204,11 +219,12 @@ class Music(commands.Cog):
 
         if query:
             if voice.is_playing():
-                await self.queue(ctx)
+                await self.queue(ctx, query)
                 return
 
             if voice.is_paused():
                 await voice.resume()
+                await self.queue(ctx, query)
                 return
 
             query = ' '.join(query)
@@ -232,11 +248,19 @@ class Music(commands.Cog):
             if not q.is_empty:
                 res = q.get_next()
                 if not res:
-                    await ctx.send('Queue ended')
+                    embed = discord.Embed(
+                        description='The queue has ended',
+                        color=BASE_COLOR
+                    )
+                    await ctx.send(embed=embed)
                     return
             else:
-                await ctx.send('No songs left')
-                return
+                embed = discord.Embed(
+                    description='The are no songs in the queue',
+                    color=ERROR_COLOR
+                )
+                await ctx.send(embed=embed)
+                raise exceptions.QueueEmpty
 
             stream = _yt.get_stream(url=res[0])
             loop = asyncio.get_running_loop()
@@ -255,14 +279,12 @@ class Music(commands.Cog):
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
 
     @commands.command(aliases=['q'])
-    async def queue(self, ctx: commands.Context) -> None:
+    async def queue(self, ctx: commands.Context, *query) -> None:
         """
         Displays current queue.
         """
         q: Queue = self._queues[ctx.guild.id]
-        args = ctx.message.content.split(' ')[1:]
-        if args:
-            query = ' '.join(args)
+        if query:
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
 
@@ -332,7 +354,7 @@ class Music(commands.Cog):
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
         """
-        Seeks a specified track with index and plays it
+        Seeks a specified track with an index and plays it
         """
         voice = ctx.guild.voice_client
         await self.stop()
@@ -343,3 +365,19 @@ class Music(commands.Cog):
         while voice.is_playing():
             await asyncio.sleep(0.1)
         await self.play()
+
+    @commands.check(is_connected)
+    @commands.command(aliases=['vol', 'v'])
+    async def volume(self, ctx: commands.Context, volume: float):
+        if 0 > volume > 100:
+            embed = discord.Embed(
+                description=f'Volume must be in range `0` to `100`, not {volume}',
+                color=ERROR_COLOR
+            )
+        else:
+            voice = ctx.voice_client
+            voice.volume = volume / 100
+            embed = discord.Embed(
+                description=f'Volume has been successfully changed to `{volume}%`'
+            )
+        await ctx.send(embed=embed)

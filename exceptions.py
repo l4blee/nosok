@@ -1,14 +1,14 @@
 from discord.ext import commands
 
 
-class AlreadyConnectedToChannel(commands.CommandError):
+class AlreadyConnected(commands.CommandError):
     """
     Occurs when the bot is already connected to the channel.
     """
     pass
 
 
-class NotConnectedToChannel(commands.CommandError):
+class UserNotConnected(commands.CommandError):
     """
     Occurs when a user isn't connected to a voice channel.
     """
@@ -24,14 +24,14 @@ class AlreadyPlaying(commands.CommandError):
 
 class NoMoreTracks(commands.CommandError):
     """
-    Occurs when there're no more tracks in the queue.
+    Occurs when there are no more tracks in the queue.
     """
     pass
 
 
 class NoPreviousTracks(commands.CommandError):
     """
-    Occurs when there're no previous tracks.
+    Occurs when there are no previous tracks.
     """
     pass
 
