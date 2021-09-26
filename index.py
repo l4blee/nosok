@@ -18,9 +18,9 @@ def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
         return res.prefix if res is not None else BASE_PREFIX
 
 
-bot = commands.Bot(get_prefix)
+bot = commands.Bot(get_prefix, case_insensitive=True)
 Base.metadata.create_all()
-logging.basicConfig(level=logging.WARNING,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
                     datefmt='%y.%b.%Y %H:%M:%S')
 logger = logging.getLogger('index')

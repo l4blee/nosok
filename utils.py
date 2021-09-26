@@ -6,6 +6,7 @@ import exceptions
 
 async def send_embed(description: str, color: discord.Colour, ctx: commands.Context, title: str = ''):
     embed = discord.Embed(
+        title=title,
         description=description,
         color=color
     )
@@ -19,6 +20,6 @@ async def is_connected(ctx: commands.Context):
             description='I am not connected to a voice channel yet!',
             color=ERROR_COLOR
         )
-        raise exceptions.BotNotConnected
+        return False
     else:
         return True
