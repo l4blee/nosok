@@ -95,7 +95,7 @@ class Music(commands.Cog):
         if voice_channel:
             await voice_channel.connect()
         else:
-            voice.channel.connect()
+            await voice.channel.connect()
 
     @commands.command(aliases=['s'])
     @commands.check(is_connected)
