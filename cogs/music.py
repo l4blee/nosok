@@ -97,8 +97,18 @@ class Music(commands.Cog):
         else:
             voice.channel.connect()
 
+    @commands.command(aliases=['s'])
     @commands.check(is_connected)
+    async def stop(self, ctx: commands.Context) -> None:
+        """
+        Stops bot from playing current song.
+        """
+        q = self._queues[ctx.guild.id]
+        q.play_next = False
+        ctx.voice_client.stop()
+
     @commands.command(aliases=['l'])
+    @commands.check(is_connected)
     async def leave(self, ctx: commands.Context) -> None:
         """
         Makes bot leave your current channel.
@@ -108,18 +118,8 @@ class Music(commands.Cog):
             await self.stop(ctx)
         await voice.disconnect()
 
-    @commands.check(is_connected)
-    @commands.command(aliases=['s'])
-    async def stop(self, ctx: commands.Context) -> None:
-        """
-        Stops bot from playing current song.
-        """
-        q = self._queues[ctx.guild.id]
-        q.play_next = False
-        ctx.voice_client.stop()
-
-    @commands.check(is_connected)
     @commands.command(aliases=['ps'])
+    @commands.check(is_connected)
     async def pause(self, ctx: commands.Context) -> None:
         """
         Pauses current song. Use `play` command to resume.
@@ -146,8 +146,8 @@ class Music(commands.Cog):
             await ctx.send('Not connected yet')
             raise exceptions.BotNotConnectedToChannel'''
 
-    @commands.check(is_connected)
     @commands.command(aliases=['c'])
+    @commands.check(is_connected)
     async def current(self, ctx: commands.Context) -> None:
         """
         Displays current playing song.
@@ -170,13 +170,13 @@ class Music(commands.Cog):
             color=BASE_COLOR
         )
 
-    @commands.check(is_connected)
     @commands.command(aliases=['n'])
+    @commands.check(is_connected)
     async def next(self, ctx: commands.Context):
         ctx.voice_client.stop()
 
-    @commands.check(is_connected)
     @commands.command(aliases=['prev'])
+    @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
         q = self._queues[ctx.guild.id]
         if len(q) > 0:
@@ -366,8 +366,8 @@ class Music(commands.Cog):
             await asyncio.sleep(0.1)
         await self.play()
 
-    @commands.check(is_connected)
     @commands.command(aliases=['vol', 'v'])
+    @commands.check(is_connected)
     async def volume(self, ctx: commands.Context, volume: float):
         if 0 > volume > 100:
             embed = discord.Embed(
