@@ -157,7 +157,7 @@ class Music(commands.Cog):
         if not voice.is_playing():
             await utils.send_embed(
                 ctx=ctx,
-                description='I am not playing for now!',
+                description='I am not playing any song for now!',
                 color=ERROR_COLOR
             )
             return
@@ -229,7 +229,7 @@ class Music(commands.Cog):
 
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
-            q.now_playing = len(q)
+            q.now_playing = len(q) - 1
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
