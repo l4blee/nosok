@@ -25,6 +25,7 @@ class Queue:
 
     def get_next(self) -> typing.Optional[tuple]:
         self.now_playing += int(self._loop != 2)
+
         if self.now_playing >= len(self._tracks):
             if self._loop == 0:
                 self.now_playing = 0
@@ -33,9 +34,7 @@ class Queue:
             else:
                 self.now_playing = 0
 
-        ret = self._tracks[self.now_playing]
-
-        return ret
+        return self._tracks[self.now_playing]
 
     def __len__(self):
         return len(self._tracks)
@@ -135,18 +134,6 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
 
-    '''@commands.command(aliases=['left'])
-    async def continue_where_left_off(self, ctx: commands.Context):  # TODO: finish it
-        # Made this private not to appear in help command, temporary ofc
-        """
-        Pauses the song in its current length. When you leave the voice channel,
-        you can resume where you left off.
-        """
-        voice = ctx.voice_client
-        if not voice:
-            await ctx.send('Not connected yet')
-            raise exceptions.BotNotConnectedToChannel'''
-
     @commands.command(aliases=['c'])
     @commands.check(is_connected)
     async def current(self, ctx: commands.Context) -> None:
@@ -227,7 +214,7 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, info = _yt.get_url(query)
+            url, info = _yt.get_url(' '.join(query))
             q.add(url, info['title'], ctx.author.mention)
             q.now_playing = len(q) - 1
 
@@ -253,6 +240,7 @@ class Music(commands.Cog):
                     )
                     await ctx.send(embed=embed)
                     return
+                url, _ = res
             else:
                 embed = discord.Embed(
                     description='The are no songs in the queue',
@@ -261,7 +249,7 @@ class Music(commands.Cog):
                 await ctx.send(embed=embed)
                 raise exceptions.QueueEmpty
 
-            stream = _yt.get_stream(url=res[0])
+            stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(stream,
@@ -284,7 +272,7 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
-            url, info = _yt.get_url(query)
+            url, info = _yt.get_url(' '.join(query))
             q.add(url, info['title'], ctx.author.mention)
 
             embed = discord.Embed(description=f'Queued: [{info["title"]}]({url})',
