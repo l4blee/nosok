@@ -1,5 +1,4 @@
 import os
-import re
 import typing
 
 import sqlalchemy as sa
@@ -8,8 +7,6 @@ from pytube import YouTube
 from sqlalchemy.orm import sessionmaker
 
 from base import Base, engine
-
-URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
 
 class Config(Base):
@@ -34,7 +31,7 @@ class YoutubeHandler:
             yield self._scheme + '://youtube.com/watch?v=' + i['id']['videoId'], i['snippet']  # url, info
 
     def get_url(self, query: str) -> tuple:
-        return (query, None) if re.match(URL_REGEX, query) else next(self.get_urls(query))
+        return next(self.get_urls(query))
 
     def get_stream(self, query: str = '', url: str = '') -> str:
         if not query and not url:
