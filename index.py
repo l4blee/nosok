@@ -11,6 +11,7 @@ import core
 from base import Base, BASE_PREFIX
 
 Session = core.Session
+<<<<<<< HEAD
 
 
 def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
@@ -19,6 +20,16 @@ def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
         return res.prefix if res is not None else BASE_PREFIX
 
 
+=======
+
+
+def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
+    with Session.begin() as s:
+        res = s.query(core.Config).filter_by(guild_id=msg.guild.id).first()
+        return res.prefix if res is not None else BASE_PREFIX
+
+
+>>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)
 bot = commands.Bot(get_prefix)
 Base.metadata.create_all()
 logging.basicConfig(level=logging.WARNING,

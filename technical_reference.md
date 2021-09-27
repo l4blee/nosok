@@ -1,7 +1,7 @@
 # The technical reference of the project
 
 1. The database is Postgres
-2. The project should be executed in a docker image
+2. Run the project in a docker image
 3. Use GH Actions
 
 ## List of all commands
