@@ -2,8 +2,10 @@ import os
 
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
+import discord
+from discord.ext import commands
 
-from base import Base, engine
+from base import Base, engine, BASE_PREFIX
 from handlers import YDLHandler, YTAPIHandler
 
 use_deprecated = False
@@ -26,3 +28,12 @@ else:
     })
 
 Session = sessionmaker(bind=engine)
+
+
+def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
+    with Session.begin() as s:
+        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
+        return res.prefix if res is not None else BASE_PREFIX
+
+
+bot = commands.Bot(get_prefix, case_insensitive=True)

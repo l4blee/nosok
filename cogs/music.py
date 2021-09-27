@@ -7,9 +7,8 @@ from discord.ext import commands
 
 import exceptions
 import utils
-from base import BASE_COLOR
-from base import ERROR_COLOR
-from core import yt_handler as _yt
+from base import BASE_COLOR, ERROR_COLOR, REACTIONS_OPTS
+from core import yt_handler as _yt, bot
 from utils import is_connected
 
 
@@ -214,7 +213,9 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, title = _yt.get_info(' '.join(query))
+            tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=' '.join(query)))
+            url, title = await self._choose_track(ctx, tracks)
+
             q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
 
@@ -264,6 +265,39 @@ class Music(commands.Cog):
         if q.play_next:
             ctx.message.content = ''
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
+
+    async def _choose_track(self, ctx: commands.Context, tracks):
+        def _check(reaction, user):
+            return (
+                    reaction.emoji in REACTIONS_OPTS.keys()
+                    and user == ctx.author
+            )
+
+        description = ''
+        for index, track in enumerate(tracks):
+            description += f"{index + 1}. [{track[1]}]({track[0]})\n"
+
+        embed = discord.Embed(
+            title='Choose one of these songs',
+            description=description,
+            color=BASE_COLOR
+        )
+        message = await ctx.send(embed=embed)
+
+        for reaction in list(REACTIONS_OPTS.keys())[:min(len(tracks), len(REACTIONS_OPTS))]:
+            await message.add_reaction(reaction)
+
+        try:
+            reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=_check)
+        except asyncio.TimeoutError:
+            await message.delete()
+            await ctx.message.delete()
+            await ctx.send('Timeout has been exceeded')
+            raise exceptions.TimeoutExceeded
+        else:
+            await message.delete()
+            url, title = tracks[REACTIONS_OPTS[reaction.emoji]]
+            return url, title
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *query) -> None:
