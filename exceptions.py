@@ -55,7 +55,6 @@ class BotNotConnected(commands.CommandError):
     Occurs when the bot isn't connected to a voice channel yet.
     """
     pass
-<<<<<<< HEAD
 
 
 class TimeoutExceeded(commands.CommandError):
@@ -63,5 +62,3 @@ class TimeoutExceeded(commands.CommandError):
     Occurs, when a user chooses one of the songs more than 1 minute.
     """
     pass
-=======
->>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)

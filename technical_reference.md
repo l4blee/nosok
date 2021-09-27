@@ -6,7 +6,7 @@
 
 ## List of all commands
 All the commands start from the `!` prefix.
-1. `next`. Allows a user to skip the track
+1. `skip`. Allows a user to skip the track
 2. `seek`. The command is used for searching a certain track in the queue
 3. `search`. This is a customized `play` command that can display the first five tracks that were found on YouTube by your query. For this purpose use discord.py's pagination.
 4. `join`. Makes the bot join a voice channel

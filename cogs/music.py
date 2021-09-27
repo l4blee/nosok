@@ -5,18 +5,12 @@ from collections import defaultdict
 import discord
 from discord.ext import commands
 
-import config.config as config
 import exceptions
-<<<<<<< HEAD
 import utils
-from base import BASE_COLOR, ERROR_COLOR
-from bot import bot
+from base import BASE_COLOR
+from base import ERROR_COLOR
 from core import yt_handler as _yt
 from utils import is_connected
-=======
-from core import yt_handler as _yt
-from base import BASE_COLOR
->>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)
 
 
 class Queue:
@@ -180,46 +174,15 @@ class Music(commands.Cog):
     @commands.command(aliases=['n'])
     @commands.check(is_connected)
     async def next(self, ctx: commands.Context):
-<<<<<<< HEAD
         ctx.voice_client.stop()
-=======
-        voice = ctx.voice_client
-        if not voice:
-            if not ctx.author.voice:
-                await ctx.send('Connect first')
-                raise exceptions.NotConnectedToChannel
-
-        q: Queue = self._queues[ctx.guild.id]
-        track = q.get_next()
-        print(not len(track))
-        if len(track):
-            if voice.is_playing():
-                await self.stop(ctx)
-
-            url, title, mention = track
-            stream = _yt.get_stream(url=url)
-            loop = asyncio.get_running_loop()
-            voice.play(discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stream,
-                                        before_options='-reconnect 1'
-                                                        ' -reconnect_streamed 1'
-                                                        ' -reconnect_delay_max 5')),
-                after=lambda _: self._after(ctx, loop))
-            await self.current(ctx)
-        else:
-            await ctx.send('Queue ended')
-            raise exceptions.NoMoreTracks
->>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)
 
     @commands.command(aliases=['prev'])
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
-<<<<<<< HEAD
         q = self._queues[ctx.guild.id]
         if len(q) > 0:
             q.now_playing -= 1
             if q.loop == 0 and q.now_playing < 0:
-                print(q.loop, q.now_playing)
                 q.now_playing = 0
                 await ctx.send('No previous tracks')
                 raise exceptions.NoPreviousTracks
@@ -232,31 +195,6 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
             raise exceptions.QueueEmpty
-=======
-        voice = ctx.voice_client
-        if not voice:
-            if not ctx.author.voice:
-                await ctx.send('Connect first')
-                raise exceptions.NotConnectedToChannel
-
-        if voice.is_playing():
-            await self.stop(ctx)
-        
-        q: Queue = self._queues[ctx.guild.id]
-        url, title, mention = q.get_previous()
-
-        stream = _yt.get_stream(url=url)
-        loop = asyncio.get_running_loop()
-        voice.play(discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(stream,
-                                    before_options='-reconnect 1'
-                                                    ' -reconnect_streamed 1'
-                                                    ' -reconnect_delay_max 5')),
-            after=lambda _: self._after(ctx, loop))
-        
-        q.now_playing -= 1
-        await self.current(ctx)
->>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)
 
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context, *query) -> None:
@@ -289,16 +227,9 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            query = ' '.join(query)
-<<<<<<< HEAD
-            url, title = _yt.get_track(query)
-            q.add(url, title, ctx.author.mention)
-            q.now_playing = len(q) - 1
-=======
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
             q.now_playing = len(q)
->>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
@@ -352,17 +283,9 @@ class Music(commands.Cog):
         Displays current queue.
         """
         q: Queue = self._queues[ctx.guild.id]
-<<<<<<< HEAD
         if query:
-            url, title = _yt.get_track(query)
-            q.add(url, title, ctx.author.mention)
-=======
-        args = ctx.message.content.split(' ')[1:]
-        if args:
-            query = ' '.join(args)
             url, info = _yt.get_url(query)
             q.add(url, info['title'], ctx.author.mention)
->>>>>>> parent of 79cb644 (Rewrite YoutubeHandler to make it work with the `youtube-dl` library, add config.py and utils.py)
 
             embed = discord.Embed(description=f'Queued: [{info["title"]}]({url})',
                                   color=BASE_COLOR)
