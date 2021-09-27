@@ -31,8 +31,10 @@ requests==2.26.0
 rsa==4.7.2
 scramp==1.4.1
 six==1.16.0
+soupsieve==2.2.1
 SQLAlchemy==1.4.23
 typing-extensions==3.10.0.2
 uritemplate==3.0.1
 urllib3==1.26.6
 yarl==1.6.3
+youtube-dl==2021.6.6

@@ -1,4 +1,3 @@
-
 import logging
 import os
 from importlib import import_module
@@ -19,7 +18,7 @@ def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
         return res.prefix if res is not None else BASE_PREFIX
 
 
-bot = commands.Bot(get_prefix)
+bot = commands.Bot(get_prefix, case_insensitive=True)
 Base.metadata.create_all()
 logging.basicConfig(level=logging.WARNING,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',

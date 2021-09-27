@@ -214,11 +214,11 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, info = _yt.get_url(' '.join(query))
-            q.add(url, info['title'], ctx.author.mention)
+            url, title = _yt.get_info(' '.join(query))
+            q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
 
-            stream = _yt.get_stream(url=url)
+            stream = _yt.get_stream(url)
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(stream,
@@ -249,7 +249,7 @@ class Music(commands.Cog):
                 await ctx.send(embed=embed)
                 raise exceptions.QueueEmpty
 
-            stream = _yt.get_stream(url=url)
+            stream = _yt.get_stream(url)
             loop = asyncio.get_running_loop()
             voice.play(discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(stream,
@@ -272,10 +272,10 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
-            url, info = _yt.get_url(' '.join(query))
-            q.add(url, info['title'], ctx.author.mention)
+            url, title = _yt.get_info(' '.join(query))
+            q.add(url, title, ctx.author.mention)
 
-            embed = discord.Embed(description=f'Queued: [{info["title"]}]({url})',
+            embed = discord.Embed(description=f'Queued: [{title}]({url})',
                                   color=BASE_COLOR)
             await ctx.send(embed=embed)
         else:
