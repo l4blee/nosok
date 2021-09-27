@@ -4,6 +4,12 @@ async_test.py
 __pycache__/
 *.py[cod]
 *$py.class
+logs/
+
+# mp3, webp, etc
+*.mp3
+*.mp4
+*.webm
 
 # C extensions
 *.so
