@@ -1,38 +1,49 @@
+import asyncio
+import typing
+from collections import defaultdict
+
 import discord
 from discord.ext import commands
-from collections import defaultdict
-from bot.core import yt_handler as _yt
-import asyncio
 
-
-class EndOfQueue(Exception):
-    pass
+import exceptions
+import utils
+from base import BASE_COLOR
+from base import ERROR_COLOR
+from core import yt_handler as _yt
+from utils import is_connected
 
 
 class Queue:
     def __init__(self):
         self._tracks: list[tuple] = []
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
-        self._now_playing: int = 0
+        self.now_playing: int = 0
         self.play_next: bool = True
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))
 
-    def get_next(self) -> tuple:
-        ret = self._tracks[self._now_playing]
+    def get_next(self) -> typing.Optional[tuple]:
+        self.now_playing += int(self._loop != 2)
 
-        self._now_playing += int(self._loop != 2)
-        if self._now_playing > len(self._tracks):
-            if self._loop == 1:
-                raise EndOfQueue
+        if self.now_playing >= len(self._tracks):
+            if self._loop == 0:
+                self.now_playing = 0
+                self.play_next = False
+                return None
             else:
-                self._now_playing = 0
+                self.now_playing = 0
 
-        return ret
+        return self._tracks[self.now_playing]
 
-    def remove(self, index: int) -> None:
-        self._tracks.pop(index)
+    def __len__(self):
+        return len(self._tracks)
+
+    def remove(self, index: int) -> tuple:
+        return self._tracks.pop(index)
+
+    def clear(self) -> None:
+        self._tracks = []
 
     @property
     def is_empty(self) -> bool:
@@ -42,50 +53,150 @@ class Queue:
     def queue(self) -> list:
         return self._tracks
 
+    @property
+    def current(self) -> typing.Optional[tuple]:
+        return self._tracks[self.now_playing] if len(self._tracks) > 0 else None
+
+    @property
+    def loop(self):
+        return self._loop
+
+    @loop.setter
+    def loop(self, value: int):
+        self._loop = value
+
 
 class Music(commands.Cog):
     def __init__(self):
         self._queues: defaultdict[Queue] = defaultdict(Queue)
 
     @commands.command(aliases=['j'])
-    async def join(self, ctx: commands.Context) -> None:
+    async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
+        """
+        Makes the bot join your current voice channel
+        """
         if ctx.voice_client:
-            await ctx.channel.send('Already connected')
-            return
+            await utils.send_embed(
+                ctx=ctx,
+                description='I am already connected to a voice channel!',
+                color=ERROR_COLOR,
+            )
+            raise exceptions.AlreadyConnected
+
         voice = ctx.author.voice
         if not voice:
-            await ctx.channel.send('Connect first')
-            return
-        await voice.channel.connect()
+            await utils.send_embed(
+                ctx=ctx,
+                description='Connect to a voice channel first',
+                color=ERROR_COLOR
+            )
+            raise exceptions.UserNotConnected
 
-    @commands.command(aliases=['l'])
-    async def leave(self, ctx: commands.Context) -> None:
-        voice = ctx.voice_client
-        if not voice:
-            await ctx.channel.send('Not connected yet')
-            return
-        if voice.is_playing():
-            await self.stop(ctx)
-        voice.disconnect()
+        if voice_channel:
+            await voice_channel.connect()
+        else:
+            await voice.channel.connect()
 
     @commands.command(aliases=['s'])
+    @commands.check(is_connected)
     async def stop(self, ctx: commands.Context) -> None:
-        voice = ctx.voice_client
-        if not voice:
-            await ctx.channel.send('Not connected yet')
-            return
-
+        """
+        Stops bot from playing current song.
+        """
         q = self._queues[ctx.guild.id]
         q.play_next = False
-        voice.stop()
+        ctx.voice_client.stop()
+
+    @commands.command(aliases=['l'])
+    @commands.check(is_connected)
+    async def leave(self, ctx: commands.Context) -> None:
+        """
+        Makes bot leave your current channel.
+        """
+        voice = ctx.voice_client
+        if voice.is_playing():
+            await self.stop(ctx)
+        await voice.disconnect()
+
+    @commands.command(aliases=['ps'])
+    @commands.check(is_connected)
+    async def pause(self, ctx: commands.Context) -> None:
+        """
+        Pauses current song. Use `play` command to resume.
+        """
+        voice = ctx.voice_client
+        if voice.is_playing():
+            voice.pause()
+        else:
+            await utils.send_embed(
+                ctx=ctx,
+                description='I am not playing yet!',
+                color=ERROR_COLOR
+            )
+
+    @commands.command(aliases=['c'])
+    @commands.check(is_connected)
+    async def current(self, ctx: commands.Context) -> None:
+        """
+        Displays current playing song.
+        """
+        voice = ctx.voice_client
+        if not voice.is_playing():
+            await utils.send_embed(
+                ctx=ctx,
+                description='I am not playing any song for now!',
+                color=ERROR_COLOR
+            )
+            return
+
+        q: Queue = self._queues[ctx.guild.id]
+        current = q.current
+        await utils.send_embed(
+            ctx=ctx,
+            title='Current song:',
+            description=f'[{current[1]}]({current[0]}) | {current[2]}',
+            color=BASE_COLOR
+        )
+
+    @commands.command(aliases=['n'])
+    @commands.check(is_connected)
+    async def next(self, ctx: commands.Context):
+        ctx.voice_client.stop()
+
+    @commands.command(aliases=['prev'])
+    @commands.check(is_connected)
+    async def previous(self, ctx: commands.Context):
+        q = self._queues[ctx.guild.id]
+        if len(q) > 0:
+            q.now_playing -= 1
+            if q.loop == 0 and q.now_playing < 0:
+                q.now_playing = 0
+                await ctx.send('No previous tracks')
+                raise exceptions.NoPreviousTracks
+
+            ctx.guild.voice_client.stop()
+        else:
+            await utils.send_embed(
+                ctx=ctx,
+                description='The queue is empty!',
+                color=ERROR_COLOR
+            )
+            raise exceptions.QueueEmpty
 
     @commands.command(aliases=['p'])
-    async def play(self, ctx: commands.Context) -> None:
+    async def play(self, ctx: commands.Context, *query) -> None:
+        """
+        Plays current song.
+        """
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
-                await ctx.channel.send('Connect first')
-                return
+                await utils.send_embed(
+                    ctx=ctx,
+                    description='Connect to a voice channel first',
+                    color=ERROR_COLOR
+                )
+                raise exceptions.UserNotConnected
 
             await ctx.author.voice.channel.connect()
 
@@ -93,61 +204,167 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = True
 
-        args = ctx.message.content.split(' ')[1:]
-        if args:
+        if query:
             if voice.is_playing():
-                await self.queue(ctx)
+                await self.queue(ctx, query)
                 return
 
             if voice.is_paused():
                 await voice.resume()
+                await self.queue(ctx, query)
                 return
 
-            query = ' '.join(args)
-            stream = _yt.get_stream(query=query)
-            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream)))
-        else:
-            if voice.is_paused():
-                await voice.resume()
-                return
-
-            if not q.is_empty:
-                url, title, mention = q.get_next()
-            else:
-                await ctx.channel.send('No songs left')
-                return
+            url, info = _yt.get_url(' '.join(query))
+            q.add(url, info['title'], ctx.author.mention)
+            q.now_playing = len(q) - 1
 
             stream = _yt.get_stream(url=url)
             loop = asyncio.get_running_loop()
-            voice.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stream)),
-                       after=lambda _: self._after(ctx, loop))
+            voice.play(discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stream,
+                                       before_options='-reconnect 1'
+                                                      ' -reconnect_streamed 1'
+                                                      ' -reconnect_delay_max 5')),
+                after=lambda _: self._after(ctx, loop))
+            await self.current(ctx)
+        else:
+            if voice.is_paused():
+                voice.resume()
+
+            if not q.is_empty:
+                res = q.get_next()
+                if not res:
+                    embed = discord.Embed(
+                        description='The queue has ended',
+                        color=BASE_COLOR
+                    )
+                    await ctx.send(embed=embed)
+                    return
+                url, _ = res
+            else:
+                embed = discord.Embed(
+                    description='The are no songs in the queue',
+                    color=ERROR_COLOR
+                )
+                await ctx.send(embed=embed)
+                raise exceptions.QueueEmpty
+
+            stream = _yt.get_stream(url=url)
+            loop = asyncio.get_running_loop()
+            voice.play(discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stream,
+                                       before_options='-reconnect 1'
+                                                      ' -reconnect_streamed 1'
+                                                      ' -reconnect_delay_max 5')),
+                after=lambda _: self._after(ctx, loop))
+            await self.current(ctx)
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
-        if not q.play_next:
-            res = asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
+        if q.play_next:
+            ctx.message.content = ''
+            return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
 
     @commands.command(aliases=['q'])
-    async def queue(self, ctx: commands.Context) -> None:
+    async def queue(self, ctx: commands.Context, *query) -> None:
+        """
+        Displays current queue.
+        """
         q: Queue = self._queues[ctx.guild.id]
-        args = ctx.message.content.split(' ')[1:]
-        if args:
-            query = ' '.join(args)
-            url, info = _yt.get_url(query)
+        if query:
+            url, info = _yt.get_url(' '.join(query))
             q.add(url, info['title'], ctx.author.mention)
 
             embed = discord.Embed(description=f'Queued: [{info["title"]}]({url})',
-                                  color=discord.Colour.from_rgb(255, 255, 255))
-            await ctx.channel.send(embed=embed)
+                                  color=BASE_COLOR)
+            await ctx.send(embed=embed)
         else:
-            desc = ''
-            for url, title, mention in q.queue:
-                desc += f'[{title}]({url}) | {mention}\n'
+            if len(q) > 0:
+                desc = ''
+                for index, item in enumerate(q.queue):
+                    url, title, mention = item
+                    desc += f'{["", "Current ==> "][int(index == q.now_playing)]}' \
+                            f'{index + 1}. [{title}]({url}) | {mention}\n'
+            else:
+                desc = 'There are no tracks in the queue for now!'
 
             embed = discord.Embed(title='Current queue:',
-                                  color=discord.Colour.from_rgb(255, 255, 255),
+                                  color=BASE_COLOR,
                                   description=desc)
-            await ctx.channel.send(embed=embed)
+            await ctx.send(embed=embed)
 
+    @commands.command(aliases=['clr'])
+    async def clear(self, ctx: commands.Context):
+        """
+        Clears current queue.
+        """
+        q = self._queues[ctx.guild.id]
+        q.clear()
 
-music = Music()
+        embed = discord.Embed(description='Queue has been successfully cleared',
+                              color=BASE_COLOR)
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def loop(self, cxt: commands.Context, option: str = ''):
+        """
+        Changes loop option to None, Queue or Track
+        """
+        loop_setting = ['None', 'Current queue', 'Current track']
+
+        q = self._queues[cxt.guild.id]
+        if option:
+            q.loop = ['None', 'Queue', 'Track'].index(option.capitalize())
+        else:
+            q.loop += 1
+            if q.loop > 2:
+                q.loop = 0
+
+        embed = discord.Embed(description=f'Now looping is set to: `{loop_setting[q.loop]}`',
+                              color=BASE_COLOR)
+        await cxt.send(embed=embed)
+
+    @commands.command(aliases=['rm'])
+    async def remove(self, ctx: commands.Context, index: int):
+        """
+        Removes a song from queue by index.
+        """
+        q = self._queues[ctx.guild.id]
+        res = q.remove(index - 1)
+
+        embed = discord.Embed(
+            description=f'Removed: [{res[1]}]({res[0]})',
+            color=BASE_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def seek(self, ctx: commands.Context, index: int):
+        """
+        Seeks a specified track with an index and plays it
+        """
+        voice = ctx.guild.voice_client
+        await self.stop()
+
+        q = self._queues[ctx.guild.id]
+        q.now_playing = index - 1
+
+        while voice.is_playing():
+            await asyncio.sleep(0.1)
+        await self.play()
+
+    @commands.command(aliases=['vol', 'v'])
+    @commands.check(is_connected)
+    async def volume(self, ctx: commands.Context, volume: float):
+        if 0 > volume > 100:
+            embed = discord.Embed(
+                description=f'Volume must be in range `0` to `100`, not {volume}',
+                color=ERROR_COLOR
+            )
+        else:
+            voice = ctx.voice_client
+            voice.volume = volume / 100
+            embed = discord.Embed(
+                description=f'Volume has been successfully changed to `{volume}%`'
+            )
+        await ctx.send(embed=embed)

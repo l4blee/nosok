@@ -1,10 +1,10 @@
 import os
+import typing
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Session
 from googleapiclient.discovery import build
 from pytube import YouTube
-import typing
+from sqlalchemy.orm import sessionmaker
 
 from base import Base, engine
 
@@ -12,10 +12,8 @@ from base import Base, engine
 class Config(Base):
     __tablename__ = 'config'
 
-    id = sa.Column('config_id', sa.Integer, primary_key=True)
-    created_at = sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now())
-    guild_id = sa.Column('guild_id', sa.Integer, unique=True)
-    prefix = sa.Column('prefix', sa.String)
+    guild_id = sa.Column('guild_id', sa.BigInteger, unique=True, primary_key=True)
+    prefix = sa.Column('prefix', sa.String, server_default='!')
 
 
 class YoutubeHandler:
@@ -33,18 +31,19 @@ class YoutubeHandler:
             yield self._scheme + '://youtube.com/watch?v=' + i['id']['videoId'], i['snippet']  # url, info
 
     def get_url(self, query: str) -> tuple:
-        return self.get_urls(query).__next__()
+        return next(self.get_urls(query))
 
     def get_stream(self, query: str = '', url: str = '') -> str:
         if not query and not url:
             raise ValueError('Neither query nor url given')
 
         if not url:
-            url = self.get_url(query)[0]
+            url, _ = self.get_url(query)
 
         streams = YouTube(url).streams.filter(type='audio')
         return max(streams, key=lambda x: x.bitrate).url
 
 
-google_api_token = None
+google_api_token = os.environ.get('GOOGLE_API_TOKEN')
 yt_handler = YoutubeHandler(google_api_token)
+Session = sessionmaker(bind=engine)

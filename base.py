@@ -1,15 +1,19 @@
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.declarative import as_declarative
-from dotenv import load_dotenv
+import discord
 
-
-load_dotenv()
+load_dotenv('.env')
 engine = create_engine(os.environ.get('POSTGRES_URL'))
-metadata = MetaData(bind=engine)
+BASE_PREFIX = os.environ.get('BASE_PREFIX')
+BASE_COLOR = discord.Colour.from_rgb(241, 184, 19)
+ERROR_COLOR = discord.Colour.from_rgb(255, 0, 0)
 
 
-@as_declarative(metadata=metadata)
+@as_declarative(
+    metadata=MetaData(bind=engine)
+)
 class Base:
-    pass
+    __tablename__ = ...

@@ -2,5 +2,5 @@
 
 ## How to run?
 ```
-python3 bot/index.py
+python3 index.py
 ```
