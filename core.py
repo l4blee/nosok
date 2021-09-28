@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from base import Base, engine, BASE_PREFIX
 from handlers import YDLHandler, YTAPIHandler
-
 use_deprecated = False
 
 
@@ -22,7 +21,13 @@ if use_deprecated and 'GOOGLE_API_TOKEN' in os.environ.keys():
     google_api_token = os.environ.get('GOOGLE_API_TOKEN')
     yt_handler = YTAPIHandler(google_api_token)
 else:
+    from youtube_dl.utils import std_headers
+
+    std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                                'Chrome/51.0.2704.103 Safari/537.36'
     yt_handler = YDLHandler({
+        'youtube-skip-dash-manifest': True,
+        'simulate': True,
         'quiet': True,
         'format': 'bestaudio/best'
     })
