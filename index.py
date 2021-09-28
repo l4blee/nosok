@@ -1,27 +1,13 @@
-
 import logging
 import os
 from importlib import import_module
 from pathlib import Path
 
-import discord
-from discord.ext import commands
+from base import Base
+from core import bot
 
-import core
-from base import Base, BASE_PREFIX
-
-Session = core.Session
-
-
-def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
-    with Session.begin() as s:
-        res = s.query(core.Config).filter_by(guild_id=msg.guild.id).first()
-        return res.prefix if res is not None else BASE_PREFIX
-
-
-bot = commands.Bot(get_prefix, case_insensitive=True)
 Base.metadata.create_all()
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.WARNING,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
                     datefmt='%y.%b.%Y %H:%M:%S')
 logger = logging.getLogger('index')

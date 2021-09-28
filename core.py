@@ -1,14 +1,13 @@
-import re
+import os
 
-from discord.ext import commands
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
-import requests
-from bs4 import BeautifulSoup
-import youtube_dl
+import discord
+from discord.ext import commands
 
-from base import Base, engine
-from config import config
+from base import Base, engine, BASE_PREFIX
+from handlers import YDLHandler, YTAPIHandler
+use_deprecated = False
 
 
 class Config(Base):
@@ -18,30 +17,28 @@ class Config(Base):
     prefix = sa.Column('prefix', sa.String, server_default='!')
 
 
-class YoutubeHandler:
-    def __init__(self, scheme: str = 'https'):
-        self._scheme = scheme
+if use_deprecated and 'GOOGLE_API_TOKEN' in os.environ.keys():
+    google_api_token = os.environ.get('GOOGLE_API_TOKEN')
+    yt_handler = YTAPIHandler(google_api_token)
+else:
+    from youtube_dl.utils import std_headers
 
-    def get_tracks(self, query: tuple, max_number: int = 5) -> tuple:
-        """
-        Gets a tuple containing the song's url and the title.
-        """
-        response = requests.get(f"{self._scheme}://www.youtube.com/results?search_query={'+'.join(query)}&sp=EgIQAQ%253D%253D")
-        video_ids = re.findall(r"watch\?v=(\S{11})", response.text)[:max_number]
-        video_titles = []
-        for v in video_ids:
-            video_titles.append(BeautifulSoup(requests.get(f'https://www.youtube.com/watch?v={v}').text, 'html.parser').find('meta', property='og:title')['content'])
+    std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                                'Chrome/51.0.2704.103 Safari/537.36'
+    yt_handler = YDLHandler({
+        'youtube-skip-dash-manifest': True,
+        'simulate': True,
+        'quiet': True,
+        'format': 'bestaudio/best'
+    })
 
-        tracks: list[tuple] = []
-        for i in range(max_number):
-            tracks.append((f'https://www.youtube.com/watch?v={video_ids[i]}', video_titles[i]))
-
-        return tracks
-
-    def get_stream(self, url: str) -> str:
-        with youtube_dl.YoutubeDL(config.YDL_OPTS) as ydl:
-            return ydl.extract_info(url, download=False).get('url')
-
-
-yt_handler = YoutubeHandler()
 Session = sessionmaker(bind=engine)
+
+
+def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
+    with Session.begin() as s:
+        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
+        return res.prefix if res is not None else BASE_PREFIX
+
+
+bot = commands.Bot(get_prefix, case_insensitive=True)

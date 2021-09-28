@@ -56,6 +56,7 @@ class BotNotConnected(commands.CommandError):
     """
     pass
 
+
 class TimeoutExceeded(commands.CommandError):
     """
     Occurs, when a user chooses one of the songs more than 1 minute.
