@@ -11,6 +11,7 @@ class YTAPIHandler:
     def __init__(self, api_key: str, scheme: str = 'https'):
         self._scheme = scheme
         self._service = build('youtube', 'v3', developerKey=api_key)
+        self._video_pattern = scheme + '://www.youtube.com/watch?v='
 
     def get_infos(self, query: str, max_results: int = 5) -> typing.Generator:
         response = self._service.search().list(
@@ -19,7 +20,7 @@ class YTAPIHandler:
             maxResults=max_results).execute()
 
         for i in response.get('items'):
-            yield self._scheme + '://youtube.com/watch?v=' + i['id']['videoId'], i['snippet']['title']  # url, info
+            yield self._video_pattern + i['id']['videoId'], i['snippet']['title']  # url, info
 
     def get_info(self, query: str) -> tuple[str, str]:
         return next(self.get_infos(query))
@@ -49,8 +50,7 @@ class YDLHandler:
         with ytdl(self._ydl_opts) as ydl:
             links = self.get_urls(query, max_results=max_results)
             for url in links:
-                info = ydl.extract_info(url, download=False)
-                yield url, info['title']
+                yield url, ydl.extract_info(url, download=False)['title']
 
     def get_info(self, query: str) -> tuple[str, str]:
         return next(self.get_infos(query))
