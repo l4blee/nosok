@@ -12,7 +12,7 @@ BASE_COLOR = discord.Colour.from_rgb(241, 184, 19)
 ERROR_COLOR = discord.Colour.from_rgb(255, 0, 0)
 
 REACTIONS_OPTS = {
-    '1️⃣': 0,
+    "1️⃣": 0,
     "2⃣": 1,
     "3⃣": 2,
     "4⃣": 3,
