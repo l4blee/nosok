@@ -273,6 +273,7 @@ class Music(commands.Cog):
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
+        audio_source = discord.PCMVolumeTransformer(audio_source)
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
         await self.current(ctx)
 
@@ -447,13 +448,14 @@ class Music(commands.Cog):
         """
         Adjusts the volume.
         """
-        if 0 > volume > 200:
+        voice: discord.VoiceClient = ctx.voice_client
+        if 0 > volume > 100:
             embed = discord.Embed(
                 description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
         else:
-            ctx.voice_client.volume = volume / 100
+            voice.source.volume = volume / 100
             embed = discord.Embed(
                 description=f'Volume has been successfully changed to `{volume}%`',
                 color=BASE_COLOR
