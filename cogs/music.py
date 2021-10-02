@@ -10,7 +10,7 @@ import exceptions
 import utils
 from base import BASE_COLOR, ERROR_COLOR, REACTIONS_OPTS
 from core import yt_handler as _yt, bot
-from utils import is_connected
+from utils import is_connected, send_embed
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
@@ -27,7 +27,8 @@ class Queue:
         self._tracks.append((url, title, mention))
 
     def get_next(self) -> typing.Optional[tuple]:
-        self.now_playing += int(self._loop != 2)
+        # self.now_playing += int(self._loop != 2)
+        print(self.now_playing)
 
         if self.now_playing >= len(self._tracks):
             if self._loop == 0:
@@ -46,7 +47,7 @@ class Queue:
         return self._tracks.pop(index)
 
     def clear(self) -> None:
-        self._tracks = []
+        self._tracks.clear()
 
     @property
     def is_empty(self) -> bool:
@@ -64,6 +65,10 @@ class Queue:
     def loop(self):
         return self._loop
 
+    @property
+    def previous(self):
+        return self._tracks[self.now_playing - 2]
+
     @loop.setter
     def loop(self, value: int):
         self._loop = value
@@ -72,6 +77,7 @@ class Queue:
 class Music(commands.Cog):
     def __init__(self):
         self._queues: defaultdict[Queue] = defaultdict(Queue)
+        self._audio_source: discord.AudioSource = None
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
@@ -106,7 +112,7 @@ class Music(commands.Cog):
         """
         Stops bot from playing current song.
         """
-        q = self._queues[ctx.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         q.play_next = False
         ctx.voice_client.stop()
 
@@ -164,12 +170,14 @@ class Music(commands.Cog):
     @commands.command(aliases=['n'])
     @commands.check(is_connected)
     async def next(self, ctx: commands.Context):
+        q: Queue = self._queues[ctx.guild.id]
+        q.now_playing += 1
         ctx.voice_client.stop()
 
     @commands.command(aliases=['prev'])
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
-        q = self._queues[ctx.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         if len(q) > 0:
             q.now_playing -= 1
             if q.loop == 0 and q.now_playing < 0:
@@ -178,6 +186,10 @@ class Music(commands.Cog):
                 raise exceptions.NoPreviousTracks
 
             ctx.guild.voice_client.stop()
+
+            stream = _yt.get_stream(q.current[0])
+            loop = asyncio.get_running_loop()
+            await self._play(ctx, stream, loop)
         else:
             await utils.send_embed(
                 ctx=ctx,
@@ -188,10 +200,10 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context, *query) -> None:
-        query = ' '.join(query)
         """
         Plays current song.
         """
+        query = ' '.join(query)
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
@@ -218,26 +230,27 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, title = await self._get_track(ctx, query)
+            song = await self._get_track(ctx, query)
+
+            if song is None:
+                await ctx.send('Canceled.')
+                return
+
+            url, title = song
 
             q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
-
             stream = _yt.get_stream(url)
             loop = asyncio.get_running_loop()
-            voice.play(discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stream,
-                                       before_options='-reconnect 1'
-                                                      ' -reconnect_streamed 1'
-                                                      ' -reconnect_delay_max 5')),
-                after=lambda _: self._after(ctx, loop))
-            await self.current(ctx)
+            await self._play(ctx, stream, loop)
         else:
             if voice.is_paused():
                 voice.resume()
+                return
 
             if not q.is_empty:
                 res = q.get_next()
+                print(res)
                 if not res:
                     await utils.send_embed(
                         ctx=ctx,
@@ -248,20 +261,14 @@ class Music(commands.Cog):
             else:
                 await utils.send_embed(
                     ctx=ctx,
-                    description='The are no songs in the queue',
+                    description='There are no songs in the queue',
                     color=ERROR_COLOR
                 )
                 raise exceptions.QueueEmpty
 
             stream = _yt.get_stream(res[0])
             loop = asyncio.get_running_loop()
-            voice.play(discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stream,
-                                       before_options='-reconnect 1'
-                                                      ' -reconnect_streamed 1'
-                                                      ' -reconnect_delay_max 5')),
-                after=lambda _: self._after(ctx, loop))
-            await self.current(ctx)
+            await self._play(ctx, stream, loop)
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
@@ -269,21 +276,39 @@ class Music(commands.Cog):
             ctx.message.content = ''
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
 
+    async def _play(self, ctx: commands.Context, stream, loop):
+        voice = ctx.voice_client
+        audio_source = discord.FFmpegPCMAudio(stream,
+                                              before_options='-reconnect 1'
+                                                             ' -reconnect_streamed 1'
+                                                             ' -reconnect_delay_max 5')
+        self._audio_source = discord.PCMVolumeTransformer(audio_source)
+        voice.play(self._audio_source, after=lambda _: self._after(ctx, loop))
+        await self.current(ctx)
+
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
         if re.match(URL_REGEX, query):
             url, title = _yt.get_info(query)
         else:
             tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
-            url, title = await self._choose_track(ctx, tracks)
+            song = await self._choose_track(ctx, tracks)
+            
+            if song is None:
+                return
+
+            url, title = song
 
         return url, title
 
+    async def _notify_canceled(self, ctx: commands.Context) -> None:
+        await send_embed('Canceled.', BASE_COLOR, ctx)
+
     @staticmethod
     async def _choose_track(ctx: commands.Context, tracks):
-        def _check(reacted, user):
+        def _check(reaction, user):
             return (
-                    reacted.emoji in REACTIONS_OPTS.keys()
-                    and user == ctx.author
+                (reaction.emoji in REACTIONS_OPTS.keys() or reaction.emoji == '❌')
+                and user == ctx.author
             )
 
         description = ''
@@ -300,6 +325,8 @@ class Music(commands.Cog):
         for reaction in list(REACTIONS_OPTS.keys())[:min(len(tracks), len(REACTIONS_OPTS))]:
             await message.add_reaction(reaction)
 
+        await message.add_reaction('❌')
+
         try:
             reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=_check)
         except asyncio.TimeoutError:
@@ -309,17 +336,28 @@ class Music(commands.Cog):
             raise exceptions.TimeoutExceeded
         else:
             await message.delete()
+
+            if reaction.emoji == '❌':
+                return
+
             url, title = tracks[REACTIONS_OPTS[reaction.emoji]]
             return url, title
 
     @commands.command(aliases=['q'])
-    async def queue(self, ctx: commands.Context, query: typing.Optional[str]) -> None:
+    async def queue(self, ctx: commands.Context, *query) -> None:
         """
         Displays current queue.
         """
         q: Queue = self._queues[ctx.guild.id]
+        query = ' '.join(query)
         if query:
-            url, title = await self._get_track(ctx, query)
+            song = await self._get_track(ctx, query)
+
+            if song is None:
+                await self._notify_canceled(ctx)
+                return
+            
+            url, title = song
 
             q.add(url, title, ctx.author.mention)
             await utils.send_embed(
@@ -349,7 +387,7 @@ class Music(commands.Cog):
         """
         Clears current queue.
         """
-        q = self._queues[ctx.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         q.clear()
 
         await utils.send_embed(
@@ -365,7 +403,7 @@ class Music(commands.Cog):
         """
         loop_setting = ['None', 'Current queue', 'Current track']
 
-        q = self._queues[cxt.guild.id]
+        q: Queue = self._queues[cxt.guild.id]
         if option:
             q.loop = ['None', 'Queue', 'Track'].index(option.capitalize())
         else:
@@ -380,9 +418,9 @@ class Music(commands.Cog):
     @commands.command(aliases=['rm'])
     async def remove(self, ctx: commands.Context, index: int):
         """
-        Removes a song from the queue by index.
+        Removes a song from the queue by its index.
         """
-        q = self._queues[ctx.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         try:
             res = q.remove(index - 1)
         except IndexError:
@@ -407,7 +445,7 @@ class Music(commands.Cog):
         voice = ctx.guild.voice_client
         await self.stop()
 
-        q = self._queues[ctx.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         q.now_playing = index - 1
 
         while voice.is_playing():
@@ -417,15 +455,18 @@ class Music(commands.Cog):
     @commands.command(aliases=['vol', 'v'])
     @commands.check(is_connected)
     async def volume(self, ctx: commands.Context, volume: float):
-        if 0 > volume > 100:
+        """
+        Adjusts the volume.
+        """
+        if 0 > volume > 200:
             embed = discord.Embed(
-                description=f'Volume must be in range `0` to `100`, not {volume}',
+                description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
         else:
-            voice = ctx.voice_client
-            voice.volume = volume / 100
+            self._audio_source.volume = volume / 100
             embed = discord.Embed(
-                description=f'Volume has been successfully changed to `{volume}%`'
+                description=f'Volume has been successfully changed to `{volume}%`',
+                color=BASE_COLOR
             )
         await ctx.send(embed=embed)
