@@ -27,12 +27,10 @@ class Queue:
         self._tracks.append((url, title, mention))
 
     def get_next(self) -> typing.Optional[tuple]:
-        # self.now_playing += int(self._loop != 2)
-        print(self.now_playing)
-
+        self.now_playing += int(self._loop != 2)
         if self.now_playing >= len(self._tracks):
             if self._loop == 0:
-                self.now_playing = 0
+                self.now_playing = -1
                 self.play_next = False
                 return None
             else:
@@ -77,7 +75,6 @@ class Queue:
 class Music(commands.Cog):
     def __init__(self):
         self._queues: defaultdict[Queue] = defaultdict(Queue)
-        self._audio_source: discord.AudioSource = None
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
@@ -170,8 +167,6 @@ class Music(commands.Cog):
     @commands.command(aliases=['n'])
     @commands.check(is_connected)
     async def next(self, ctx: commands.Context):
-        q: Queue = self._queues[ctx.guild.id]
-        q.now_playing += 1
         ctx.voice_client.stop()
 
     @commands.command(aliases=['prev'])
@@ -182,13 +177,16 @@ class Music(commands.Cog):
             q.now_playing -= 1
             if q.loop == 0 and q.now_playing < 0:
                 q.now_playing = 0
-                await ctx.send('No previous tracks')
+                await send_embed(
+                    ctx=ctx,
+                    description='There are no tracks before current song',
+                    color=ERROR_COLOR)
                 raise exceptions.NoPreviousTracks
 
             ctx.guild.voice_client.stop()
 
             stream = _yt.get_stream(q.current[0])
-            loop = asyncio.get_running_loop()
+            loop = bot.loop
             await self._play(ctx, stream, loop)
         else:
             await utils.send_embed(
@@ -230,18 +228,12 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            song = await self._get_track(ctx, query)
-
-            if song is None:
-                await ctx.send('Canceled.')
-                return
-
-            url, title = song
+            url, title = _yt.get_info(query)
 
             q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
             stream = _yt.get_stream(url)
-            loop = asyncio.get_running_loop()
+            loop = bot.loop
             await self._play(ctx, stream, loop)
         else:
             if voice.is_paused():
@@ -250,7 +242,6 @@ class Music(commands.Cog):
 
             if not q.is_empty:
                 res = q.get_next()
-                print(res)
                 if not res:
                     await utils.send_embed(
                         ctx=ctx,
@@ -267,7 +258,7 @@ class Music(commands.Cog):
                 raise exceptions.QueueEmpty
 
             stream = _yt.get_stream(res[0])
-            loop = asyncio.get_running_loop()
+            loop = bot.loop
             await self._play(ctx, stream, loop)
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
@@ -282,32 +273,24 @@ class Music(commands.Cog):
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
-        self._audio_source = discord.PCMVolumeTransformer(audio_source)
-        voice.play(self._audio_source, after=lambda _: self._after(ctx, loop))
+        audio_source = discord.PCMVolumeTransformer(audio_source)
+        voice.play(audio_source, after=lambda _: self._after(ctx, loop))
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
         if re.match(URL_REGEX, query):
-            url, title = _yt.get_info(query)
+            song = _yt.get_info(query)
         else:
             tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
             song = await self._choose_track(ctx, tracks)
-            
-            if song is None:
-                return
 
-            url, title = song
-
-        return url, title
-
-    async def _notify_canceled(self, ctx: commands.Context) -> None:
-        await send_embed('Canceled.', BASE_COLOR, ctx)
+        return song
 
     @staticmethod
     async def _choose_track(ctx: commands.Context, tracks):
-        def _check(reaction, user):
+        def _check(reacted, user):
             return (
-                (reaction.emoji in REACTIONS_OPTS.keys() or reaction.emoji == '❌')
+                (reacted.emoji in REACTIONS_OPTS.keys() or reacted.emoji == '❌')
                 and user == ctx.author
             )
 
@@ -340,8 +323,8 @@ class Music(commands.Cog):
             if reaction.emoji == '❌':
                 return
 
-            url, title = tracks[REACTIONS_OPTS[reaction.emoji]]
-            return url, title
+            song = tracks[REACTIONS_OPTS[reaction.emoji]]
+            return song
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *query) -> None:
@@ -354,7 +337,7 @@ class Music(commands.Cog):
             song = await self._get_track(ctx, query)
 
             if song is None:
-                await self._notify_canceled(ctx)
+                await send_embed('Canceled.', BASE_COLOR, ctx)
                 return
             
             url, title = song
@@ -446,7 +429,14 @@ class Music(commands.Cog):
         await self.stop()
 
         q: Queue = self._queues[ctx.guild.id]
-        q.now_playing = index - 1
+        if 1 < index < len(q):
+            q.now_playing = index - 1
+        else:
+            await send_embed(
+                ctx=ctx,
+                description=f'Index must be in range `1` to `len(q), not {index}`',
+                color=ERROR_COLOR
+            )
 
         while voice.is_playing():
             await asyncio.sleep(0.1)
@@ -458,15 +448,37 @@ class Music(commands.Cog):
         """
         Adjusts the volume.
         """
-        if 0 > volume > 200:
+        voice: discord.VoiceClient = ctx.voice_client
+        if 0 > volume > 100:
             embed = discord.Embed(
                 description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
         else:
-            self._audio_source.volume = volume / 100
+            voice.source.volume = volume / 100
             embed = discord.Embed(
                 description=f'Volume has been successfully changed to `{volume}%`',
                 color=BASE_COLOR
             )
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=['sch'])
+    async def search(self, ctx: commands.Context, *query):
+        q: Queue = self._queues[ctx.guild.id]
+        voice = ctx.voice_client
+        query = ' '.join(query)
+
+        tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
+        url, title = await self._choose_track(ctx, tracks)
+
+        q.add(url, title, ctx.author.mention)
+        if not voice.is_playing():
+            stream = _yt.get_stream(url)
+            loop = bot.loop
+            await self._play(ctx, stream, loop)
+        else:
+            await utils.send_embed(
+                ctx=ctx,
+                description=f'Queued: [{title}]({url})',
+                color=BASE_COLOR
+            )
