@@ -27,12 +27,10 @@ class Queue:
         self._tracks.append((url, title, mention))
 
     def get_next(self) -> typing.Optional[tuple]:
-        # self.now_playing += int(self._loop != 2)
-        print(self.now_playing)
-
+        self.now_playing += int(self._loop != 2)
         if self.now_playing >= len(self._tracks):
             if self._loop == 0:
-                self.now_playing = 0
+                self.now_playing = -1
                 self.play_next = False
                 return None
             else:
