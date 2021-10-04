@@ -168,9 +168,12 @@ class Music(commands.Cog):
     @commands.command(aliases=['n'])
     @commands.check(is_connected)
     async def next(self, ctx: commands.Context):
+        """
+        Plays next song in the queue if available
+        """
         ctx.voice_client.stop()
 
-    @commands.command(aliases=['prev'])
+    # @commands.command(aliases=['prev'])
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
         q: Queue = self._queues[ctx.guild.id]
@@ -465,6 +468,9 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['sch'])
     async def search(self, ctx: commands.Context, *query):
+        """
+        Searches for a song on YouTube and gives you 5 options to choose
+        """
         q: Queue = self._queues[ctx.guild.id]
         voice = ctx.voice_client
         query = ' '.join(query)

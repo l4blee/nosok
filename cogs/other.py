@@ -3,7 +3,7 @@ import sqlalchemy as sa
 from discord.ext import commands
 
 import core
-from base import BASE_COLOR
+from base import BASE_COLOR, Session
 
 
 class Other(commands.Cog):
@@ -12,7 +12,7 @@ class Other(commands.Cog):
         """
         Sets prefix for the current server.
         """
-        with core.Session.begin() as s:
+        with Session.begin() as s:
             res = s.query(core.Config).filter_by(guild_id=ctx.guild.id).first()
             if res is None:
                 s.execute(sa.insert(core.Config).

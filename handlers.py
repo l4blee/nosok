@@ -1,14 +1,11 @@
-<<<<<<< HEAD
-import asyncio
 import re
-import threading
-from multiprocessing.pool import ThreadPool
 import typing
+from multiprocessing.pool import ThreadPool
 
 import requests
 from googleapiclient.discovery import build
 from pytube import YouTube
-from youtube_dl import YoutubeDL as ytdl
+from youtube_dl import YoutubeDL as YtDL
 
 
 class YTAPIHandler:
@@ -44,19 +41,19 @@ class YDLHandler:
         self._video_regex = re.compile(r'watch\?v=(\S{11})')
 
     def get_urls(self, query: str, max_results: int = 5) -> list:
-        query = '+'.join(query.split(' '))
+        query = '+'.join(query.split())
 
         with requests.Session() as session:
             res = session.get(self._search_pattern + query)
 
-        vid_ids = self._video_regex.findall(res.text)[:max_results]
-        return [self._video_pattern + i for i in vid_ids]
+        iterator = self._video_regex.finditer(res.text)
+        return [self._video_pattern + next(iterator).group(1) for _ in range(max_results)]
 
     def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str]]:
         links = self.get_urls(query, max_results=max_results)
         args = [(i, False) for i in links]
 
-        with ytdl(self._ydl_opts) as ydl:
+        with YtDL(self._ydl_opts) as ydl:
             p: ThreadPool = ThreadPool(max_results)
             res = p.starmap(ydl.extract_info, args)
 
@@ -64,9 +61,21 @@ class YDLHandler:
         return res
 
     def get_info(self, query: str) -> tuple[str, str]:
-        return self.get_infos(query, max_results=1)[0]
+        query = '+'.join(query.split())
+        with requests.Session() as session:
+            res = session.get(self._search_pattern + query)
 
-    @staticmethod
-    def get_stream(url: str):
-        streams = YouTube(url).streams.filter(type='audio')
-        return max(streams, key=lambda x: x.bitrate).url
+        _id = next(self._video_regex.finditer(res.text))
+        url = self._video_pattern + _id.group(1)
+
+        with YtDL(self._ydl_opts) as ydl:
+            title = ydl.extract_info(url, download=False).get('title')
+
+        return url, title
+
+    def get_stream(self, url: str):
+        with YtDL(self._ydl_opts) as ydl:
+            streams = ydl.extract_info(url, download=False).get('formats')
+
+        return max([i for i in streams if i.get('fps') is None],
+                   key=lambda x: x.get('tbr')).get('url')
