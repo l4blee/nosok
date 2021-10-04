@@ -17,15 +17,15 @@ async def send_embed(description: str, color: discord.Colour, ctx: commands.Cont
 
 
 async def is_connected(ctx: commands.Context):
-    if ctx.voice_client is None:
-        await send_embed(
-            ctx=ctx,
-            description='I am not connected to a voice channel yet!',
-            color=ERROR_COLOR
-        )
-        raise exceptions.BotNotConnected
-    else:
+    if ctx.invoked_with == 'help' or ctx.voice_client:
         return True
+
+    await send_embed(
+        ctx=ctx,
+        description='I am not connected to a voice channel yet!',
+        color=ERROR_COLOR
+    )
+    raise exceptions.BotNotConnected
 
 
 async def run_blocking(blocking_func: typing.Callable, bot: commands.Bot, *args, **kwargs) -> typing.Any:
