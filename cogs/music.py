@@ -438,6 +438,7 @@ class Music(commands.Cog):
                 description=f'Index must be in range `1` to `{len(q)}`, not `{index}`',
                 color=ERROR_COLOR
             )
+            return
             
         voice = ctx.guild.voice_client
         await self.stop(ctx)
