@@ -430,7 +430,7 @@ class Music(commands.Cog):
         Seeks a specified track with an index and plays it
         """
         voice = ctx.guild.voice_client
-        await self.stop()
+        await self.stop(ctx)
 
         q: Queue = self._queues[ctx.guild.id]
         if 1 < index < len(q):
@@ -444,7 +444,7 @@ class Music(commands.Cog):
 
         while voice.is_playing():
             await asyncio.sleep(0.1)
-        await self.play()
+        await self.play(ctx)
 
     @commands.command(aliases=['vol', 'v'])
     @commands.check(is_connected)
