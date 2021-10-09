@@ -3,6 +3,8 @@ import os
 from importlib import import_module
 from pathlib import Path
 
+from discord_components import DiscordComponents
+
 from base import Base
 from core import bot
 
@@ -15,6 +17,7 @@ logger = logging.getLogger('index')
 
 @bot.event
 async def on_ready():
+    DiscordComponents(bot)
     logger.warning('Bot has been successfully launched')
 
 

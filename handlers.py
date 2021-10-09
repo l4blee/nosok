@@ -57,7 +57,7 @@ class YDLHandler:
             p: ThreadPool = ThreadPool(max_results)
             res = p.starmap(ydl.extract_info, args)
 
-        res = [(self._video_pattern + i.get('id'), i.get('title')) for i in res]
+        res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         return res
 
     def get_info(self, query: str) -> tuple[str, str]:

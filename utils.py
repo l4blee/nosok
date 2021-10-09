@@ -3,6 +3,7 @@ import typing
 
 import discord
 from discord.ext import commands
+from discord_components import Button, ButtonStyle
 
 import exceptions
 from base import ERROR_COLOR
@@ -31,3 +32,29 @@ async def is_connected(ctx: commands.Context):
 async def run_blocking(blocking_func: typing.Callable, bot: commands.Bot, *args, **kwargs) -> typing.Any:
     func = functools.partial(blocking_func, *args, **kwargs)
     return await bot.loop.run_in_executor(None, func)
+
+
+def get_components(embeds, current):
+    return [
+        [
+            Button(label='Prev', id='back', style=ButtonStyle.red),
+            Button(
+                label=f'Page {int(embeds.index(embeds[current])) + 1}/{len(embeds)}',
+                id='cur',
+                style=ButtonStyle.grey,
+                disabled=True
+            ),
+            Button(
+                label='Next',
+                id='front',
+                style=ButtonStyle.red
+            )
+        ],
+        [
+            Button(
+                label='That one',
+                id='preferred_track',
+                style=ButtonStyle.green
+            )
+        ]
+    ]
