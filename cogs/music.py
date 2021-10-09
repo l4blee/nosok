@@ -429,18 +429,18 @@ class Music(commands.Cog):
         """
         Seeks a specified track with an index and plays it
         """
-        voice = ctx.guild.voice_client
-        await self.stop(ctx)
-
         q: Queue = self._queues[ctx.guild.id]
-        if 1 < index < len(q):
+        if 1 <= index <= len(q):
             q.now_playing = index - 1
         else:
             await send_embed(
                 ctx=ctx,
-                description=f'Index must be in range `1` to `len(q), not {index}`',
+                description=f'Index must be in range `1` to `{len(q)}`, not `{index}`',
                 color=ERROR_COLOR
             )
+            
+        voice = ctx.guild.voice_client
+        await self.stop(ctx)
 
         while voice.is_playing():
             await asyncio.sleep(0.1)
