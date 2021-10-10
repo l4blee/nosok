@@ -2,19 +2,21 @@ import asyncio
 import re
 import typing
 from collections import defaultdict
+from enum import IntEnum
 
 import discord
+from discord.embeds import Embed
 from discord.ext import commands
+from discord_components.interaction import InteractionType
 
 import exceptions
 import utils
-from base import BASE_COLOR, ERROR_COLOR, REACTIONS_OPTS
+from base import BASE_COLOR, ERROR_COLOR
 from core import yt_handler as _yt, bot
-from utils import is_connected, send_embed
+from utils import is_connected, send_embed, get_components
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-URL_REGEX = re.compile(URL_REGEX)
 
 
 class Queue:
@@ -168,12 +170,9 @@ class Music(commands.Cog):
     @commands.command(aliases=['n'])
     @commands.check(is_connected)
     async def next(self, ctx: commands.Context):
-        """
-        Plays next song in the queue if available
-        """
         ctx.voice_client.stop()
 
-    # @commands.command(aliases=['prev'])
+    @commands.command(aliases=['prev'])
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
         q: Queue = self._queues[ctx.guild.id]
@@ -185,7 +184,7 @@ class Music(commands.Cog):
                     ctx=ctx,
                     description='There are no tracks before current song',
                     color=ERROR_COLOR)
-                raise exceptions.NoTracksBefore
+                raise exceptions.NoPreviousTracks
 
             ctx.guild.voice_client.stop()
 
@@ -199,6 +198,53 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
             raise exceptions.QueueEmpty
+
+    async def get_pagination(self, ctx: commands.Context, *tracks):
+        embeds = []
+        tracks = tracks[0]
+
+        for url, title, thumbnail in tracks:
+            embed = Embed(title=title, url=url)
+            embed.set_thumbnail(url=thumbnail)
+            embed.set_author(name=ctx.author)
+            embeds.append(embed)
+
+        current = 0
+        message = await ctx.reply(
+            '**Pagination**',
+            embed=embeds[current],
+            components=get_components(embeds, current)
+        )
+
+        while True:
+            try:
+                interaction = await bot.wait_for(
+                    'button_click',
+                    check=lambda i: i.component.id in ['back', 'front', 'preferred_track'],
+                    timeout=10.0
+                )
+                if interaction.component.id == 'back':
+                    current -= 1
+                elif interaction.component.id == 'front':
+                    current += 1
+                elif interaction.component.id == 'preferred_track':
+                    if (track := tracks[current]) is not None:
+                        await message.delete()
+                        return track
+
+                if current == len(embeds):
+                    current = 0
+                elif current < 0:
+                    current = len(embeds) - 1
+
+                await interaction.respond(
+                    type=InteractionType.UpdateMessage,
+                    embed=embeds[current],
+                    components=get_components(embeds, current)
+                )
+            except asyncio.TimeoutError:
+                await message.delete()
+                break
 
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context, *query) -> None:
@@ -282,7 +328,7 @@ class Music(commands.Cog):
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
-        if URL_REGEX.match(query):
+        if re.match(URL_REGEX, query):
             song = _yt.get_info(query)
         else:
             tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
@@ -290,45 +336,18 @@ class Music(commands.Cog):
 
         return song
 
-    @staticmethod
-    async def _choose_track(ctx: commands.Context, tracks):
-        def _check(reacted, user):
-            return (
-                (reacted.emoji in REACTIONS_OPTS.keys() or reacted.emoji == '❌')
-                and user == ctx.author
-            )
+    async def _choose_track(self, ctx: commands.Context, tracks):
+        track = await self.get_pagination(ctx, tracks)
 
-        description = ''
-        for index, track in enumerate(tracks):
-            description += f"{index + 1}.\t[{track[1]}]({track[0]})\n"
+        if not track:
+            return
 
-        embed = discord.Embed(
-            title='Choose one of these songs',
-            description=description,
-            color=BASE_COLOR
-        )
-        message = await ctx.send(embed=embed)
+        url, title, _ = track
+        return url, title
 
-        for reaction in list(REACTIONS_OPTS.keys())[:min(len(tracks), len(REACTIONS_OPTS))]:
-            await message.add_reaction(reaction)
-
-        await message.add_reaction('❌')
-
-        try:
-            reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=_check)
-        except asyncio.TimeoutError:
-            await message.delete()
-            await ctx.message.delete()
-            await ctx.send('Timeout has been exceeded')
-            raise exceptions.TimeoutExceeded
-        else:
-            await message.delete()
-
-            if reaction.emoji == '❌':
-                return
-
-            song = tracks[REACTIONS_OPTS[reaction.emoji]]
-            return song
+    async def send_no_tracks_specified(self, ctx: commands.Context):
+        await send_embed(description='No tracks were specified', color=BASE_COLOR, ctx=ctx)
+        raise exceptions.NoTracksSpecified
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *query) -> None:
@@ -339,6 +358,9 @@ class Music(commands.Cog):
         query = ' '.join(query)
         if query:
             song = await self._get_track(ctx, query)
+            
+            if not song:
+                await self.send_no_tracks_specified(ctx)
 
             if song is None:
                 await send_embed('Canceled.', BASE_COLOR, ctx)
@@ -427,7 +449,7 @@ class Music(commands.Cog):
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
         """
-        Seeks a specified track with an index and plays it
+        Seeks a specified track with an index and plays it.
         """
         q: Queue = self._queues[ctx.guild.id]
         if 1 <= index <= len(q):
@@ -470,14 +492,23 @@ class Music(commands.Cog):
     @commands.command(aliases=['sch'])
     async def search(self, ctx: commands.Context, *query):
         """
-        Searches for a song on YouTube and gives you 5 options to choose
+        Searches for a song on YouTube and gives you 5 options to choose.
         """
         q: Queue = self._queues[ctx.guild.id]
-        voice = ctx.voice_client
         query = ' '.join(query)
 
+        if not ctx.voice_client:
+            await ctx.author.voice.channel.connect()
+
+        voice = ctx.voice_client
+
         tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
-        url, title = await self._choose_track(ctx, tracks)
+        track = await self._choose_track(ctx, tracks)
+
+        if not track:
+            await self.send_no_tracks_specified(ctx)
+        
+        url, title = track
 
         q.add(url, title, ctx.author.mention)
         if not voice.is_playing():
