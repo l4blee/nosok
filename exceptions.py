@@ -62,3 +62,10 @@ class TimeoutExceeded(commands.CommandError):
     Occurs, when a user chooses one of the songs more than 1 minute.
     """
     pass
+
+
+class NoTracksSpecified(commands.CommandError):
+    """
+    Occurs, when a user didn't specify any suggested tracks.
+    """
+    pass
