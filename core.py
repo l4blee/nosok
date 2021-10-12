@@ -1,13 +1,15 @@
+from importlib import import_module
 import os
+import logging
+from pathlib import Path
 
-import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
 import discord
+from discord_components.client import DiscordComponents
+import sqlalchemy as sa
 from discord.ext import commands
 
-from base import Base, engine, BASE_PREFIX
+from base import Base, Session, BASE_PREFIX
 from handlers import YDLHandler, YTAPIHandler
-
 
 use_deprecated = False
 
@@ -33,13 +35,43 @@ else:
         'format': 'bestaudio/best'
     })
 
-Session = sessionmaker(bind=engine)
 
-
-def get_prefix(client: commands.Bot, msg: discord.Message) -> str:
+def get_prefix(_, msg: discord.Message) -> str:
     with Session.begin() as s:
         res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
         return res.prefix if res is not None else BASE_PREFIX
 
 
-bot = commands.Bot(get_prefix, case_insensitive=True)
+class MusicBot(commands.Bot):
+    def __init__(self, command_prefix):
+        super().__init__(command_prefix, case_insensetive=True)
+        self._logger = None
+
+    def setup(self):
+        for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:
+            exec(f'{cls.__name__.lower()} = cls()')
+            self.add_cog(eval(cls.__name__.lower()))
+
+    def run(self):
+        self.setup()
+        TOKEN = os.getenv('TOKEN')
+        super().run(TOKEN, reconnect=True)
+    
+    async def on_ready(self):
+        DiscordComponents(self)
+
+        logging.basicConfig(level=logging.WARNING,
+                    format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
+                    datefmt='%y.%b.%Y %H:%M:%S')
+        _logger = logging.getLogger('index')
+        self._logger = _logger
+        self._logger.warning('Bot has been successfully launched')
+
+    async def shutdown(self):
+        self._logger.warning('The bot has been shut down...')
+        await super().close()
+
+    async def close(self):
+        await self.shutdown()
+
+bot = MusicBot(get_prefix)
