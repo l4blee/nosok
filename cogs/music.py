@@ -14,6 +14,7 @@ from utils import is_connected, send_embed
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+URL_REGEX = re.compile(URL_REGEX)
 
 
 class Queue:
@@ -181,7 +182,7 @@ class Music(commands.Cog):
                     ctx=ctx,
                     description='There are no tracks before current song',
                     color=ERROR_COLOR)
-                raise exceptions.NoPreviousTracks
+                raise exceptions.NoTracksBefore
 
             ctx.guild.voice_client.stop()
 
@@ -278,7 +279,7 @@ class Music(commands.Cog):
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
-        if re.match(URL_REGEX, query):
+        if URL_REGEX.match(query):
             song = _yt.get_info(query)
         else:
             tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))

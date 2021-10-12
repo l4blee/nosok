@@ -29,7 +29,7 @@ class NoMoreTracks(commands.CommandError):
     pass
 
 
-class NoPreviousTracks(commands.CommandError):
+class NoTracksBefore(commands.CommandError):
     """
     Occurs when there are no previous tracks.
     """
