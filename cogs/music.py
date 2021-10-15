@@ -116,6 +116,8 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = False
         ctx.voice_client.stop()
+        while ctx.voice_client:
+            await asyncio.sleep(0.1)
 
     @commands.command(aliases=['l'])
     @commands.check(is_connected)
@@ -454,7 +456,9 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if 1 <= index <= len(q):
-            q.now_playing = index - 1
+            q.now_playing = index - 2
+            await self.stop(ctx)
+            await self.play(ctx)
         else:
             await send_embed(
                 ctx=ctx,
@@ -462,13 +466,6 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
             return
-            
-        voice = ctx.guild.voice_client
-        await self.stop(ctx)
-
-        while voice.is_playing():
-            await asyncio.sleep(0.1)
-        await self.play(ctx)
 
     @commands.command(aliases=['vol', 'v'])
     @commands.check(is_connected)
