@@ -26,6 +26,7 @@ class Queue:
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
         self.now_playing: int = 0
         self.play_next: bool = True
+        self.volume: float = 1.0
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))
@@ -308,13 +309,14 @@ class Music(commands.Cog):
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
 
     async def _play(self, ctx: commands.Context, stream, loop):
+        q = self._queues[ctx.guild.id]
         voice = ctx.voice_client
         audio_source = discord.FFmpegPCMAudio(stream,
                                               stderr=DEVNULL,
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
-        audio_source = discord.PCMVolumeTransformer(audio_source)
+        audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
         await self.current(ctx)
 
@@ -476,14 +478,14 @@ class Music(commands.Cog):
         """
         Adjusts the volume.
         """
-        voice: discord.VoiceClient = ctx.voice_client
         if 0 > volume > 100:
             embed = discord.Embed(
                 description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
         else:
-            voice.source.volume = volume / 100
+            ctx.voice_client.source.volume = volume / 100
+            self._queues[ctx.guild.id].volume = volume / 100
             embed = discord.Embed(
                 description=f'Volume has been successfully changed to `{volume}%`',
                 color=BASE_COLOR
