@@ -117,7 +117,7 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = False
         ctx.voice_client.stop()
-        while ctx.voice_client:
+        while ctx.voice_client.is_playing():
             await asyncio.sleep(0.1)
 
     @commands.command(aliases=['l'])
