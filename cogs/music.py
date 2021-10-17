@@ -188,7 +188,8 @@ class Music(commands.Cog):
             )
             raise exceptions.NoTracksBefore
 
-    async def get_pagination(self, ctx: commands.Context, *tracks):
+    @staticmethod
+    async def get_pagination(ctx: commands.Context, *tracks):
         embeds = []
         tracks = tracks[0]
 
@@ -335,10 +336,6 @@ class Music(commands.Cog):
         url, title, _ = track
         return url, title
 
-    async def send_no_tracks_specified(self, ctx: commands.Context):
-        await send_embed(description='No tracks were specified', color=BASE_COLOR, ctx=ctx)
-        raise exceptions.NoTracksSpecified
-
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *query) -> None:
         """
@@ -357,7 +354,10 @@ class Music(commands.Cog):
                 raise exceptions.NoTracksSpecified
 
             if song is None:
-                await send_embed('Canceled.', BASE_COLOR, ctx)
+                await send_embed(
+                    ctx=ctx,
+                    description='Canceled.',
+                    color=BASE_COLOR)
                 return
             
             url, title = song
