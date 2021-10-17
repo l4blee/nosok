@@ -9,9 +9,10 @@ import exceptions
 from base import ERROR_COLOR
 
 
-async def send_embed(description: str, color: discord.Colour, ctx: commands.Context, title: str = ''):
+async def send_embed(ctx: commands.Context, description: str, color: discord.Colour, title: str = ''):
     embed = discord.Embed(
         description=description,
+        title=title,
         color=color
     )
     await ctx.send(embed=embed)
@@ -52,7 +53,7 @@ def get_components(embeds, current):
         ],
         [
             Button(
-                label='That one',
+                label='Add this one',
                 id='preferred_track',
                 style=ButtonStyle.green
             )

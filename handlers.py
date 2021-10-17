@@ -60,13 +60,16 @@ class YDLHandler:
         res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         return res
 
-    def get_info(self, query: str) -> tuple[str, str]:
-        query = '+'.join(query.split())
-        with requests.Session() as session:
-            res = session.get(self._search_pattern + query)
+    def get_info(self, query: str, is_url: bool=False) -> tuple[str, str]:
+        if not is_url:
+            query = '+'.join(query.split())
+            with requests.Session() as session:
+                res = session.get(self._search_pattern + query)
 
-        _id = next(self._video_regex.finditer(res.text))
-        url = self._video_pattern + _id.group(1)
+            _id = next(self._video_regex.finditer(res.text))
+            url = self._video_pattern + _id.group(1)
+        else:
+            url = query
 
         with YtDL(self._ydl_opts) as ydl:
             title = ydl.extract_info(url, download=False).get('title')

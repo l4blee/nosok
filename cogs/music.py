@@ -2,7 +2,7 @@ import asyncio
 import re
 import typing
 from collections import defaultdict
-from enum import IntEnum
+from subprocess import DEVNULL
 
 import discord
 from discord.embeds import Embed
@@ -178,29 +178,15 @@ class Music(commands.Cog):
     @commands.command(aliases=['prev'])
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
-        q: Queue = self._queues[ctx.guild.id]
-        if len(q) > 0:
-            q.now_playing -= 1
-            if q.loop == 0 and q.now_playing < 0:
-                q.now_playing = 0
-                await send_embed(
-                    ctx=ctx,
-                    description='There are no tracks before current song',
-                    color=ERROR_COLOR)
-                raise exceptions.NoTracksBefore
-
-            ctx.guild.voice_client.stop()
-
-            stream = _yt.get_stream(q.current[0])
-            loop = bot.loop
-            await self._play(ctx, stream, loop)
-        else:
-            await utils.send_embed(
+        q = self._queues[ctx.guild.id]
+        res = await self._seek(ctx, q.now_playing)
+        if res == -1:
+            await send_embed(
                 ctx=ctx,
-                description='The queue is empty!',
+                description='There are no tracks before current song',
                 color=ERROR_COLOR
             )
-            raise exceptions.QueueEmpty
+            raise exceptions.NoTracksBefore
 
     async def get_pagination(self, ctx: commands.Context, *tracks):
         embeds = []
@@ -214,7 +200,7 @@ class Music(commands.Cog):
 
         current = 0
         message = await ctx.reply(
-            '**Pagination**',
+            '**Choose one of the following tracks:**',
             embed=embeds[current],
             components=get_components(embeds, current)
         )
@@ -323,6 +309,7 @@ class Music(commands.Cog):
     async def _play(self, ctx: commands.Context, stream, loop):
         voice = ctx.voice_client
         audio_source = discord.FFmpegPCMAudio(stream,
+                                              stderr=DEVNULL,
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
@@ -332,7 +319,7 @@ class Music(commands.Cog):
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
         if URL_REGEX.match(query):
-            song = _yt.get_info(query)
+            song = _yt.get_info(query, is_url=True)
         else:
             tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
             song = await self._choose_track(ctx, tracks)
@@ -363,7 +350,11 @@ class Music(commands.Cog):
             song = await self._get_track(ctx, query)
             
             if not song:
-                await self.send_no_tracks_specified(ctx)
+                await send_embed(
+                    ctx=ctx,
+                    description='No tracks were specified',
+                    color=BASE_COLOR)
+                raise exceptions.NoTracksSpecified
 
             if song is None:
                 await send_embed('Canceled.', BASE_COLOR, ctx)
@@ -449,23 +440,35 @@ class Music(commands.Cog):
             color=BASE_COLOR
         )
 
+    async def _seek(self, ctx: commands.Context, index: int):
+        q: Queue = self._queues[ctx.guild.id]
+        if 1 <= index <= len(q):
+            q.now_playing = index - 2
+            await self.next(ctx)
+        elif q.is_empty:
+            await send_embed(
+                ctx=ctx,
+                description='Queue is empty!',
+                color=ERROR_COLOR
+            )
+            raise exceptions.QueueEmpty
+        else:
+            return -1
+
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
         """
         Seeks a specified track with an index and plays it.
         """
-        q: Queue = self._queues[ctx.guild.id]
-        if 1 <= index <= len(q):
-            q.now_playing = index - 2
-            await self.stop(ctx)
-            await self.play(ctx)
-        else:
+        q = self._queues[ctx.guild.id]
+        res = await self._seek(ctx, index)
+        if res == -1:
             await send_embed(
                 ctx=ctx,
                 description=f'Index must be in range `1` to `{len(q)}`, not `{index}`',
                 color=ERROR_COLOR
             )
-            return
+            raise IndexError('Index out of range')
 
     @commands.command(aliases=['vol', 'v'])
     @commands.check(is_connected)
@@ -504,7 +507,11 @@ class Music(commands.Cog):
         track = await self._choose_track(ctx, tracks)
 
         if not track:
-            await self.send_no_tracks_specified(ctx)
+            await send_embed(
+                ctx=ctx,
+                description='No tracks were specified',
+                color=BASE_COLOR)
+            raise exceptions.NoTracksSpecified
         
         url, title = track
 
