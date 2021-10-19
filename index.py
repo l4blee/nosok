@@ -1,18 +1,16 @@
-import os
-from importlib import import_module
-from pathlib import Path
+from discord import Message
 
-from discord_components import DiscordComponents
+from base import Base, Session, BASE_PREFIX
+from core import MusicBot, Config
 
-from base import Base
-from core import bot
+
+def get_prefix(_, msg: Message) -> str:
+    with Session.begin() as s:
+        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
+        return res.prefix if res is not None else BASE_PREFIX
+
 
 Base.metadata.create_all()
 
-
-# for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:
-#     exec(f'{cls.__name__.lower()} = cls()')
-#     bot.add_cog(eval(cls.__name__.lower()))
-
-
+bot = MusicBot(get_prefix)
 bot.run()

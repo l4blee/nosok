@@ -10,10 +10,10 @@ from discord.ext import commands
 from discord_components.interaction import InteractionType
 
 import exceptions
-import utils
 from base import BASE_COLOR, ERROR_COLOR
-from core import yt_handler as _yt, bot
-from utils import is_connected, send_embed, get_components
+from core import ydl_handler as ydl
+from utils import (is_connected, send_embed,
+                   get_components, run_blocking)
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
@@ -27,6 +27,7 @@ class Queue:
         self.now_playing: int = 0
         self.play_next: bool = True
         self.volume: float = 1.0
+        self.handler = ydl
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))
@@ -87,7 +88,7 @@ class Music(commands.Cog):
         Makes the bot join your current voice channel
         """
         if ctx.voice_client:
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description='I am already connected to a voice channel!',
                 color=ERROR_COLOR,
@@ -96,7 +97,7 @@ class Music(commands.Cog):
 
         voice = ctx.author.voice
         if not voice:
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description='Connect to a voice channel first',
                 color=ERROR_COLOR
@@ -141,7 +142,7 @@ class Music(commands.Cog):
         if voice.is_playing():
             voice.pause()
         else:
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description='I am not playing yet!',
                 color=ERROR_COLOR
@@ -155,7 +156,7 @@ class Music(commands.Cog):
         """
         voice = ctx.voice_client
         if not voice.is_playing():
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description='I am not playing any song for now!',
                 color=ERROR_COLOR
@@ -164,21 +165,27 @@ class Music(commands.Cog):
 
         q: Queue = self._queues[ctx.guild.id]
         current = q.current
-        await utils.send_embed(
+        await send_embed(
             ctx=ctx,
             title='Current song:',
             description=f'[{current[1]}]({current[0]}) | {current[2]}',
             color=BASE_COLOR
         )
 
-    @commands.command(aliases=['n'])
+    @commands.command(aliases=['n', 'next'])
     @commands.check(is_connected)
-    async def next(self, ctx: commands.Context):
+    async def skip(self, ctx: commands.Context):
+        """
+        Skips the current track and plays the next one
+        """
         ctx.voice_client.stop()
 
     @commands.command(aliases=['prev'])
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
+        """
+        Plays a track before the current one
+        """
         q = self._queues[ctx.guild.id]
         res = await self._seek(ctx, q.now_playing)
         if res == -1:
@@ -209,7 +216,7 @@ class Music(commands.Cog):
 
         while True:
             try:
-                interaction = await bot.wait_for(
+                interaction = await ctx.bot.wait_for(
                     'button_click',
                     check=lambda i: i.component.id in ['back', 'front', 'preferred_track'],
                     timeout=10.0
@@ -246,7 +253,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
-                await utils.send_embed(
+                await send_embed(
                     ctx=ctx,
                     description='Connect to a voice channel first',
                     color=ERROR_COLOR
@@ -269,12 +276,12 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, title = _yt.get_info(query)
+            url, title = q.handler.get_info(query)
 
             q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
-            stream = _yt.get_stream(url)
-            loop = bot.loop
+            stream = q.handler.get_stream(url)
+            loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:
             if voice.is_paused():
@@ -284,22 +291,22 @@ class Music(commands.Cog):
             if not q.is_empty:
                 res = q.get_next()
                 if not res:
-                    await utils.send_embed(
+                    await send_embed(
                         ctx=ctx,
                         description='The queue has ended',
                         color=BASE_COLOR
                     )
                     return
             else:
-                await utils.send_embed(
+                await send_embed(
                     ctx=ctx,
                     description='There are no songs in the queue',
                     color=ERROR_COLOR
                 )
                 raise exceptions.QueueEmpty
 
-            stream = _yt.get_stream(res[0])
-            loop = bot.loop
+            stream = q.handler.get_stream(res[0])
+            loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
@@ -321,10 +328,11 @@ class Music(commands.Cog):
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
+        q = self._queues[ctx.guild.id]
         if URL_REGEX.match(query):
-            song = _yt.get_info(query, is_url=True)
+            song = q.handler.get_info(query, is_url=True)
         else:
-            tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
+            tracks = list(await run_blocking(q.handler.get_infos, ctx.bot, query=query))
             song = await self._choose_track(ctx, tracks)
 
         return song
@@ -365,7 +373,7 @@ class Music(commands.Cog):
             url, title = song
 
             q.add(url, title, ctx.author.mention)
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description=f'Queued: [{title}]({url})',
                 color=BASE_COLOR
@@ -380,7 +388,7 @@ class Music(commands.Cog):
             else:
                 desc = 'There are no tracks in the queue for now!'
 
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 title='Current queue:',
                 color=BASE_COLOR,
@@ -395,7 +403,7 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         q.clear()
 
-        await utils.send_embed(
+        await send_embed(
             ctx=ctx,
             description='Queue has been successfully cleared',
             color=BASE_COLOR
@@ -429,14 +437,14 @@ class Music(commands.Cog):
         try:
             res = q.remove(index - 1)
         except IndexError:
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description='No specified track in the queue.',
                 color=ERROR_COLOR
             )
             return
 
-        await utils.send_embed(
+        await send_embed(
             ctx=ctx,
             description=f'Removed: [{res[1]}]({res[0]})',
             color=BASE_COLOR
@@ -446,7 +454,7 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         if 1 <= index <= len(q):
             q.now_playing = index - 2
-            await self.next(ctx)
+            await self.skip(ctx)
         elif q.is_empty:
             await send_embed(
                 ctx=ctx,
@@ -505,7 +513,7 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
-        tracks = list(await utils.run_blocking(_yt.get_infos, bot, query=query))
+        tracks = list(await run_blocking(q.handler.get_infos, ctx.bot, query=query))
         track = await self._choose_track(ctx, tracks)
 
         if not track:
@@ -519,11 +527,11 @@ class Music(commands.Cog):
 
         q.add(url, title, ctx.author.mention)
         if not voice.is_playing():
-            stream = _yt.get_stream(url)
-            loop = bot.loop
+            stream = q.handler.get_stream(url)
+            loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:
-            await utils.send_embed(
+            await send_embed(
                 ctx=ctx,
                 description=f'Queued: [{title}]({url})',
                 color=BASE_COLOR

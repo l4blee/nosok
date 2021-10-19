@@ -1,17 +1,28 @@
-from importlib import import_module
-import os
 import logging
+import os
+from importlib import import_module
 from pathlib import Path
 
-import discord
-from discord_components.client import DiscordComponents
 import sqlalchemy as sa
 from discord.ext import commands
+from discord_components.client import DiscordComponents
+from youtube_dl.utils import std_headers
 
-from base import Base, Session, BASE_PREFIX
+from base import Base
 from handlers import YDLHandler, YTAPIHandler
 
-use_deprecated = False
+# Creating YouTube API handler
+google_api_token = os.environ.get('GOOGLE_API_TOKEN')
+ytapi_handler = YTAPIHandler(google_api_token)
+
+# Creating YouTubeDL handler
+std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                            'Chrome/51.0.2704.103 Safari/537.36'
+ydl_handler = YDLHandler({
+    'simulate': True,
+    'quiet': True,
+    'format': 'bestaudio/best'
+})
 
 
 class Config(Base):
@@ -21,36 +32,17 @@ class Config(Base):
     prefix = sa.Column('prefix', sa.String, server_default='!')
 
 
-if use_deprecated and 'GOOGLE_API_TOKEN' in os.environ.keys():
-    google_api_token = os.environ.get('GOOGLE_API_TOKEN')
-    yt_handler = YTAPIHandler(google_api_token)
-else:
-    from youtube_dl.utils import std_headers
-
-    std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                                'Chrome/51.0.2704.103 Safari/537.36'
-    yt_handler = YDLHandler({
-        'simulate': True,
-        'quiet': True,
-        'format': 'bestaudio/best'
-    })
-
-
-def get_prefix(_, msg: discord.Message) -> str:
-    with Session.begin() as s:
-        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
-        return res.prefix if res is not None else BASE_PREFIX
-
-
 class MusicBot(commands.Bot):
     def __init__(self, command_prefix):
         super().__init__(command_prefix, case_insensetive=True)
         self._logger = None
 
     def setup(self):
-        for cls in [import_module(f'cogs.{i.stem}').__dict__[i.stem.title()] for i in Path('./cogs/').glob('*.py')]:
-            exec(f'{cls.__name__.lower()} = cls()')
-            self.add_cog(eval(cls.__name__.lower()))
+        for cls in [
+            import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
+            for i in Path('./cogs/').glob('*.py')
+        ]:
+            self.add_cog(eval('cls()'))
 
     def run(self):
         self.setup()
@@ -61,17 +53,11 @@ class MusicBot(commands.Bot):
         DiscordComponents(self)
 
         logging.basicConfig(level=logging.WARNING,
-                    format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
-                    datefmt='%y.%b.%Y %H:%M:%S')
-        _logger = logging.getLogger('index')
-        self._logger = _logger
+                            format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
+                            datefmt='%y.%b.%Y %H:%M:%S')
+        self._logger = logging.getLogger('index')
         self._logger.warning('Bot has been successfully launched')
 
-    async def shutdown(self):
+    async def close(self):
         self._logger.warning('The bot has been shut down...')
         await super().close()
-
-    async def close(self):
-        await self.shutdown()
-
-bot = MusicBot(get_prefix)
