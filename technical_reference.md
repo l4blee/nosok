@@ -5,7 +5,8 @@
 3. Use GH Actions
 
 ## List of all commands
-All the commands start from the `!` prefix.
+All the commands start with the `!` prefix.\
+**Music cog:**
 1. `skip`. Allows a user to skip the track
 2. `seek`. The command is used for searching a certain track in the queue
 3. `search`. This is a customized `play` command that can display the first five tracks that were found on YouTube by your query. For this purpose use discord.py's pagination.
@@ -17,4 +18,7 @@ All the commands start from the `!` prefix.
 9. `queue`. Displays current queue
 10. `remove`. Removes a song from queue by index
 11. `stop`. Stops bot from playing current song
+12. `volume`. Adjusts the volume of the bot\
+**Settings:** 
 12. `set_prefix`. Sets the prefix for the server
+13. `set_handler`. Allows user to set the music handler for current server
