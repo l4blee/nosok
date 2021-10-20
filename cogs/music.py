@@ -11,13 +11,15 @@ from discord_components.interaction import InteractionType
 
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
-from core import ydl_handler as ydl
+from core import ydl_handler as ydl, ytapi_handler as ytapi
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 URL_REGEX = re.compile(URL_REGEX)
+
+HANDLERS = [ytapi, ydl]
 
 
 class Queue:
@@ -27,7 +29,11 @@ class Queue:
         self.now_playing: int = 0
         self.play_next: bool = True
         self.volume: float = 1.0
-        self.handler = ydl
+        self.is_ydl: bool = True
+
+    @property
+    def handler(self):
+        return HANDLERS[int(self.is_ydl)]
 
     def add(self, url: str, title: str, mention: discord.User.mention) -> None:
         self._tracks.append((url, title, mention))

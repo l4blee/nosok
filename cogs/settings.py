@@ -3,16 +3,7 @@ import sqlalchemy as sa
 from discord.ext import commands
 
 import core
-from base import BASE_COLOR, ERROR_COLOR, Session
-from utils import send_embed
-from core import (ytapi_handler as ytapi,
-                  ydl_handler as ydl)
-
-
-HANDLERS = {
-    'YouTube API': ytapi,
-    'YouTube DL': ydl
-}
+from base import BASE_COLOR, Session
 
 
 class Settings(commands.Cog):
@@ -36,26 +27,10 @@ class Settings(commands.Cog):
             await ctx.channel.send(embed=embed)
 
     @commands.command(aliases=['sh'])
-    async def set_handler(self, ctx: commands.Context, *handler):
+    async def switch_handler(self, ctx: commands.Context):
         """
-        Sets bot's handler for your server(YouTube API or YouTube DL one)
+        Switches between bot's handler for the current server(YouTube API or YouTube DL one).
         """
-
-        if not handler:
-            await send_embed(
-                ctx=ctx,
-                description='You forgot to provide handler you want to use',
-                color=ERROR_COLOR
-            )
-        else:
-            handler = HANDLERS.get(' '.join(handler))
-            if handler is None:
-                await send_embed(
-                    ctx=ctx,
-                    description='Wrong handler provided',
-                    color=ERROR_COLOR
-                )
-
         music_cog = ctx.bot.get_cog('Music')
         q = music_cog._queues[ctx.guild.id]
-        q.handler = handler
+        q.handler = ~q.handler
