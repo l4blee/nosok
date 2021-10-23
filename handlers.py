@@ -102,7 +102,7 @@ class EventHandler:
         while True:
             await self.checkall()
             print(self.to_check)
-            await asyncio.sleep(300)
+            await asyncio.sleep(100)
 
     def on_song_end(self, ctx: commands.Context):
         self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
