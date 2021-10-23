@@ -1,11 +1,17 @@
+import asyncio
 import re
 import typing
+from datetime import datetime, timedelta
 from multiprocessing.pool import ThreadPool
 
 import requests
+from discord.ext import commands
 from googleapiclient.discovery import build
 from pytube import YouTube
 from youtube_dl import YoutubeDL as YtDL
+
+from base import BASE_COLOR
+from utils import send_embed
 
 
 class YTAPIHandler:
@@ -82,3 +88,36 @@ class YDLHandler:
 
         return max([i for i in streams if i.get('fps') is None],
                    key=lambda x: x.get('tbr')).get('url')
+
+
+class EventHandler:
+    def __init__(self, bot):
+        self._bot = bot
+        self.to_check: dict = dict()
+        self._loop = bot.loop
+
+        asyncio.run_coroutine_threadsafe(self.loop(), self._loop)
+
+    async def loop(self):
+        while True:
+            await self.checkall()
+            await asyncio.sleep(10)
+
+    def on_song_end(self, ctx: commands.Context):
+        self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
+
+    def on_song_start(self, ctx: commands.Context):
+        self.to_check[ctx] = None
+
+    async def checkall(self):
+        for i in self.to_check.keys():
+            timestamp = self.to_check[i]
+            if timestamp and datetime.now() >= timestamp:
+                music_cog = self._bot.get_cog('Music')
+                await music_cog.leave(i)
+                self.to_check[i] = None
+                await send_embed(
+                    ctx=i,
+                    description='I have been staying AFK for too long, so I left the channel',
+                    color=BASE_COLOR
+                )

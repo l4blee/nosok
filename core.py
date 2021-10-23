@@ -4,12 +4,13 @@ from importlib import import_module
 from pathlib import Path
 
 import sqlalchemy as sa
+import discord
 from discord.ext import commands
 from discord_components.client import DiscordComponents
 from youtube_dl.utils import std_headers
 
-from base import Base
-from handlers import YDLHandler, YTAPIHandler
+from base import Base, Session, BASE_PREFIX
+from handlers import YDLHandler, YTAPIHandler, EventHandler
 
 # Creating YouTube API handler
 google_api_token = os.environ.get('GOOGLE_API_TOKEN')
@@ -61,3 +62,13 @@ class MusicBot(commands.Bot):
     async def close(self):
         self._logger.warning('The bot has been shut down...')
         await super().close()
+
+
+def get_prefix(_, msg: discord.Message) -> str:
+    with Session.begin() as s:
+        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
+        return res.prefix if res is not None else BASE_PREFIX
+
+
+bot = MusicBot(get_prefix)
+ehandler = EventHandler(bot)
