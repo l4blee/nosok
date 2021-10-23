@@ -101,6 +101,7 @@ class EventHandler:
     async def loop(self):
         while True:
             await self.checkall()
+            print(self.to_check)
             await asyncio.sleep(300)
 
     def on_song_end(self, ctx: commands.Context):
