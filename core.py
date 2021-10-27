@@ -45,8 +45,9 @@ class MusicBot(commands.Bot):
         ]:
             self.add_cog(eval('cls()'))
 
-    def run(self):
+    def run(self, con_handler):
         self.setup()
+        self._con_handler = con_handler
         TOKEN = os.getenv('TOKEN')
         super().run(TOKEN, reconnect=True)
     
@@ -57,6 +58,7 @@ class MusicBot(commands.Bot):
 
     async def close(self):
         self._logger.info('The bot has been shut down...')
+        self._con_handler.thread._is_running = False
         await super().close()
 
 

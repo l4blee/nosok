@@ -1,12 +1,13 @@
-import json
-from http import server
-import logging
 import asyncio
+import json
+import logging
+import os
 import re
+import threading
 import typing
 from datetime import datetime, timedelta
+from http import server
 from multiprocessing.pool import ThreadPool
-import threading
 
 import requests
 from discord.ext import commands
@@ -148,13 +149,12 @@ class ConnectionHandler:
             ('localhost', 8000),
             RequestHandler
         )
+        self.thread = threading.Thread(target=self._server.serve_forever, args=())
 
         self._logger = logging.getLogger('SERVER')
 
     def run(self):
         self._logger.info('Starting ConnectionHandler')
-        thread = threading.Thread(target=self._server.serve_forever, args=())
         self._logger.info('Launching server\'s thread')
-        thread.start()
-        self._thread = thread
+        self.thread.start()
         self._logger.info('Server has been started successfully')

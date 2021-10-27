@@ -8,4 +8,4 @@ logging.basicConfig(level=logging.INFO,
 
 DBBase.metadata.create_all()
 con_handler.run()
-bot.run()
+bot.run(con_handler)
