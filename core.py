@@ -57,9 +57,9 @@ class MusicBot(commands.Bot):
         self._logger.info('Bot has been successfully launched')
 
     async def close(self):
-        self._logger.info('The bot has been shut down...')
-        self._con_handler.thread._is_running = False
+        self._con_handler.thread.join()
         await super().close()
+        self._logger.info('The bot has been shut down...')
 
 
 def get_prefix(_, msg: discord.Message) -> str:
