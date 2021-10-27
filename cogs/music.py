@@ -11,7 +11,7 @@ from discord_components.interaction import InteractionType
 
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
-from core import ydl_handler as ydl, ytapi_handler as ytapi, ehandler
+from core import ydl_handler as ydl, ytapi_handler as ytapi, event_handler
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
@@ -271,7 +271,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = True
-        ehandler.on_song_start(ctx)
+        event_handler.on_song_start(ctx)
 
         if query != '':
             if voice.is_playing():
@@ -303,7 +303,7 @@ class Music(commands.Cog):
                         description='The queue has ended',
                         color=BASE_COLOR
                     )
-                    ehandler.on_song_end(ctx)
+                    event_handler.on_song_end(ctx)
                     return
             else:
                 await send_embed(
@@ -311,7 +311,7 @@ class Music(commands.Cog):
                     description='There are no songs in the queue',
                     color=ERROR_COLOR
                 )
-                ehandler.on_song_end(ctx)
+                event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
             stream = q.handler.get_stream(res[0])
@@ -324,7 +324,7 @@ class Music(commands.Cog):
             ctx.message.content = ''
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
         else:
-            ehandler.on_song_end(ctx)
+            event_handler.on_song_end(ctx)
 
     async def _play(self, ctx: commands.Context, stream, loop):
         q = self._queues[ctx.guild.id]

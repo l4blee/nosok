@@ -19,5 +19,5 @@ ERROR_COLOR = discord.Colour.from_rgb(255, 0, 0)
 @as_declarative(
     metadata=MetaData(bind=engine)
 )
-class Base:
+class DBBase:
     __tablename__ = ...

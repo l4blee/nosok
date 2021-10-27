@@ -9,8 +9,8 @@ from discord.ext import commands
 from discord_components.client import DiscordComponents
 from youtube_dl.utils import std_headers
 
-from base import Base, Session, BASE_PREFIX
-from handlers import YDLHandler, YTAPIHandler, EventHandler
+from base import DBBase, Session, BASE_PREFIX
+from handlers import YDLHandler, YTAPIHandler, EventHandler, ConnectionHandler
 
 # Creating YouTube API handler
 google_api_token = os.environ.get('GOOGLE_API_TOKEN')
@@ -26,7 +26,7 @@ ydl_handler = YDLHandler({
 })
 
 
-class Config(Base):
+class Config(DBBase):
     __tablename__ = 'config'
 
     guild_id = sa.Column('guild_id', sa.BigInteger, unique=True, primary_key=True)
@@ -52,15 +52,11 @@ class MusicBot(commands.Bot):
     
     async def on_ready(self):
         DiscordComponents(self)
-
-        logging.basicConfig(level=logging.WARNING,
-                            format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
-                            datefmt='%y.%b.%Y %H:%M:%S')
-        self._logger = logging.getLogger('index')
-        self._logger.warning('Bot has been successfully launched')
+        self._logger = logging.getLogger('BOT')
+        self._logger.info('Bot has been successfully launched')
 
     async def close(self):
-        self._logger.warning('The bot has been shut down...')
+        self._logger.info('The bot has been shut down...')
         await super().close()
 
 
@@ -71,4 +67,6 @@ def get_prefix(_, msg: discord.Message) -> str:
 
 
 bot = MusicBot(get_prefix)
-ehandler = EventHandler(bot)
+con_handler = ConnectionHandler(bot)
+event_handler = EventHandler(bot)
+

@@ -1,8 +1,12 @@
+import json
+from http import server
+import logging
 import asyncio
 import re
 import typing
 from datetime import datetime, timedelta
 from multiprocessing.pool import ThreadPool
+import threading
 
 import requests
 from discord.ext import commands
@@ -93,8 +97,8 @@ class YDLHandler:
 class EventHandler:
     def __init__(self, bot):
         self._bot = bot
-        self.to_check: dict = dict()
         self._loop = bot.loop
+        self.to_check: dict = dict()
 
         asyncio.run_coroutine_threadsafe(self.loop(), self._loop)
 
@@ -121,3 +125,36 @@ class EventHandler:
                     description='I have been staying AFK for too long, so I left the channel',
                     color=BASE_COLOR
                 )
+
+
+class RequestHandler(server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+
+        data = {
+            'latency': '123'
+        }
+        self.wfile.write(
+            json.dumps(data).encode('utf-8')
+        )
+
+
+class ConnectionHandler:
+    def __init__(self, bot):
+        self._bot = bot
+        self._server = server.HTTPServer(
+            ('localhost', 8000),
+            RequestHandler
+        )
+
+        self._logger = logging.getLogger('SERVER')
+
+    def run(self):
+        self._logger.info('Starting ConnectionHandler')
+        thread = threading.Thread(target=self._server.serve_forever, args=())
+        self._logger.info('Launching server\'s thread')
+        thread.start()
+        self._thread = thread
+        self._logger.info('Server has been started successfully')
