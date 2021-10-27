@@ -146,7 +146,7 @@ class ConnectionHandler:
     def __init__(self, bot):
         self._bot = bot
         self._server = server.HTTPServer(
-            ('localhost', 8000),
+            ('0.0.0.0', int(os.environ.get('PORT', 5000))),
             RequestHandler
         )
         self.thread = threading.Thread(target=self._server.serve_forever, args=())
