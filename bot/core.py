@@ -38,7 +38,7 @@ class MusicBot(commands.Bot):
             import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
             for i in Path('./cogs/').glob('*.py')
         ]:
-            self.add_cog(cls())
+            self.add_cog(eval('cls()'))
 
     def run(self):
         self.setup()
