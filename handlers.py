@@ -72,10 +72,9 @@ class YDLHandler:
 class EventHandler:
     def __init__(self, bot):
         self._bot = bot
-        self._loop = bot.loop
         self.to_check: dict = dict()
 
-        asyncio.run_coroutine_threadsafe(self.loop(), self._loop)
+        asyncio.run_coroutine_threadsafe(self.loop(), bot.loop)
 
     async def loop(self):
         while True:
@@ -91,7 +90,9 @@ class EventHandler:
     async def checkall(self):
         for i in self.to_check.keys():
             timestamp = self.to_check[i]
-            if timestamp and datetime.now() >= timestamp:
+            if timestamp and\
+                    datetime.now() >= timestamp and\
+                    not i.voice_client.is_playing():
                 music_cog = self._bot.get_cog('Music')
                 await music_cog.leave(i)
                 self.to_check[i] = None
