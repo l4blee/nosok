@@ -1,6 +1,7 @@
 import requests
 import time
+import os
 
 while True:
-    requests.get('http://localhost:5000')
+    requests.get(f"http://localhost:{os.environ.get('PORT', 5000)}")
     time.sleep(60)
