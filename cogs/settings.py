@@ -25,12 +25,3 @@ class Settings(commands.Cog):
             embed = discord.Embed(description=f'Prefix has been successfully changed to `{new_prefix}`',
                                   color=BASE_COLOR)
             await ctx.channel.send(embed=embed)
-
-    @commands.command(aliases=['sh'])
-    async def switch_handler(self, ctx: commands.Context):
-        """
-        Switches between bot's handler for the current server(YouTube API or YouTube DL one).
-        """
-        music_cog = ctx.bot.get_cog('Music')
-        q = music_cog._queues[ctx.guild.id]
-        q.handler = ~q.handler

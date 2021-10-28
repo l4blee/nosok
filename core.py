@@ -10,16 +10,11 @@ from discord_components.client import DiscordComponents
 from youtube_dl.utils import std_headers
 
 from base import DBBase, Session, BASE_PREFIX
-from handlers import YDLHandler, YTAPIHandler, EventHandler, ConnectionHandler
+from handlers import YDLHandler, EventHandler, ConnectionHandler
 
-# Creating YouTube API handler
-google_api_token = os.environ.get('GOOGLE_API_TOKEN')
-ytapi_handler = YTAPIHandler(google_api_token)
-
-# Creating YouTubeDL handler
 std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                             'Chrome/51.0.2704.103 Safari/537.36'
-ydl_handler = YDLHandler({
+yt_handler = YDLHandler({
     'simulate': True,
     'quiet': True,
     'format': 'bestaudio/best'
@@ -36,30 +31,27 @@ class Config(DBBase):
 class MusicBot(commands.Bot):
     def __init__(self, command_prefix):
         super().__init__(command_prefix, case_insensetive=True)
-        self._logger = None
+        self._logger = logging.getLogger('BOT')
 
     def setup(self):
         for cls in [
             import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
             for i in Path('./cogs/').glob('*.py')
         ]:
-            self.add_cog(eval('cls()'))
+            self.add_cog(cls())
 
-    def run(self, con_handler):
+    def run(self):
         self.setup()
-        self._con_handler = con_handler
         TOKEN = os.getenv('TOKEN')
         super().run(TOKEN, reconnect=True)
-    
+
     async def on_ready(self):
         DiscordComponents(self)
-        self._logger = logging.getLogger('BOT')
         self._logger.info('Bot has been successfully launched')
 
     async def close(self):
-        self._con_handler.thread.join()
+        self._logger.info('The bot is being shut down...')
         await super().close()
-        self._logger.info('The bot has been shut down...')
 
 
 def get_prefix(_, msg: discord.Message) -> str:
