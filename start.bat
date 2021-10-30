@@ -1,1 +1,2 @@
-python3 bot/index.py
+python bot/index.py
+pause
