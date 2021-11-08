@@ -106,4 +106,5 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%y.%b.%Y %H:%M:%S')
 
 http_server = Server()
+print(os.environ)
 http_server.run_server()
