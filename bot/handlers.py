@@ -1,41 +1,20 @@
+from psutil import Process
 import asyncio
+import json
+import logging
+import os
 import re
-import typing
+import threading
 from datetime import datetime, timedelta
+from http import server
 from multiprocessing.pool import ThreadPool
 
 import requests
 from discord.ext import commands
-from googleapiclient.discovery import build
-from pytube import YouTube
 from youtube_dl import YoutubeDL as YtDL
 
 from base import BASE_COLOR
 from utils import send_embed
-
-
-class YTAPIHandler:
-    def __init__(self, api_key: str, scheme: str = 'https'):
-        self._scheme = scheme
-        self._service = build('youtube', 'v3', developerKey=api_key)
-        self._video_pattern = scheme + '://www.youtube.com/watch?v='
-
-    def get_infos(self, query: str, max_results: int = 5) -> typing.Generator:
-        response = self._service.search().list(
-            q=query,
-            part='id, snippet',
-            maxResults=max_results).execute()
-
-        for i in response.get('items'):
-            yield self._video_pattern + i['id']['videoId'], i['snippet']['title']  # url, info
-
-    def get_info(self, query: str) -> tuple[str, str]:
-        return next(self.get_infos(query))
-
-    @staticmethod
-    def get_stream(url) -> str:
-        streams = YouTube(url).streams.filter(type='audio')
-        return max(streams, key=lambda x: x.bitrate).url
 
 
 class YDLHandler:
@@ -66,7 +45,7 @@ class YDLHandler:
         res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         return res
 
-    def get_info(self, query: str, is_url: bool=False) -> tuple[str, str]:
+    def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
         if not is_url:
             query = '+'.join(query.split())
             with requests.Session() as session:
@@ -94,9 +73,8 @@ class EventHandler:
     def __init__(self, bot):
         self._bot = bot
         self.to_check: dict = dict()
-        self._loop = bot.loop
 
-        asyncio.run_coroutine_threadsafe(self.loop(), self._loop)
+        asyncio.run_coroutine_threadsafe(self.loop(), bot.loop)
 
     async def loop(self):
         while True:
@@ -112,7 +90,9 @@ class EventHandler:
     async def checkall(self):
         for i in self.to_check.keys():
             timestamp = self.to_check[i]
-            if timestamp and datetime.now() >= timestamp:
+            if timestamp and\
+                    datetime.now() >= timestamp and\
+                    not i.voice_client.is_playing():
                 music_cog = self._bot.get_cog('Music')
                 await music_cog.leave(i)
                 self.to_check[i] = None
@@ -121,3 +101,56 @@ class EventHandler:
                     description='I have been staying AFK for too long, so I left the channel',
                     color=BASE_COLOR
                 )
+
+
+class RequestHandler(server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+
+        bot = self.server.bot
+
+        data = {
+            'latency': bot.latency,
+            'servers': [i.id for i in bot.guilds],
+            'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
+        }
+
+        self.wfile.write(
+            json.dumps(data).encode('utf-8')
+        )
+
+
+class ConnectionHandler(server.HTTPServer, threading.Thread):
+    def __init__(self, bot):
+        server.HTTPServer.__init__(self,
+                                   ('0.0.0.0', int(os.environ.get('PORT', 5000))),
+                                   RequestHandler)
+
+        threading.Thread.__init__(self,
+                                  target=self.serve_forever,
+                                  daemon=True)
+        self._stop = threading.Event()
+
+        self._bot = bot
+        self._logger = logging.getLogger('SERVER')
+
+    @property
+    def bot(self):
+        return self._bot
+
+    def run_server(self):
+        self._logger.info('Starting ConnectionHandler')
+        self._logger.info('Launching server\'s thread')
+        self.start()
+        self._logger.info('ConnectionHandler has been started successfully')
+
+    def stopped(self):
+        return self._stop.is_set()
+
+    def close(self):
+        self._logger.info('Closing ConnectionHandler')
+        self._stop.set()
+        self.server_close()
+        self._logger.info('Server closed successfully')
