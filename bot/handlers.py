@@ -1,4 +1,5 @@
 from psutil import Process
+from urllib.parse import parse_qs, urlparse
 import asyncio
 import json
 import logging
@@ -105,17 +106,26 @@ class EventHandler:
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-
         bot = self.server.bot
 
-        data = {
-            'latency': bot.latency,
-            'servers': [i.id for i in bot.guilds],
-            'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
-        }
+        if self.path == '/log':
+            with open('bot/logs/log.log', encoding='utf-8') as f:
+                data = {
+                    'content': f.read()
+                }
+        elif self.path == '/vars':
+            data = {
+                'latency': bot.latency,
+                'servers': [i.id for i in bot.guilds],
+                'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
+            }
+        else:
+            self.send_error(400)
+            return
+
+        self.send_response(200, 'OK')
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
 
         self.wfile.write(
             json.dumps(data).encode('utf-8')
@@ -125,7 +135,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
 class ConnectionHandler(server.HTTPServer, threading.Thread):
     def __init__(self, bot):
         server.HTTPServer.__init__(self,
-                                   ('0.0.0.0', int(os.environ.get('PORT', 5000))),
+                                   ('0.0.0.0', int(os.environ.get('PORT', 5000) + 1)),
                                    RequestHandler)
 
         threading.Thread.__init__(self,

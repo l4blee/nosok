@@ -1,6 +1,7 @@
 # Pycharm stuff
 .idea/
 start.bat
+logs/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
