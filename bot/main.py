@@ -1,8 +1,8 @@
 import json
 import logging
 import os
-import sys
 import subprocess
+import sys
 from http import server
 from urllib.parse import urlparse
 
@@ -10,8 +10,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-PYTHON_PATH = sys.executable
-SUBPROCESS_CMD = f'{PYTHON_PATH} {os.getcwd() + "/bot/index.py"}'
+SUBPROCESS_CMD = f'{sys.executable} /bot/index.py'
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
