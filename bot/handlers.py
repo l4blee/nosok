@@ -135,8 +135,9 @@ class RequestHandler(server.BaseHTTPRequestHandler):
 class ConnectionHandler(server.HTTPServer, threading.Thread):
     def __init__(self, bot):
         server.HTTPServer.__init__(self,
-                                   ('127.0.0.1', int(os.environ.get('PORT', 5000)) + 1),
+                                   ('0.0.0.0', int(os.environ.get('PORT', 5000)) + 1),
                                    RequestHandler)
+        print('bound to', self.server_address)
 
         threading.Thread.__init__(self,
                                   target=self.serve_forever,

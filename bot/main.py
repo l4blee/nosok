@@ -81,9 +81,10 @@ class RequestHandler(server.BaseHTTPRequestHandler):
 class Server(server.HTTPServer):
     def __init__(self):
         super().__init__(
-            ('127.0.0.1', int(os.environ.get('PORT', 5000))),
+            ('0.0.0.0', int(os.environ.get('PORT', 5000))),
             RequestHandler
         )
+        print('bound to', self.server_address)
         self._logger = logging.getLogger('index')
         self.bot_process = None
 
