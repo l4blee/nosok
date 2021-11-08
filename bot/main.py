@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-PYTHON_PATH = os.environ.get('PYTHONPATH')
+PYTHON_PATH = os.environ.get('_')
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
