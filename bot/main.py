@@ -10,7 +10,8 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-SUBPROCESS_CMD = f'{sys.executable} bot/index.py'
+print(os.getcwd())
+SUBPROCESS_CMD = f'{sys.executable} {os.getcwd() + "/bot/index.py"}'
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
