@@ -20,7 +20,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             self.send_error(409, message='Bot is offline')
             return
 
-        res = requests.get('http://localhost:5001' + self.path)
+        res = requests.get('http://0.0.0.0:5001' + self.path)
         data = res.json()
 
         self.send_response(200, 'OK')
@@ -84,7 +84,6 @@ class Server(server.HTTPServer):
             ('0.0.0.0', int(os.environ.get('PORT', 5000))),
             RequestHandler
         )
-        print('bound to', self.server_address)
         self._logger = logging.getLogger('index')
         self.bot_process = None
 

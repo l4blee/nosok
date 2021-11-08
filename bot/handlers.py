@@ -137,7 +137,6 @@ class ConnectionHandler(server.HTTPServer, threading.Thread):
         server.HTTPServer.__init__(self,
                                    ('0.0.0.0', int(os.environ.get('PORT', 5000)) + 1),
                                    RequestHandler)
-        print('bound to', self.server_address)
 
         threading.Thread.__init__(self,
                                   target=self.serve_forever,
