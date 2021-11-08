@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
 PYTHON_PATH = sys.executable
+SUBPROCESS_CMD = f'{PYTHON_PATH} {os.getcwd() + "/bot/index.py"}'
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
@@ -56,7 +57,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                 self.send_error(409)
                 return
             else:
-                self.server.bot_process = subprocess.Popen(f'{PYTHON_PATH} /app/bot/index.py')
+                self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
         elif parsed.path == '/restart':
             print('restarting')
             try:
@@ -64,7 +65,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             except subprocess.TimeoutExpired:
                 bot.kill()
 
-            self.server.bot_process = subprocess.Popen(f'{PYTHON_PATH} /app/bot/index.py')
+            self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
         else:
             self.send_error(400)
             return
@@ -89,7 +90,7 @@ class Server(server.HTTPServer):
 
     def run_server(self):
         self._logger.info('Starting bot itself')
-        self.bot_process = subprocess.Popen(f'{PYTHON_PATH} /app/bot/index.py')
+        self.bot_process = subprocess.Popen(SUBPROCESS_CMD)
 
         self._logger.info('Starting Server')
         self.serve_forever()
