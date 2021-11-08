@@ -9,7 +9,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-PYTHON_PATH = os.environ.get('PYTHONHOME') + 'bin/python'
+PYTHON_PATH = os.environ.get('PYTHONHOME') + '/bin/python'
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
