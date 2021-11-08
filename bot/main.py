@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 import subprocess
 from http import server
 from urllib.parse import urlparse
@@ -9,7 +10,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-PYTHON_PATH = os.environ.get('PYTHONHOME') + '/bin/python3.9'
+PYTHON_PATH = sys.executable
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
