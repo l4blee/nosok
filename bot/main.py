@@ -54,7 +54,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                 self.send_error(409)
                 return
             else:
-                self.server.bot_process = subprocess.Popen('venv/Scripts/python.exe ./bot/index.py')
+                self.server.bot_process = subprocess.Popen('python ./bot/index.py')
         elif parsed.path == '/restart':
             print('restarting')
             try:
