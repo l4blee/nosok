@@ -1,2 +1,2 @@
-web: python3 bot/index.py
+web: python3 bot/main.py
 worker: python3 pinger/index.py
