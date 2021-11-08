@@ -1,15 +1,15 @@
-import logging
-import requests
-import subprocess
 import json
+import logging
 import os
+import subprocess
 from http import server
 from urllib.parse import urlparse
 
+import requests
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-PYTHON_PATH = os.environ.get('_') + '/python.exe'
+PYTHON_PATH = os.environ.get('PYTHONHOME') + 'bin/python'
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
@@ -106,5 +106,4 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%y.%b.%Y %H:%M:%S')
 
 http_server = Server()
-print(os.environ)
 http_server.run_server()
