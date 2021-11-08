@@ -62,7 +62,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             except subprocess.TimeoutExpired:
                 bot.kill()
 
-            self.server.bot_process = subprocess.Popen('venv/Scripts/python.exe ./bot/index.py')
+            self.server.bot_process = subprocess.Popen('python ./bot/index.py')
         else:
             self.send_error(400)
             return
@@ -87,7 +87,7 @@ class Server(server.HTTPServer):
 
     def run_server(self):
         self._logger.info('Starting bot itself')
-        self.bot_process = subprocess.Popen('venv/Scripts/python.exe ./bot/index.py')
+        self.bot_process = subprocess.Popen('python ./bot/index.py')
 
         self._logger.info('Starting Server')
         self.serve_forever()
