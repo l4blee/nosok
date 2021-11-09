@@ -10,7 +10,7 @@ from discord_components.client import DiscordComponents
 from youtube_dl.utils import std_headers
 
 from base import DBBase, Session, BASE_PREFIX
-from handlers import YDLHandler, EventHandler, ConnectionHandler
+from handlers import YDLHandler, EventHandler, DataProcessor
 
 std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                             'Chrome/51.0.2704.103 Safari/537.36'
@@ -61,6 +61,6 @@ def get_prefix(_, msg: discord.Message) -> str:
 
 
 bot = MusicBot(get_prefix)
-con_handler = ConnectionHandler(bot)
+con_handler = DataProcessor(bot)
 event_handler = EventHandler(bot)
 

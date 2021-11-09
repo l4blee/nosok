@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO,
 
 DBBase.metadata.create_all()
 
-con_handler.run_server()
+con_handler.start()
 bot.run()
 
 con_handler.close()

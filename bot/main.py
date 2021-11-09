@@ -15,20 +15,30 @@ SUBPROCESS_CMD = [sys.executable, os.getcwd() + "/bot/index.py"]
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        bot: subprocess.Popen = self.server.bot_process
-        if bot is None:
-            self.send_error(409, message='Bot is offline')
-            return
+        with open(f'{os.getcwd() + "/bot/data.txt"}') as f:
+            data = json.load(f)
 
-        res = requests.get(f'http://0.0.0.0:{int(os.environ.get("PORT", 5000)) + 1}' + self.path)
-        data = res.json()
+        if self.path == '/':
+            out = {
+                'status': data['status']
+            }
+        elif self.path == '/vars':
+            out = data['vars']
+        elif self.path == '/log':
+            with open(f'{os.getcwd() + "/bot/logs/log.log"}') as f:
+                out = {
+                    'content': f.read()
+                }
+        else:
+            self.send_error(409)
+            return
 
         self.send_response(200, 'OK')
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
         self.wfile.write(
-            json.dumps(data).encode('utf-8')
+            json.dumps(out).encode('utf-8')
         )
 
     def do_POST(self):
@@ -88,18 +98,17 @@ class Server(server.HTTPServer):
         self.bot_process = None
 
     def run_server(self):
-        self._logger.info('Starting bot itself')
+        self._logger.info('Starting bot itself...')
         self.bot_process = subprocess.Popen(SUBPROCESS_CMD)
 
-        self._logger.info('Starting Server')
+        self._logger.info('Starting Server...')
         self.serve_forever()
 
         self.close()
 
     def close(self):
-        self._logger.info('Closing Server')
+        self._logger.info('Closing Server...')
         self.server_close()
-        self._logger.info('Server closed successfully')
 
 
 logging.basicConfig(level=logging.INFO,
