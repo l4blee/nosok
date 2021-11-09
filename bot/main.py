@@ -55,6 +55,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         if parsed.path == '/terminate':
             print('terminating')
             try:
+                bot.terminate()
                 bot.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 bot.kill()
@@ -70,9 +71,16 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         elif parsed.path == '/restart':
             print('restarting')
             try:
+                bot.terminate()
                 bot.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 bot.kill()
+
+            with open(f'{os.getcwd() + "/bot/data.txt"}', 'w') as f:
+                data = json.load(f)
+                data['status'] = 'offline'
+
+                json.dump(data, f)
 
             self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
         else:
