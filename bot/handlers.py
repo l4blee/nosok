@@ -124,6 +124,7 @@ class DataProcessor(threading.Thread):
                         'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
                     }
                 }
+
                 json.dump(data, f)
             time.sleep(5)
 

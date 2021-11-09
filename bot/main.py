@@ -41,6 +41,25 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             json.dumps(out).encode('utf-8')
         )
 
+    def terminate_bot(self):
+        bot: subprocess.Popen = self.server.bot_process
+
+        try:
+            bot.terminate()
+            bot.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            bot.kill()
+        finally:
+            self.server.bot_process = None
+
+        with open(f'{os.getcwd() + "/bot/data.txt"}') as f:
+            data = json.load(f)
+
+        with open(f'{os.getcwd() + "/bot/data.txt"}', 'w') as f:
+            data['status'] = 'offline'
+
+            json.dump(data, f)
+
     def do_POST(self):
         parsed = urlparse(self.path)
         username, password = self.headers.get('Authorization').split(':')
@@ -52,35 +71,19 @@ class RequestHandler(server.BaseHTTPRequestHandler):
 
         bot: subprocess.Popen = self.server.bot_process
 
-        if parsed.path == '/terminate':
-            print('terminating')
-            try:
-                bot.terminate()
-                bot.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                bot.kill()
-            finally:
-                self.server.bot_process = None
-        elif parsed.path == '/launch':
+        if parsed.path == '/launch':
             print('launching bot')
             if bot is not None:
                 self.send_error(409)
                 return
             else:
                 self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
+        elif parsed.path == '/terminate':
+            print('terminating')
+            self.terminate_bot()
         elif parsed.path == '/restart':
             print('restarting')
-            try:
-                bot.terminate()
-                bot.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                bot.kill()
-
-            with open(f'{os.getcwd() + "/bot/data.txt"}', 'w') as f:
-                data = json.load(f)
-                data['status'] = 'offline'
-
-                json.dump(data, f)
+            self.terminate_bot()
 
             self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
         else:
