@@ -1,5 +1,6 @@
 import json
 import io
+from pathlib import Path
 import logging
 import os
 import subprocess
@@ -115,12 +116,17 @@ class Server(server.HTTPServer):
             RequestHandler
         )
         self._logger = logging.getLogger('index')
+        self.pout = [io.FileIO('bot/logs/log.log', mode='a'), io.FileIO('bot/logs/log.log', mode='a')]
         self.bot_process = None
 
     def run_server(self):
         self._logger.info('Starting bot itself...')
 
-        self.pout = [io.FileIO('bot/logs/log.log', mode='a'), io.FileIO('bot/logs/log.log', mode='a')]
+        logs = list(Path('bot/logs').iterdir())
+        if len(logs) == 0:
+            with open('bot/logs/log.log'):
+                pass
+
         self.bot_process = subprocess.Popen(
             SUBPROCESS_CMD,
             stdout=self.pout[0],
