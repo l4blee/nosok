@@ -17,8 +17,18 @@ SUBPROCESS_CMD = [sys.executable, os.getcwd() + "/bot/index.py"]
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        with open(f'{os.getcwd() + "/bot/data.txt"}') as f:
-            data = json.load(f)
+        if os.exists('bot/data.txt'):
+            with open(f'{os.getcwd() + "/bot/data.txt"}') as f:
+                data = json.load(f)
+        else:
+            data = {
+                'status': 'offline',
+                'vars': {
+                    'servers': [],
+                    'latency': float('Nan'),
+                    'memory_used': float('Nan')
+                }
+            }
 
         if self.path == '/':
             out = {
