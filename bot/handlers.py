@@ -1,16 +1,17 @@
-from psutil import Process
 import asyncio
 import json
 import logging
 import os
 import re
 import threading
+import time
 from datetime import datetime, timedelta
 from http import server
 from multiprocessing.pool import ThreadPool
 
 import requests
 from discord.ext import commands
+from psutil import Process
 from youtube_dl import YoutubeDL as YtDL
 
 from base import BASE_COLOR
@@ -90,8 +91,8 @@ class EventHandler:
     async def checkall(self):
         for i in self.to_check.keys():
             timestamp = self.to_check[i]
-            if timestamp and\
-                    datetime.now() >= timestamp and\
+            if timestamp and \
+                    datetime.now() >= timestamp and \
                     not i.voice_client.is_playing():
                 music_cog = self._bot.get_cog('Music')
                 await music_cog.leave(i)
@@ -103,54 +104,41 @@ class EventHandler:
                 )
 
 
-class RequestHandler(server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-
-        bot = self.server.bot
-
-        data = {
-            'latency': bot.latency,
-            'servers': [i.id for i in bot.guilds],
-            'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
-        }
-
-        self.wfile.write(
-            json.dumps(data).encode('utf-8')
-        )
-
-
-class ConnectionHandler(server.HTTPServer, threading.Thread):
+class DataProcessor(threading.Thread):
     def __init__(self, bot):
-        server.HTTPServer.__init__(self,
-                                   ('0.0.0.0', int(os.environ.get('PORT', 5000))),
-                                   RequestHandler)
-
-        threading.Thread.__init__(self,
-                                  target=self.serve_forever,
-                                  daemon=True)
+        super().__init__(target=self.loop,
+                         daemon=True)
         self._stop = threading.Event()
 
         self._bot = bot
-        self._logger = logging.getLogger('SERVER')
+        self._logger = logging.getLogger('DataProcessor')
+
+    def loop(self):
+        while True:
+            with open(f'{os.getcwd() + "/bot/data.txt"}', 'w') as f:
+                data = {
+                    'status': 'online',
+                    'vars': {
+                        'servers': [i.id for i in self.bot.guilds],
+                        'latency': self.bot.latency,
+                        'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
+                    }
+                }
+
+                json.dump(data, f)
+            time.sleep(5)
 
     @property
     def bot(self):
         return self._bot
 
-    def run_server(self):
-        self._logger.info('Starting ConnectionHandler')
-        self._logger.info('Launching server\'s thread')
-        self.start()
-        self._logger.info('ConnectionHandler has been started successfully')
+    def start(self) -> None:
+        self._logger.info('Launching Data Processor\'s thread...')
+        super().start()
 
     def stopped(self):
         return self._stop.is_set()
 
     def close(self):
-        self._logger.info('Closing ConnectionHandler')
+        self._logger.info('Closing Data Processor...')
         self._stop.set()
-        self.server_close()
-        self._logger.info('Server closed successfully')
