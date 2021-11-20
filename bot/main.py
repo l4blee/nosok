@@ -117,10 +117,9 @@ class Server(server.HTTPServer):
         )
         self._logger = logging.getLogger('index')
         self.bot_process = None
+        self.check_dirs()
 
-    def run_server(self):
-        self._logger.info('Starting bot itself...')
-
+    def check_dirs(self):
         if not os.path.exists('bot/logs'):
             os.makedirs('bot/logs')
 
@@ -130,6 +129,8 @@ class Server(server.HTTPServer):
         with open('bot/logs/log.log', 'w'):
             pass
 
+    def run_server(self):
+        self._logger.info('Starting bot itself...')
         self.pout = [io.FileIO('bot/logs/log.log', mode='a'), io.FileIO('bot/logs/log.log', mode='a')]
 
         self.bot_process = subprocess.Popen(
