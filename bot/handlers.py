@@ -125,7 +125,7 @@ class DataProcessor(threading.Thread):
                     }
                 }
 
-                json.dump(data, f)
+                json.dump(data, f, indent=4)
             time.sleep(5)
 
     @property
