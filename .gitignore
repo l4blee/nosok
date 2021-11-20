@@ -3,7 +3,7 @@
 start.bat
 bot/.env
 bot/logs
-bot/data.txt
+bot/data.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

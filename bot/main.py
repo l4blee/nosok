@@ -17,8 +17,8 @@ SUBPROCESS_CMD = [sys.executable, os.getcwd() + "/bot/index.py"]
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if os.path.exists('bot/data.txt'):
-            with open(f'{os.getcwd() + "/bot/data.txt"}') as f:
+        if os.path.exists('bot/data.json'):
+            with open(f'{os.getcwd() + "/bot/data.json"}') as f:
                 data = json.load(f)
         else:
             data = {
@@ -52,25 +52,6 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         self.wfile.write(
             json.dumps(out).encode('utf-8')
         )
-
-    def terminate_bot(self):
-        bot: subprocess.Popen = self.server.bot_process
-
-        try:
-            bot.terminate()
-            bot.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            bot.kill()
-        finally:
-            self.server.bot_process = None
-
-        with open(f'{os.getcwd() + "/bot/data.txt"}') as f:
-            data = json.load(f)
-
-        with open(f'{os.getcwd() + "/bot/data.txt"}', 'w') as f:
-            data['status'] = 'offline'
-
-            json.dump(data, f)
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -118,6 +99,25 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             'Done'.encode('utf-8')
         )
 
+    def terminate_bot(self):
+        bot: subprocess.Popen = self.server.bot_process
+
+        try:
+            bot.terminate()
+            bot.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            bot.kill()
+        finally:
+            self.server.bot_process = None
+
+        with open(f'{os.getcwd() + "/bot/data.json"}') as f:
+            data = json.load(f)
+
+        with open(f'{os.getcwd() + "/bot/data.json"}', 'w') as f:
+            data['status'] = 'offline'
+
+            json.dump(data, f)
+
 
 class Server(server.HTTPServer):
     def __init__(self):
@@ -133,7 +133,7 @@ class Server(server.HTTPServer):
         if not os.path.exists('bot/logs'):
             os.makedirs('bot/logs')
 
-        with open('bot/data.txt', 'w'):
+        with open('bot/data.json', 'w'):
             pass
 
         with open('bot/logs/log.log', 'w'):

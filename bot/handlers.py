@@ -115,7 +115,7 @@ class DataProcessor(threading.Thread):
 
     def loop(self):
         while True:
-            with open(f'{os.getcwd() + "/bot/data.txt"}', 'w') as f:
+            with open(f'{os.getcwd() + "/bot/data.json"}', 'w') as f:
                 data = {
                     'status': 'online',
                     'vars': {
