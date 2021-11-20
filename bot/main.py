@@ -1,4 +1,5 @@
 import json
+import io
 import logging
 import os
 import subprocess
@@ -77,7 +78,11 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                 self.send_error(409)
                 return
             else:
-                self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
+                self.server.bot_process = subprocess.Popen(
+                    SUBPROCESS_CMD,
+                    stdout=self.server.pout[0],
+                    stderr=self.server.pout[1]
+                )
         elif parsed.path == '/terminate':
             print('terminating')
             self.terminate_bot()
@@ -85,7 +90,11 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             print('restarting')
             self.terminate_bot()
 
-            self.server.bot_process = subprocess.Popen(SUBPROCESS_CMD)
+            self.server.bot_process = subprocess.Popen(
+                SUBPROCESS_CMD,
+                stdout=self.server.pout[0],
+                stderr=self.server.pout[1]
+            )
         else:
             self.send_error(400)
             return
@@ -110,7 +119,13 @@ class Server(server.HTTPServer):
 
     def run_server(self):
         self._logger.info('Starting bot itself...')
-        self.bot_process = subprocess.Popen(SUBPROCESS_CMD)
+
+        self.pout = [io.FileIO('bot/logs/log.log', mode='a'), io.FileIO('bot/logs/log.log', mode='a')]
+        self.bot_process = subprocess.Popen(
+            SUBPROCESS_CMD,
+            stdout=self.pout[0],
+            stderr=self.pout[1]
+        )
 
         self._logger.info('Starting Server...')
         self.serve_forever()

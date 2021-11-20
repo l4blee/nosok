@@ -20,5 +20,4 @@ All the commands start with the `!` prefix.\
 11. `stop`. Stops bot from playing current song
 12. `volume`. Adjusts the volume of the bot\
 **Settings:** 
-12. `set_prefix`. Sets the prefix for the server
-13. `set_handler`. Allows user to set the music handler for current server
+13. `set_prefix`. Sets the prefix for the server
