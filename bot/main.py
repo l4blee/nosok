@@ -121,6 +121,9 @@ class Server(server.HTTPServer):
     def run_server(self):
         self._logger.info('Starting bot itself...')
 
+        if not os.path.exists('bot/logs'):
+            os.makedirs('bot/logs')
+
         logs = list(Path('bot/logs').iterdir())
         if len(logs) == 0:
             with open('bot/logs/log.log', 'w'):
