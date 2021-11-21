@@ -1,4 +1,5 @@
 import asyncio
+import soundcloud
 import json
 import logging
 import os
@@ -14,11 +15,11 @@ from discord.ext import commands
 from psutil import Process
 from youtube_dl import YoutubeDL as YtDL
 
-from base import BASE_COLOR
+from base import BASE_COLOR, MusicHandlerBase
 from utils import send_embed
 
 
-class YDLHandler:
+class YDLHandler(MusicHandlerBase):
     def __init__(self, ydl_opts: dict, scheme: str = 'https'):
         self._ydl_opts = ydl_opts
         self._scheme = scheme
@@ -37,7 +38,7 @@ class YDLHandler:
 
     def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
         links = self.get_urls(query, max_results=max_results)
-        args = [(i, False) for i in links]
+        args = [(i, False) for i in links]  # link, download=False
 
         with YtDL(self._ydl_opts) as ydl:
             p: ThreadPool = ThreadPool(max_results)
@@ -70,17 +71,56 @@ class YDLHandler:
                    key=lambda x: x.get('tbr')).get('url')
 
 
+class SCHandler(MusicHandlerBase):
+    def __init__(self):
+        self.client = soundcloud.SoundCloud(os.environ.get('CLIENT_ID'))
+
+    def get_urls(self, query: str, max_results: int = 5) -> list[str]:
+        return [next(self.client.search_tracks(query)).permalink_url for _ in range(max_results)]
+
+    def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
+        data = self.client.search_tracks(query)
+        output = []
+        for _ in range(max_results):
+            track = next(data)
+            output.append((track.permalink_url, track.title, track.artwork_url))
+
+        return output
+
+    def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
+        if not is_url:
+            track = next(self.client.search_tracks(query))
+        else:
+            track = self.client.resolve(query)
+
+        return track.permalink_url, track.title
+
+    def get_stream(self, url: str) -> str:
+        track = self.client.resolve(url)
+        url = [i for i in track.media.transcodings if i.format.mime_type == 'audio/mpeg'][0].url
+
+        headers = self.client.get_default_headers()
+        if self.client.auth_token:
+            headers['Authentication'] = f'OAuth {self.client.auth_token}'
+
+        res = requests.get(url, params={'client_id': self.client.client_id}, headers=headers)
+        res.raise_for_status()
+        return res.json()['url']
+
+
 class EventHandler:
     def __init__(self, bot):
         self._bot = bot
         self.to_check: dict = dict()
 
-        asyncio.run_coroutine_threadsafe(self.loop(), bot.loop)
+        self._thread = threading.Thread(target=self.loop,
+                                        daemon=True)
+        self._thread.start()
 
-    async def loop(self):
+    def loop(self):
         while True:
-            await self.checkall()
-            await asyncio.sleep(100)
+            asyncio.run_coroutine_threadsafe(self.checkall(), self._bot.loop)
+            time.sleep(100)
 
     def on_song_end(self, ctx: commands.Context):
         self.to_check[ctx] = datetime.now() + timedelta(minutes=5)

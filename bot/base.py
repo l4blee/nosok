@@ -1,3 +1,4 @@
+import abc
 import os
 
 import discord
@@ -21,3 +22,19 @@ ERROR_COLOR = discord.Colour.from_rgb(255, 0, 0)
 )
 class DBBase:
     __tablename__ = ...
+
+
+class MusicHandlerBase(abc.ABC):
+    def get_urls(self, query: str, max_results: int = 5) -> list[str]:
+        raise NotImplementedError
+
+    def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
+        # (url, title, thumbnail)
+        raise NotImplementedError
+
+    def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
+        # (url, title) is enough
+        raise NotImplementedError
+
+    def get_stream(self, url: str) -> str:
+        raise NotImplementedError
