@@ -13,7 +13,7 @@ import exceptions
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
 from utils import (is_connected, send_embed,
-                     get_components, run_blocking)
+                   get_components, run_blocking)
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
