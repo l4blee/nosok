@@ -10,15 +10,9 @@ from discord_components.client import DiscordComponents
 from youtube_dl.utils import std_headers
 
 from base import DBBase, Session, BASE_PREFIX
-from handlers import YDLHandler, EventHandler, DataProcessor
+from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
 
-std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                            'Chrome/51.0.2704.103 Safari/537.36'
-yt_handler = YDLHandler({
-    'simulate': True,
-    'quiet': True,
-    'format': 'bestaudio/best'
-})
+USE_YOUTUBE = False
 
 
 class Config(DBBase):
@@ -64,3 +58,13 @@ bot = MusicBot(get_prefix)
 con_handler = DataProcessor(bot)
 event_handler = EventHandler(bot)
 
+if USE_YOUTUBE:
+    std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                                'Chrome/51.0.2704.103 Safari/537.36'
+    music_handler = YDLHandler({
+        'simulate': True,
+        'quiet': True,
+        'format': 'bestaudio/best'
+    })
+else:
+    music_handler = SCHandler()

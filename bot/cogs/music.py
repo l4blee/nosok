@@ -11,7 +11,7 @@ from discord_components.interaction import InteractionType
 
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
-from core import yt_handler, event_handler
+from core import music_handler, event_handler
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
@@ -263,7 +263,6 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = True
-        event_handler.on_song_start(ctx)
 
         if query != '':
             if voice.is_playing():
@@ -275,11 +274,11 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, title = yt_handler.get_info(query)
+            url, title = music_handler.get_info(query)
 
             q.add(url, title, ctx.author.mention)
             q.now_playing = len(q) - 1
-            stream = yt_handler.get_stream(url)
+            stream = music_handler.get_stream(url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:
@@ -306,7 +305,7 @@ class Music(commands.Cog):
                 event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
-            stream = yt_handler.get_stream(res[0])
+            stream = music_handler.get_stream(res[0])
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
 
@@ -328,13 +327,14 @@ class Music(commands.Cog):
                                                              ' -reconnect_delay_max 5')
         audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
+        event_handler.on_song_start(ctx)
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
         if URL_REGEX.match(query):
-            song = yt_handler.get_info(query, is_url=True)
+            song = music_handler.get_info(query, is_url=True)
         else:
-            tracks = list(await run_blocking(yt_handler.get_infos, ctx.bot, query=query))
+            tracks = list(await run_blocking(music_handler.get_infos, ctx.bot, query=query))
             song = await self._choose_track(ctx, tracks)
 
         return song
@@ -515,7 +515,7 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
-        tracks = list(await run_blocking(yt_handler.get_infos, ctx.bot, query=query))
+        tracks = list(await run_blocking(music_handler.get_infos, ctx.bot, query=query))
         track = await self._choose_track(ctx, tracks)
 
         if not track:
@@ -529,7 +529,7 @@ class Music(commands.Cog):
 
         q.add(url, title, ctx.author.mention)
         if not voice.is_playing():
-            stream = yt_handler.get_stream(url)
+            stream = music_handler.get_stream(url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:
