@@ -1,31 +1,24 @@
-import logging
 import os
 from importlib import import_module
+from logging import getLogger
 from pathlib import Path
 
-import sqlalchemy as sa
-import discord
 from discord.ext import commands
 from discord_components.client import DiscordComponents
 from youtube_dl.utils import std_headers
 
-from base import DBBase, Session, BASE_PREFIX
+from base import BASE_PREFIX
 from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
+from orm.base import db
+from orm.models import GuildConfig
 
 USE_YOUTUBE = False
-
-
-class Config(DBBase):
-    __tablename__ = 'config'
-
-    guild_id = sa.Column('guild_id', sa.BigInteger, unique=True, primary_key=True)
-    prefix = sa.Column('prefix', sa.String, server_default='!')
 
 
 class MusicBot(commands.Bot):
     def __init__(self, command_prefix):
         super().__init__(command_prefix, case_insensetive=True)
-        self._logger = logging.getLogger('BOT')
+        self._logger = getLogger('BOT')
 
     def setup(self):
         for cls in [
@@ -36,6 +29,7 @@ class MusicBot(commands.Bot):
 
     def run(self):
         self.setup()
+        db.create_tables([GuildConfig])
         TOKEN = os.getenv('TOKEN')
         super().run(TOKEN, reconnect=True)
 
@@ -48,14 +42,14 @@ class MusicBot(commands.Bot):
         await super().close()
 
 
-def get_prefix(_, msg: discord.Message) -> str:
-    with Session.begin() as s:
-        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
+def get_prefix(_, msg) -> str:
+    with db.atomic():
+        res = GuildConfig.get_or_none(GuildConfig.guild_id == msg.guild.id)
         return res.prefix if res is not None else BASE_PREFIX
 
 
 bot = MusicBot(get_prefix)
-con_handler = DataProcessor(bot)
+data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
 
 if USE_YOUTUBE:

@@ -2,8 +2,7 @@
 .idea/
 start.bat
 bot/.env
-bot/logs
-bot/data.json
+bot/data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

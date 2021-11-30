@@ -1,18 +1,17 @@
-import asyncio
-import soundcloud
-import json
-import logging
 import os
-import re
-import threading
-import time
+from asyncio import run_coroutine_threadsafe
 from datetime import datetime, timedelta
-from http import server
+from json import dump
+from logging import getLogger
 from multiprocessing.pool import ThreadPool
+from re import compile
+from threading import Thread, Event
+from time import sleep
 
 import requests
 from discord.ext import commands
 from psutil import Process
+from soundcloud import SoundCloud
 from youtube_dl import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase
@@ -25,7 +24,7 @@ class YDLHandler(MusicHandlerBase):
         self._scheme = scheme
         self._search_pattern = scheme + '://www.youtube.com/results?search_query='
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
-        self._video_regex = re.compile(r'watch\?v=(\S{11})')
+        self._video_regex = compile(r'watch\?v=(\S{11})')
 
     def get_urls(self, query: str, max_results: int = 5) -> list:
         query = '+'.join(query.split())
@@ -73,7 +72,7 @@ class YDLHandler(MusicHandlerBase):
 
 class SCHandler(MusicHandlerBase):
     def __init__(self):
-        self.client = soundcloud.SoundCloud(os.environ.get('CLIENT_ID'))
+        self.client = SoundCloud(os.environ.get('CLIENT_ID'))
 
     def get_urls(self, query: str, max_results: int = 5) -> list[str]:
         return [next(self.client.search_tracks(query)).permalink_url for _ in range(max_results)]
@@ -113,14 +112,14 @@ class EventHandler:
         self._bot = bot
         self.to_check: dict = dict()
 
-        self._thread = threading.Thread(target=self.loop,
+        self._thread = Thread(target=self.loop,
                                         daemon=True)
         self._thread.start()
 
     def loop(self):
         while True:
-            asyncio.run_coroutine_threadsafe(self.checkall(), self._bot.loop)
-            time.sleep(100)
+            run_coroutine_threadsafe(self.checkall(), self._bot.loop)
+            sleep(100)
 
     def on_song_end(self, ctx: commands.Context):
         self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
@@ -144,18 +143,18 @@ class EventHandler:
                 )
 
 
-class DataProcessor(threading.Thread):
+class DataProcessor(Thread):
     def __init__(self, bot):
         super().__init__(target=self.loop,
                          daemon=True)
-        self._stop = threading.Event()
+        self._stop = Event()
 
         self._bot = bot
-        self._logger = logging.getLogger('DataProcessor')
+        self._logger = getLogger('DataProcessor')
 
     def loop(self):
         while True:
-            with open(f'{os.getcwd() + "/bot/data.json"}', 'w') as f:
+            with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
                 data = {
                     'status': 'online',
                     'vars': {
@@ -165,8 +164,8 @@ class DataProcessor(threading.Thread):
                     }
                 }
 
-                json.dump(data, f, indent=4)
-            time.sleep(5)
+                dump(data, f, indent=4)
+            sleep(5)
 
     @property
     def bot(self):

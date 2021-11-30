@@ -1,24 +1,22 @@
 import json
-import io
-from pathlib import Path
 import logging
 import os
-import subprocess
-import sys
 from http import server
+from io import FileIO
+from subprocess import Popen, TimeoutExpired
+from sys import executable
 from urllib.parse import urlparse
 
-import requests
 from dotenv import load_dotenv
 
 load_dotenv('bot/.env')
-SUBPROCESS_CMD = [sys.executable, os.getcwd() + "/bot/index.py"]
+SUBPROCESS_CMD = [executable, f'{os.getcwd()}/bot/index.py']
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if os.path.exists('bot/data.json'):
-            with open(f'{os.getcwd() + "/bot/data.json"}') as f:
+        if os.path.exists('bot/data/data.json'):
+            with open(f'{os.getcwd()}/bot/data/data.json') as f:
                 data = json.load(f)
         else:
             data = {
@@ -37,7 +35,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         elif self.path == '/vars':
             out = data['vars']
         elif self.path == '/log':
-            with open(f'{os.getcwd() + "/bot/logs/log.log"}') as f:
+            with open(f'{os.getcwd()}/bot/logs/log.log') as f:
                 out = {
                     'content': f.read()
                 }
@@ -62,7 +60,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             self.send_error(401)
             return
 
-        bot: subprocess.Popen = self.server.bot_process
+        bot: Popen = self.server.bot_process
 
         if parsed.path == '/launch':
             print('launching bot')
@@ -70,7 +68,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                 self.send_error(409)
                 return
             else:
-                self.server.bot_process = subprocess.Popen(
+                self.server.bot_process = Popen(
                     SUBPROCESS_CMD,
                     stdout=self.server.pout[0],
                     stderr=self.server.pout[1]
@@ -82,7 +80,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             print('restarting')
             self.terminate_bot()
 
-            self.server.bot_process = subprocess.Popen(
+            self.server.bot_process = Popen(
                 SUBPROCESS_CMD,
                 stdout=self.server.pout[0],
                 stderr=self.server.pout[1]
@@ -100,23 +98,23 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         )
 
     def terminate_bot(self):
-        bot: subprocess.Popen = self.server.bot_process
+        bot: Popen = self.server.bot_process
 
         try:
             bot.terminate()
             bot.wait(timeout=5)
-        except subprocess.TimeoutExpired:
+        except TimeoutExpired:
             bot.kill()
         finally:
             self.server.bot_process = None
 
-        with open(f'{os.getcwd() + "/bot/data.json"}') as f:
+        with open(f'{os.getcwd()}/bot/data/data.json') as f:
             data = json.load(f)
 
-        with open(f'{os.getcwd() + "/bot/data.json"}', 'w') as f:
+        with open(f'{os.getcwd()}/bot/data/data.json', 'w') as f:
             data['status'] = 'offline'
 
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
 
 
 class Server(server.HTTPServer):
@@ -130,23 +128,23 @@ class Server(server.HTTPServer):
         self.check_dirs()
 
     def check_dirs(self):
-        if not os.path.exists('bot/logs'):
-            os.makedirs('bot/logs')
+        if not os.path.exists('bot/data'):
+            os.makedirs('bot/data')
 
-        with open('bot/data.json', 'w'):
+        with open('bot/data/data.json', 'w'):
             pass
 
-        with open('bot/logs/log.log', 'w'):
+        with open('bot/data/log.log', 'w'):
             pass
 
     def run_server(self):
         self._logger.info('Starting bot itself...')
-        self.pout = [io.FileIO('bot/logs/log.log', mode='a'), io.FileIO('bot/logs/log.log', mode='a')]
+        self.pout = FileIO('bot/data/log.log', mode='a')
 
-        self.bot_process = subprocess.Popen(
+        self.bot_process = Popen(
             SUBPROCESS_CMD,
-            stdout=self.pout[0],
-            stderr=self.pout[1]
+            stdout=self.pout,
+            stderr=self.pout
         )
 
         self._logger.info('Starting Server...')

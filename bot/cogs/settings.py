@@ -1,9 +1,8 @@
-import discord
-import sqlalchemy as sa
+from base import BASE_COLOR
 from discord.ext import commands
-
-import core
-from base import BASE_COLOR, Session
+from orm.base import db
+from orm.models import GuildConfig
+from utils import send_embed
 
 
 class Settings(commands.Cog):
@@ -12,16 +11,20 @@ class Settings(commands.Cog):
         """
         Sets prefix for the current server.
         """
-        with Session.begin() as s:
-            res = s.query(core.Config).filter_by(guild_id=ctx.guild.id).first()
+        with db.atomic():
+            res = GuildConfig.get_or_none(GuildConfig.guild_id == ctx.guild.id)
             if res is None:
-                s.execute(sa.insert(core.Config).
-                          values(guild_id=ctx.guild.id, prefix=new_prefix))
+                GuildConfig\
+                    .insert(guild_id=ctx.guild.id, prefix=new_prefix)\
+                    .execute()
             else:
-                s.execute(sa.update(core.Config).
-                          where(core.Config.guild_id == ctx.guild.id).
-                          values(prefix=new_prefix))
+                GuildConfig\
+                    .update({GuildConfig.prefix: new_prefix})\
+                    .where(GuildConfig.guild_id == ctx.guild.id)\
+                    .execute()
 
-            embed = discord.Embed(description=f'Prefix has been successfully changed to `{new_prefix}`',
-                                  color=BASE_COLOR)
-            await ctx.channel.send(embed=embed)
+        await send_embed(
+            ctx=ctx,
+            description=f'Prefix has been successfully changed to `{new_prefix}`',
+            color=BASE_COLOR
+        )
