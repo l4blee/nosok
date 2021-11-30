@@ -35,7 +35,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         elif self.path == '/vars':
             out = data['vars']
         elif self.path == '/log':
-            with open(f'{os.getcwd()}/bot/logs/log.log') as f:
+            with open(f'{os.getcwd()}/bot/data/log.log') as f:
                 out = {
                     'content': f.read()
                 }
