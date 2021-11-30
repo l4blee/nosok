@@ -48,7 +48,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         self.end_headers()
 
         self.wfile.write(
-            json.dumps(out).encode('utf-8')
+            json.dumps(out, indent=4).encode('utf-8')
         )
 
     def do_POST(self):
@@ -128,18 +128,17 @@ class Server(server.HTTPServer):
         self.check_dirs()
 
     def check_dirs(self):
-        if not os.path.exists('bot/data'):
-            os.makedirs('bot/data')
+        os.makedirs(f'{os.getcwd()}/bot/data/', exist_ok=True)
 
-        with open('bot/data/data.json', 'w'):
+        with open(f'{os.getcwd()}/bot/data/data.json', 'w'):
             pass
 
-        with open('bot/data/log.log', 'w'):
+        with open(f'{os.getcwd()}/bot/data/log.log', 'w'):
             pass
 
     def run_server(self):
         self._logger.info('Starting bot itself...')
-        self.pout = FileIO('bot/data/log.log', mode='a')
+        self.pout = FileIO(f'{os.getcwd()}/bot/data/log.log', mode='a')
 
         self.bot_process = Popen(
             SUBPROCESS_CMD,
