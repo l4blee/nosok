@@ -23,6 +23,7 @@ mkdir==2020.12.3
 multidict==5.1.0
 oauthlib==3.1.1
 orderdict==2020.12.3
+peewee==3.14.8
 protobuf==3.17.3
 psutil==5.8.0
 psycopg2-binary==2.9.1
@@ -43,7 +44,6 @@ setupcfg==2020.12.3
 six==1.16.0
 soundcloud-v2==1.1.4
 soupsieve==2.2.1
-SQLAlchemy==1.4.23
 typing-extensions==3.10.0.2
 uritemplate==3.0.1
 urllib3==1.26.6
