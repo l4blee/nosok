@@ -26,6 +26,15 @@ class YDLHandler(MusicHandlerBase):
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
         self._video_regex = compile(r'watch\?v=(\S{11})')
 
+    def get_url(self, query: str) -> str:
+        query = '+'.join(query.split())
+
+        with requests.Session() as session:
+            res = session.get(self._search_pattern + query)
+
+        iterator = self._video_regex.finditer(res.text)
+        return self._video_pattern + next(iterator).group(1)
+
     def get_urls(self, query: str, max_results: int = 5) -> list:
         query = '+'.join(query.split())
 
@@ -73,6 +82,9 @@ class YDLHandler(MusicHandlerBase):
 class SCHandler(MusicHandlerBase):
     def __init__(self):
         self.client = SoundCloud(os.environ.get('CLIENT_ID'))
+
+    def get_url(self, query: str) -> str:
+        return next(self.client.search_tracks(query)).permalink_url
 
     def get_urls(self, query: str, max_results: int = 5) -> list[str]:
         return [next(self.client.search_tracks(query)).permalink_url for _ in range(max_results)]
@@ -158,7 +170,7 @@ class DataProcessor(Thread):
                 data = {
                     'status': 'online',
                     'vars': {
-                        'servers': [i.id for i in self.bot.guilds],
+                        'servers': len(self.bot.guilds),
                         'latency': self.bot.latency,
                         'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
                     }

@@ -21,6 +21,8 @@ class MusicBot(commands.Bot):
         self._logger = getLogger('BOT')
 
     def setup(self):
+        db.create_tables([GuildConfig])
+
         for cls in [
             import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
             for i in Path('./bot/cogs/').glob('*.py')
@@ -29,12 +31,16 @@ class MusicBot(commands.Bot):
 
     def run(self):
         self.setup()
-        db.create_tables([GuildConfig])
         TOKEN = os.getenv('TOKEN')
         super().run(TOKEN, reconnect=True)
 
     async def on_ready(self):
+        Queue = import_module('cogs.music').__dict__['Queue']
+        self.get_cog('Music')._queues = {i.id: Queue(i.id) for i in self.guilds}
+        del Queue
+
         DiscordComponents(self)
+
         self._logger.info('Bot has been successfully launched')
 
     async def close(self):

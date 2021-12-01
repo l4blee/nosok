@@ -12,6 +12,9 @@ ERROR_COLOR = discord.Colour.from_rgb(255, 0, 0)
 
 
 class MusicHandlerBase(ABC):
+    def get_url(self, query: str) -> str:
+        raise NotImplementedError
+
     def get_urls(self, query: str, max_results: int = 5) -> list[str]:
         raise NotImplementedError
 

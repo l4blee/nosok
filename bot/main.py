@@ -15,14 +15,14 @@ SUBPROCESS_CMD = [executable, f'{os.getcwd()}/bot/index.py']
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if os.path.exists('bot/data/data.json'):
+        if os.path.exists(f'{os.getcwd()}/bot/data/data.json'):
             with open(f'{os.getcwd()}/bot/data/data.json') as f:
                 data = json.load(f)
         else:
             data = {
                 'status': 'offline',
                 'vars': {
-                    'servers': [],
+                    'servers': int('Nan'),
                     'latency': float('Nan'),
                     'memory_used': float('Nan')
                 }
@@ -131,10 +131,10 @@ class Server(server.HTTPServer):
         os.makedirs(f'{os.getcwd()}/bot/data/', exist_ok=True)
 
         with open(f'{os.getcwd()}/bot/data/data.json', 'w'):
-            pass
+            ...
 
         with open(f'{os.getcwd()}/bot/data/log.log', 'w'):
-            pass
+            ...
 
     def run_server(self):
         self._logger.info('Starting bot itself...')

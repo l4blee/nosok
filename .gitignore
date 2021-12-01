@@ -3,6 +3,7 @@
 start.bat
 bot/.env
 bot/data
+bot/queues
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
