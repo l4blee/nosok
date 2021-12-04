@@ -294,7 +294,7 @@ python-versions = "*"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.9"
+python-versions = "3.10"
 content-hash = "1a5774b030eb5d386e76d2c83c96c515a2e5ff1faf6283d55fd9ca3f2edb334b"
 
 [metadata.files]
