@@ -32,13 +32,12 @@ class Queue:
         self.volume: float = 1.0
         self.guild_id = guild_id
 
-        self.wfile = FileIO(f'bot/queues/{guild_id}.txt', 'a')
-        self.rfile = FileIO(f'bot/queues/{guild_id}.txt')
+        self.queue_file = FileIO(f'bot/queues/{guild_id}.txt', 'a+')
 
     @property
     def tracks(self) -> list[tuple]:
-        self.rfile.seek(0)
-        data = self.rfile.readlines()
+        self.queue_file.seek(0)
+        data = self.queue_file.readlines()
 
         decoded = [i.decode('utf-8') for i in data]
         tracks = [tuple(i.rstrip().split(',')) for i in decoded]
@@ -51,15 +50,15 @@ class Queue:
         self.clear()
 
         to_write = [(','.join([i[0], i[1]]) + '\n') for i in tracks]
-        self.wfile.writelines(to_write)
+        self.queue_file.writelines(to_write)
 
         return ret
 
     def add(self, url: str, mention: discord.User.mention) -> None:
-        self.wfile.seek(0, 2)
+        self.queue_file.seek(0, 2)
 
         to_write = (','.join([url, mention]) + '\n').encode('utf-8')
-        self.wfile.write(to_write)
+        self.queue_file.write(to_write)
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -79,11 +78,11 @@ class Queue:
         return len(self.tracks)
 
     def clear(self) -> None:
-        self.wfile.close()
+        self.queue_file.close()
         with open(f'bot/queues/{self.guild_id}.txt', 'w') as f:
             f.write('')
 
-        self.wfile = FileIO(f'bot/queues/{self.guild_id}.txt', 'a')
+        self.queue_file = FileIO(f'bot/queues/{self.guild_id}.txt', 'a')
 
     @property
     def is_empty(self) -> bool:
