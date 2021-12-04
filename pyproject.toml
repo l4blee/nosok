@@ -5,7 +5,7 @@ description = "Discord music bot"
 authors = ["l4blee <76159455+l4blee@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
-python = "3.10" 
+python = "3.10.0" 
 "discord.py" = "^1.7.3"
 peewee = "^3.14.8"
 youtube_dl = "^2021.6.6"
