@@ -1,8 +1,6 @@
 import asyncio
-import json
-from os import makedirs
 from io import FileIO
-from collections import defaultdict
+from os import makedirs
 from re import compile
 from subprocess import DEVNULL
 from typing import Generator, Optional
@@ -10,10 +8,9 @@ from typing import Generator, Optional
 import discord
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
-from core import music_handler, event_handler, bot
+from core import music_handler, event_handler
 from discord import Embed
 from discord.ext import commands
-from discord_components.interaction import InteractionType
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
@@ -281,7 +278,7 @@ class Music(commands.Cog):
                     current = len(embeds) - 1
 
                 await interaction.respond(
-                    type=InteractionType.UpdateMessage,
+                    type=6,  # UpdateMessage as InteractionType.UpdateMessage removed since 2.0.0
                     embed=embeds[current],
                     components=get_components(embeds, current)
                 )
