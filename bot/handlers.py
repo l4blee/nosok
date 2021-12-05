@@ -169,7 +169,6 @@ class DataProcessor(Thread):
     def loop(self):
         while True:
             proc = psutil.Process()
-            print(proc)
             with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
                 data = {
                     'status': 'online',

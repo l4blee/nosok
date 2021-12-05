@@ -89,6 +89,17 @@ python-versions = ">=3.6"
 dev = ["pytest (>=5)", "pytest-cov", "coveralls", "black", "mypy", "pylint"]
 
 [[package]]
+name = "discord"
+version = "1.7.3"
+description = "A mirror package for discord.py. Please install that instead."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+"discord.py" = ">=1.7.3"
+
+[[package]]
 name = "discord-components"
 version = "2.1.2"
 description = "An unofficial library for discord components."
@@ -295,7 +306,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "3.9.6"
-content-hash = "3d9833ecc5701301a82490bcbc026b73de43e0e8a2f1378e34fb98311bcbff9c"
+content-hash = "e0e797cdbd6a63e697d6ff87186f094b7d1f7323d7d24ff2d23f843ca7323476"
 
 [metadata.files]
 aiohttp = [
@@ -412,6 +423,10 @@ charset-normalizer = [
 dacite = [
     {file = "dacite-1.6.0-py3-none-any.whl", hash = "sha256:4331535f7aabb505c732fa4c3c094313fc0a1d5ea19907bf4726a7819a68b93f"},
     {file = "dacite-1.6.0.tar.gz", hash = "sha256:d48125ed0a0352d3de9f493bf980038088f45f3f9d7498f090b50a847daaa6df"},
+]
+discord = [
+    {file = "discord-1.7.3-py3-none-any.whl", hash = "sha256:248d728356e149c818a81b94659047a19305ea1623d4810bbb342f6b7df55f36"},
+    {file = "discord-1.7.3.tar.gz", hash = "sha256:846dd3d66888c2e0a8bd9120d8778a0fe088c003a7f6451668497f14e322a304"},
 ]
 discord-components = [
     {file = "discord_components-2.1.2-py3-none-any.whl", hash = "sha256:872930fcce1ee1597acfe011fbc457171589423467830648d3b39ae78775b75a"},
