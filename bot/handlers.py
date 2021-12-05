@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
 from multiprocessing.pool import ThreadPool
-from re import compile
+from re import I, compile
 from threading import Thread, Event
 from time import sleep
+import psutil
+from psutil._common import bytes2human
 
 import requests
 from discord.ext import commands
@@ -166,13 +168,15 @@ class DataProcessor(Thread):
 
     def loop(self):
         while True:
+            proc = psutil.Process()
+            print(proc)
             with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
                 data = {
                     'status': 'online',
                     'vars': {
                         'servers': len(self.bot.guilds),
-                        'latency': self.bot.latency,
-                        'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
+                        'cpu_used': proc.cpu_percent(),
+                        'memory_used': bytes2human(proc.memory_info().rss)
                     }
                 }
 
