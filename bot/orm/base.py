@@ -1,9 +1,6 @@
 from os import getenv
 
-from dotenv import load_dotenv
 from peewee import Model, PostgresqlDatabase
-
-load_dotenv('bot/.env')
 
 _, db_url = getenv('DATABASE_URL').split('//')
 

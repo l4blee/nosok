@@ -1,7 +1,5 @@
-# Pycharm stuff
-.idea/
-start.bat
 bot/.env
+bot/__pycache__
 bot/data
 bot/queues
 
@@ -96,7 +94,7 @@ celerybeat-schedule
 # Environments
 bot/.env
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/

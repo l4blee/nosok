@@ -7,9 +7,10 @@ from subprocess import Popen, TimeoutExpired
 from sys import executable
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
+if os.getenv('APP_STATUS', 'production') != 'production':
+    from dotenv import load_dotenv
+    load_dotenv('bot/.env')
 
-load_dotenv('bot/.env')
 SUBPROCESS_CMD = [executable, f'{os.getcwd()}/bot/index.py']
 
 

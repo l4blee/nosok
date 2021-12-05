@@ -2,9 +2,6 @@ import os
 from abc import ABC
 
 import discord
-from dotenv import load_dotenv
-
-load_dotenv('bot/.env')
 
 BASE_PREFIX = os.environ.get('BASE_PREFIX')
 BASE_COLOR = discord.Colour.from_rgb(241, 184, 19)

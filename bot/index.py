@@ -1,11 +1,11 @@
 import logging
 import os
 
-from dotenv import load_dotenv
+if os.getenv('APP_STATUS', 'production') != 'production':
+    from dotenv import load_dotenv
+    load_dotenv('bot/.env')
 
 from core import bot, data_processor
-
-load_dotenv('bot/.env')
 
 os.makedirs('bot/data', exist_ok=True)
 os.makedirs('bot/queues', exist_ok=True)
