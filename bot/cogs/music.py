@@ -22,6 +22,8 @@ makedirs('bot/queues', exist_ok=True)
 
 
 class Queue:
+    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file')
+
     def __init__(self, guild_id: int):
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
         self.now_playing: int = 0
@@ -120,6 +122,8 @@ class Queue:
 
 
 class Music(commands.Cog):
+    __slots__ = ('_queues')
+
     def __init__(self):
         self._queues: dict = dict()
 
@@ -260,14 +264,15 @@ class Music(commands.Cog):
             try:
                 interaction = await ctx.bot.wait_for(
                     'button_click',
-                    check=lambda i: i.component.id in ['back', 'front', 'preferred_track'],
-                    timeout=10.0
+                    check=lambda i: i.component.id in ['back', 'forward', 'lock'],
+                    timeout=20.0
                 )
+
                 if interaction.component.id == 'back':
                     current -= 1
-                elif interaction.component.id == 'front':
+                elif interaction.component.id == 'forward':
                     current += 1
-                elif interaction.component.id == 'preferred_track':
+                elif interaction.component.id == 'lock':
                     if (track := tracks[current]) is not None:
                         await message.delete()
                         return track
@@ -278,7 +283,7 @@ class Music(commands.Cog):
                     current = len(embeds) - 1
 
                 await interaction.respond(
-                    type=6,  # UpdateMessage as InteractionType.UpdateMessage removed since 2.0.0
+                    type=6,  # Equals to UpdateMessage as InteractionType.UpdateMessage has been removed in 2.0.0
                     embed=embeds[current],
                     components=get_components(embeds, current)
                 )

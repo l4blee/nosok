@@ -119,6 +119,8 @@ class RequestHandler(server.BaseHTTPRequestHandler):
 
 
 class Server(server.HTTPServer):
+    __slots__ = ('_logger', 'bot_process')
+
     def __init__(self):
         super().__init__(
             ('0.0.0.0', int(os.environ.get('PORT', 5000))),

@@ -16,6 +16,8 @@ USE_YOUTUBE = False
 
 
 class MusicBot(commands.Bot):
+    __slots__ = ('_logger')
+
     def __init__(self, command_prefix):
         super().__init__(command_prefix, case_insensetive=True)
         self._logger = getLogger('BOT')

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
 from multiprocessing.pool import ThreadPool
-from re import I, compile
+from re import compile
 from threading import Thread, Event
 from time import sleep
 import psutil
@@ -158,6 +158,8 @@ class EventHandler:
 
 
 class DataProcessor(Thread):
+    __slots__ = ('_bot', '_logger', '_stop')
+
     def __init__(self, bot):
         super().__init__(target=self.loop,
                          daemon=True)
@@ -180,7 +182,7 @@ class DataProcessor(Thread):
                 }
 
                 dump(data, f, indent=4)
-            sleep(5)
+            sleep(1)
 
     @property
     def bot(self):
