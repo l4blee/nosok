@@ -2,6 +2,8 @@ bot/.env
 bot/__pycache__
 bot/data
 bot/queues
+poetry.lock
+pyproject.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
