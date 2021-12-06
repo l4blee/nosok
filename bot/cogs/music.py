@@ -44,7 +44,9 @@ class Queue:
         return tracks
 
     def remove(self, index: int) -> tuple:
-        ret = self.tracks.pop(index)
+        tracks = self.tracks
+
+        ret = tracks.pop(index)
 
         self.clear()
 
