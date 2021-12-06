@@ -16,7 +16,7 @@ async def send_embed(ctx: commands.Context, description: str, color: discord.Col
         color=color
     )
 
-    await ctx.send(embed=embed)
+    return await ctx.send(embed=embed)
 
 
 async def is_connected(ctx: commands.Context):

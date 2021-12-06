@@ -284,8 +284,15 @@ class Music(commands.Cog):
                 elif current < 0:
                     current = len(embeds) - 1
 
+                await message.edit(
+                    '**Choose one of the following tracks:**',
+                    embed=embeds[current],
+                    components=get_components(embeds, current)
+                )
+
+                # Doesn't apply changes if I don't use both methods idk why
                 await interaction.respond(
-                    type=6,  # Equals to UpdateMessage as InteractionType.UpdateMessage has been removed in 2.0.0
+                    type=6, 
                     embed=embeds[current],
                     components=get_components(embeds, current)
                 )
@@ -414,6 +421,7 @@ class Music(commands.Cog):
                     ctx=ctx,
                     description='No tracks were specified',
                     color=BASE_COLOR)
+                
                 raise exceptions.NoTracksSpecified
 
             if song is None:
