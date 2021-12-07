@@ -8,11 +8,9 @@ from re import compile
 from threading import Thread, Event
 from time import sleep
 import psutil
-from psutil._common import bytes2human
 
 import requests
 from discord.ext import commands
-from psutil import Process
 from soundcloud import SoundCloud
 from youtube_dl import YoutubeDL as YtDL
 
@@ -170,14 +168,25 @@ class DataProcessor(Thread):
 
     def loop(self):
         while True:
-            proc = psutil.Process()
+            this_proc = psutil.Process()
+
+            voices = [i.voice_client for i in self._bot.guilds]
+            voices = [i.source for i in voices if i is not None]  # Check if connected
+            procs = [i.original._process for i in voices if i is not None]  # Get procs
+            procs = [psutil.Process(i.pid) for i in procs]
+            cpu_utils = [i.cpu_percent() for i in procs]
+            mem_utils = [round(i.memory_info().rss / float(10 ** 6), 2) for i in procs]
+
+            cpu_usage = this_proc.cpu_percent() + sum(cpu_utils)
+            mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + sum(mem_utils)
+
             with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
                 data = {
                     'status': 'online',
                     'vars': {
                         'servers': len(self.bot.guilds),
-                        'cpu_used': psutil.cpu_percent(),
-                        'memory_used': str(round(psutil.virtual_memory().used / (10 ** 6), 2)) + 'M'
+                        'cpu_used': cpu_usage,
+                        'memory_used': str(mem_usage) + 'M'
                     }
                 }
 
