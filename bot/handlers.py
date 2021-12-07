@@ -182,7 +182,7 @@ class DataProcessor(Thread):
                 }
 
                 dump(data, f, indent=4)
-            sleep(1)
+            sleep(0.25)
 
     @property
     def bot(self):
