@@ -176,8 +176,8 @@ class DataProcessor(Thread):
                     'status': 'online',
                     'vars': {
                         'servers': len(self.bot.guilds),
-                        'cpu_used': proc.cpu_percent(),
-                        'memory_used': bytes2human(proc.memory_info().rss)
+                        'cpu_used': psutil.cpu_percent(),
+                        'memory_used': str(round(psutil.virtual_memory().used / (10 ** 6), 2)) + 'M'
                     }
                 }
 
