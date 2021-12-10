@@ -12,7 +12,7 @@ from youtube_dl.utils import std_headers
 from base import DBBase, Session, BASE_PREFIX
 from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
 
-USE_YOUTUBE = False
+USE_YOUTUBE = True
 
 
 class Config(DBBase):
