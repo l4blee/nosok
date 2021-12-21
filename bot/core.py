@@ -12,7 +12,7 @@ from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
 from orm.base import db
 from orm.models import GuildConfig
 
-USE_YOUTUBE = False
+USE_YOUTUBE = True
 
 
 class MusicBot(commands.Bot):
