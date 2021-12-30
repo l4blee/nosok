@@ -5,14 +5,13 @@ from pathlib import Path
 
 from discord.ext import commands
 from discord_components.client import DiscordComponents
-from youtube_dl.utils import std_headers
 
 from base import BASE_PREFIX
 from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
 from orm.base import db
 from orm.models import GuildConfig
 
-USE_YOUTUBE = False
+USE_YOUTUBE = True
 
 
 class MusicBot(commands.Bot):
@@ -61,12 +60,10 @@ data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
 
 if USE_YOUTUBE:
-    std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                                'Chrome/51.0.2704.103 Safari/537.36'
     music_handler = YDLHandler({
         'simulate': True,
         'quiet': True,
-        'format': 'bestaudio/best'
+        'format': 'bestaudio'
     })
 else:
     music_handler = SCHandler()

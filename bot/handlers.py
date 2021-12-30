@@ -1,4 +1,5 @@
 import os
+from pprint import pprint as print
 from asyncio import run_coroutine_threadsafe
 from datetime import datetime, timedelta
 from json import dump
@@ -12,7 +13,7 @@ import psutil
 import requests
 from discord.ext import commands
 from soundcloud import SoundCloud
-from youtube_dl import YoutubeDL as YtDL
+from yt_dlp import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase
 from utils import send_embed
@@ -75,6 +76,7 @@ class YDLHandler(MusicHandlerBase):
         with YtDL(self._ydl_opts) as ydl:
             streams = ydl.extract_info(url, download=False).get('formats')
 
+        streams = [i for i in streams if i.get('audio_ext') != 'none']
         return max([i for i in streams if i.get('fps') is None],
                    key=lambda x: x.get('tbr')).get('url')
 
@@ -131,7 +133,7 @@ class EventHandler:
     def loop(self):
         while True:
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
-            sleep(100)
+            sleep(120)
 
     def on_song_end(self, ctx: commands.Context):
         self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
@@ -173,12 +175,20 @@ class DataProcessor(Thread):
             voices = [i.voice_client for i in self._bot.guilds]
             voices = [i.source for i in voices if i is not None]  # Check if connected
             procs = [i.original._process for i in voices if i is not None]  # Get procs
-            procs = [psutil.Process(i.pid) for i in procs]
-            cpu_utils = [i.cpu_percent() for i in procs]
-            mem_utils = [round(i.memory_info().rss / float(10 ** 6), 2) for i in procs]
+            cpu_utils = 0
+            mem_utils = 0
 
-            cpu_usage = this_proc.cpu_percent() + sum(cpu_utils)
-            mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + sum(mem_utils)
+            for i in procs:
+                try:
+                    proc = psutil.Process(i.pid)
+
+                    cpu_utils += proc.cpu_percent()
+                    mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
+                except Exception as e:
+                    self._logger.exception(e, exc_info=True)
+
+            cpu_usage = this_proc.cpu_percent() + cpu_utils
+            mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
 
             with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
                 data = {
