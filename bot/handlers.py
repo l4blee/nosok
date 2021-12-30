@@ -127,7 +127,7 @@ class EventHandler:
         self.to_check: dict = dict()
 
         self._thread = Thread(target=self.loop,
-                                        daemon=True)
+                              daemon=True)
         self._thread.start()
 
     def loop(self):

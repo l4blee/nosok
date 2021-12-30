@@ -83,7 +83,7 @@ class Queue:
         with open(f'bot/queues/{self.guild_id}.txt', 'w') as f:
             f.write('')
 
-        self.queue_file = FileIO(f'bot/queues/{self.guild_id}.txt', 'a')
+        self.queue_file = FileIO(f'bot/queues/{self.guild_id}.txt', 'a+')
 
     @property
     def is_empty(self) -> bool:
