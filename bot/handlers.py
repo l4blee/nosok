@@ -178,7 +178,7 @@ class DataProcessor(Thread):
             cpu_utils = 0
             mem_utils = 0
 
-            for i in procs:
+            for i in filter(lambda x: x is not None, procs):
                 try:
                     proc = psutil.Process(i.pid)
 
