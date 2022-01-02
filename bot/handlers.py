@@ -1,5 +1,4 @@
 import os
-from pprint import pprint as print
 from asyncio import run_coroutine_threadsafe
 from datetime import datetime, timedelta
 from json import dump
@@ -12,6 +11,7 @@ import psutil
 
 import requests
 from discord.ext import commands
+import discord
 from soundcloud import SoundCloud
 from yt_dlp import YoutubeDL as YtDL
 
@@ -135,21 +135,30 @@ class EventHandler:
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
             sleep(120)
 
-    def on_song_end(self, ctx: commands.Context):
-        self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
+    def on_song_end(self, voice: discord.VoiceChannel):
+        self.to_check[voice] = datetime.now() + timedelta(minutes=5)
 
-    def on_song_start(self, ctx: commands.Context):
-        self.to_check[ctx] = None
+    def on_song_start(self, voice: discord.VoiceChannel):
+        del self.to_check[voice]
 
     async def checkall(self):
-        for i in self.to_check.keys():
+        for channel in self.to_check.keys():
+            player: discord.VoiceClient = channel.guild.voice_client
+
+            if not player:
+                del self.to_check[channel]
+                continue
+
+            if player.is_playing():
+                del self.to_check[channel]
+                continue
+
             timestamp = self.to_check[i]
-            if timestamp and \
-                    datetime.now() >= timestamp and \
-                    not i.voice_client.is_playing():
-                music_cog = self._bot.get_cog('Music')
-                await music_cog.leave(i)
-                self.to_check[i] = None
+            if timestamp is not None and datetime.now() >= timestamp:
+                del self.to_check[channel]
+
+                await channel.disconnect()
+
                 await send_embed(
                     ctx=i,
                     description='I have been staying AFK for too long, so I left the channel',
