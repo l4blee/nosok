@@ -1,4 +1,5 @@
 import asyncio
+from logging import getLogger
 from io import FileIO
 from os import makedirs
 from re import compile
@@ -20,13 +21,15 @@ URL_REGEX = compile(URL_REGEX)
 
 makedirs('bot/queues', exist_ok=True)
 
+logger = getLogger('fsdfgsdfjsdsdf')
+
 
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file')
 
     def __init__(self, guild_id: int):
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
-        self.now_playing: int = 0
+        self.now_playing: int = -1
         self.play_next: bool = True
         self.volume: float = 1.0
         self.guild_id = guild_id
@@ -36,11 +39,9 @@ class Queue:
     @property
     def tracks(self) -> list[tuple]:
         self.queue_file.seek(0)
-        data = self.queue_file.readlines()
-
-        decoded = [i.decode('utf-8') for i in data]
-        tracks = [tuple(i.rstrip().split(',')) for i in decoded]
-
+        data = self.queue_file.read().decode('utf-8').split('\n')
+        
+        tracks = [tuple(i.split(',')) for i in data if i]
         return tracks
 
     def remove(self, index: int) -> tuple:
@@ -50,7 +51,7 @@ class Queue:
 
         self.clear()
 
-        to_write = [(','.join([i[0], i[1]]) + '\n') for i in tracks]
+        to_write = [(','.join([i[0], i[1]]) + '\n') for i in tracks].encode('utf-8')
         self.queue_file.writelines(to_write)
 
         return ret
@@ -72,7 +73,7 @@ class Queue:
                 return None
             else:
                 self.now_playing = 0
-
+            
         return tracks[self.now_playing]
 
     def __len__(self):
