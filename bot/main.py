@@ -37,9 +37,14 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             out = data['vars']
         elif self.path == '/log':
             with open(f'{os.getcwd()}/bot/data/log.log') as f:
-                out = {
-                    'content': f.read()
-                }
+                self.send_response(200, 'OK')
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+
+                self.wfile.write(
+                    f.read().encode('utf-8')
+                )
+                return
         else:
             self.send_error(409)
             return
