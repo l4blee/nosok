@@ -139,7 +139,8 @@ class EventHandler:
         self.to_check[voice] = datetime.now() + timedelta(minutes=5)
 
     def on_song_start(self, voice: discord.VoiceChannel):
-        del self.to_check[voice]
+        if voice in self.to_check.keys():
+            del self.to_check[voice]
 
     async def checkall(self):
         for channel in self.to_check.keys():
