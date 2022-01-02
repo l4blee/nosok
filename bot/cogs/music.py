@@ -352,7 +352,7 @@ class Music(commands.Cog):
                         description='The queue has ended',
                         color=BASE_COLOR
                     )
-                    event_handler.on_song_end(ctx)
+                    event_handler.on_song_end(ctx.voice_client.channel)
                     return
             else:
                 await send_embed(
@@ -360,7 +360,7 @@ class Music(commands.Cog):
                     description='There are no songs in the queue',
                     color=ERROR_COLOR
                 )
-                event_handler.on_song_end(ctx)
+                event_handler.on_song_end(ctx.voice_client.channel)
                 raise exceptions.QueueEmpty
 
             stream = music_handler.get_stream(res[0])
@@ -373,7 +373,7 @@ class Music(commands.Cog):
             ctx.message.content = ''
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
         else:
-            event_handler.on_song_end(ctx)
+            event_handler.on_song_end(ctx.voice_client.channel)
 
     async def _play(self, ctx: commands.Context, stream, loop):
         q = self._queues[ctx.guild.id]
@@ -385,7 +385,9 @@ class Music(commands.Cog):
                                                              ' -reconnect_delay_max 5')
         audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
-        event_handler.on_song_start(ctx)
+
+        event_handler.on_song_start(ctx.voice_client.channel)
+
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
