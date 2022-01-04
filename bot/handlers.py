@@ -150,15 +150,15 @@ class EventHandler:
                 continue
 
             if timestamp and datetime.now().time() >= timestamp.time():
-                await ctx.voice_client.disconnect()
-                ctx.voice_client.cleanup()
+                await player.disconnect()
+                player.cleanup()
                 await send_embed(
                     ctx=ctx,
                     description='I have been staying AFK for too long, so I left the voice channel',
                     color=BASE_COLOR
                 )
 
-                self.to_check[guild] = None
+                self.to_check[ctx] = None
 
 
 class DataProcessor(Thread):
