@@ -6,8 +6,10 @@ from pathlib import Path
 from discord.ext import commands
 from discord_components.client import DiscordComponents
 
-from base import BASE_PREFIX
+from base import BASE_PREFIX, ERROR_COLOR
 from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
+from exceptions import CustomException
+from utils import send_embed
 from orm.base import db
 from orm.models import GuildConfig
 
@@ -20,6 +22,12 @@ class MusicBot(commands.Bot):
     def __init__(self, command_prefix):
         super().__init__(command_prefix, case_insensetive=True)
         self._logger = getLogger('BOT')
+
+    async def on_command_error(self, ctx: commands.Context, exception):
+        if not isinstance(exception, CustomException):
+            await send_embed(ctx,
+                             'An error occured during handling this command, please try again later.', 
+                             ERROR_COLOR)
 
     def setup(self):
         db.create_tables([GuildConfig])

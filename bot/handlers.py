@@ -130,41 +130,35 @@ class EventHandler:
                               daemon=True)
         self._thread.start()
 
+
     def loop(self):
         while True:
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
-            sleep(120)
+            print(self.to_check)
+            sleep(20)
 
-    def on_song_end(self, voice: discord.VoiceChannel):
-        self.to_check[voice] = datetime.now() + timedelta(minutes=5)
+    def on_song_end(self, ctx: commands.Context):
+        self.to_check[ctx] = datetime.now() + timedelta(minutes=1)
 
-    def on_song_start(self, voice: discord.VoiceChannel):
-        if voice in self.to_check.keys():
-            del self.to_check[voice]
+    def on_song_start(self, ctx: commands.Context):
+        self.to_check[ctx] = None
 
     async def checkall(self):
-        for channel in self.to_check.keys():
-            player: discord.VoiceClient = channel.guild.voice_client
-
+        for ctx, timestamp in self.to_check.items():
+            player = ctx.voice_client
             if not player:
-                del self.to_check[channel]
+                self.to_check[ctx] = None
                 continue
 
-            if player.is_playing():
-                del self.to_check[channel]
-                continue
-
-            timestamp = self.to_check[i]
-            if timestamp is not None and datetime.now() >= timestamp:
-                del self.to_check[channel]
-
-                await channel.disconnect()
-
+            if timestamp and datetime.now().time() >= timestamp.time():
+                await ctx.voice_client.disconnect()
                 await send_embed(
-                    ctx=i,
-                    description='I have been staying AFK for too long, so I left the channel',
+                    ctx=ctx,
+                    description='I have been staying AFK for too long, so I left the voice channel',
                     color=BASE_COLOR
                 )
+
+                self.to_check[guild] = None
 
 
 class DataProcessor(Thread):
