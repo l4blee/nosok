@@ -179,6 +179,7 @@ class Music(commands.Cog):
         if voice.is_playing():
             await self.stop(ctx)
         await voice.disconnect()
+        voice.cleanup()
 
     @commands.command(aliases=['ps'])
     @commands.check(is_connected)

@@ -20,12 +20,17 @@ class MusicBot(commands.Bot):
     __slots__ = ('_logger')
 
     def __init__(self, command_prefix):
-        super().__init__(command_prefix, case_insensetive=True)
+        super().__init__(command_prefix)
         self._logger = getLogger('BOT')
 
     async def on_command_error(self, ctx: commands.Context, exception):
         if not isinstance(exception, CustomException):
-            await send_embed(ctx,
+            if isinstance(exception, commands.CommandNotFound):
+                await send_embed(ctx,
+                                f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
+                                ERROR_COLOR)
+            else:
+                await send_embed(ctx,
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
 

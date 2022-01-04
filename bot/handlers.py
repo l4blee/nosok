@@ -134,11 +134,10 @@ class EventHandler:
     def loop(self):
         while True:
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
-            print(self.to_check)
-            sleep(20)
+            sleep(120)
 
     def on_song_end(self, ctx: commands.Context):
-        self.to_check[ctx] = datetime.now() + timedelta(minutes=1)
+        self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
 
     def on_song_start(self, ctx: commands.Context):
         self.to_check[ctx] = None
@@ -152,6 +151,7 @@ class EventHandler:
 
             if timestamp and datetime.now().time() >= timestamp.time():
                 await ctx.voice_client.disconnect()
+                ctx.voice_client.cleanup()
                 await send_embed(
                     ctx=ctx,
                     description='I have been staying AFK for too long, so I left the voice channel',
