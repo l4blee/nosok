@@ -166,7 +166,7 @@ class Server(server.HTTPServer):
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
-                    datefmt='%y.%b.%Y %H:%M:%S')
+                    datefmt='%d.%b.%Y %H:%M:%S')
 
 http_server = Server()
 http_server.run_server()
