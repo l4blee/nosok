@@ -34,7 +34,8 @@ class MusicBot(commands.Bot):
                 await send_embed(ctx,
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
-                print('Ignoring exception in command {}:'.format(context.command), file=sys.stderr)
+
+                self._logger.warning('Ignoring exception in command {}:'.format(context.command), file=sys.stderr)
                 print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
                 
 
