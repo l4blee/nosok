@@ -40,9 +40,11 @@ async def run_blocking(blocking_func: typing.Callable, bot: commands.Bot, *args,
 def get_components(embeds, current):
     return [
         [
-            Button(label='Back',
-                   id='back',
-                   style=ButtonStyle.red),
+            Button(
+                label='Back',
+                id='back',
+                style=ButtonStyle.red
+            ),
             Button(
                 label=f'Page {current + 1} / {len(embeds)}',
                 id='cur',
