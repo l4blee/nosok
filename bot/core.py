@@ -1,4 +1,5 @@
 import os
+from gc import collect
 from importlib import import_module
 from logging import getLogger
 from pathlib import Path
@@ -60,6 +61,7 @@ class MusicBot(commands.Bot):
 
         DiscordComponents(self)
 
+        collect()
         self._logger.info('Bot has been successfully launched')
 
     async def close(self):
