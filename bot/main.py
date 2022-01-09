@@ -1,30 +1,29 @@
 import json
-import io
-from pathlib import Path
 import logging
 import os
-import subprocess
-import sys
 from http import server
+from io import FileIO
+from subprocess import Popen, TimeoutExpired
+from sys import executable
 from urllib.parse import urlparse
 
-import requests
-from dotenv import load_dotenv
+if os.getenv('APP_STATUS', 'production') != 'production':
+    from dotenv import load_dotenv
+    load_dotenv('bot/.env')
 
-load_dotenv('bot/.env')
-SUBPROCESS_CMD = [sys.executable, os.getcwd() + "/bot/index.py"]
+SUBPROCESS_CMD = [executable, f'{os.getcwd()}/bot/index.py']
 
 
 class RequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if os.path.exists('bot/data.json'):
-            with open(f'{os.getcwd() + "/bot/data.json"}') as f:
+        if os.path.exists(f'{os.getcwd()}/bot/data/data.json'):
+            with open(f'{os.getcwd()}/bot/data/data.json') as f:
                 data = json.load(f)
         else:
             data = {
                 'status': 'offline',
                 'vars': {
-                    'servers': [],
+                    'servers': int('Nan'),
                     'latency': float('Nan'),
                     'memory_used': float('Nan')
                 }
@@ -37,10 +36,15 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         elif self.path == '/vars':
             out = data['vars']
         elif self.path == '/log':
-            with open(f'{os.getcwd() + "/bot/logs/log.log"}') as f:
-                out = {
-                    'content': f.read()
-                }
+            with open(f'{os.getcwd()}/bot/data/log.log') as f:
+                self.send_response(200, 'OK')
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+
+                self.wfile.write(
+                    f.read().encode('utf-8')
+                )
+                return
         else:
             self.send_error(409)
             return
@@ -50,7 +54,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         self.end_headers()
 
         self.wfile.write(
-            json.dumps(out).encode('utf-8')
+            json.dumps(out, indent=4).encode('utf-8')
         )
 
     def do_POST(self):
@@ -62,7 +66,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             self.send_error(401)
             return
 
-        bot: subprocess.Popen = self.server.bot_process
+        bot: Popen = self.server.bot_process
 
         if parsed.path == '/launch':
             print('launching bot')
@@ -70,7 +74,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                 self.send_error(409)
                 return
             else:
-                self.server.bot_process = subprocess.Popen(
+                self.server.bot_process = Popen(
                     SUBPROCESS_CMD,
                     stdout=self.server.pout[0],
                     stderr=self.server.pout[1]
@@ -82,7 +86,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             print('restarting')
             self.terminate_bot()
 
-            self.server.bot_process = subprocess.Popen(
+            self.server.bot_process = Popen(
                 SUBPROCESS_CMD,
                 stdout=self.server.pout[0],
                 stderr=self.server.pout[1]
@@ -100,26 +104,28 @@ class RequestHandler(server.BaseHTTPRequestHandler):
         )
 
     def terminate_bot(self):
-        bot: subprocess.Popen = self.server.bot_process
+        bot: Popen = self.server.bot_process
 
         try:
             bot.terminate()
             bot.wait(timeout=5)
-        except subprocess.TimeoutExpired:
+        except TimeoutExpired:
             bot.kill()
         finally:
             self.server.bot_process = None
 
-        with open(f'{os.getcwd() + "/bot/data.json"}') as f:
+        with open(f'{os.getcwd()}/bot/data/data.json') as f:
             data = json.load(f)
 
-        with open(f'{os.getcwd() + "/bot/data.json"}', 'w') as f:
+        with open(f'{os.getcwd()}/bot/data/data.json', 'w') as f:
             data['status'] = 'offline'
 
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
 
 
 class Server(server.HTTPServer):
+    __slots__ = ('_logger', 'bot_process')
+
     def __init__(self):
         super().__init__(
             ('0.0.0.0', int(os.environ.get('PORT', 5000))),
@@ -130,23 +136,22 @@ class Server(server.HTTPServer):
         self.check_dirs()
 
     def check_dirs(self):
-        if not os.path.exists('bot/logs'):
-            os.makedirs('bot/logs')
+        os.makedirs(f'{os.getcwd()}/bot/data/', exist_ok=True)
 
-        with open('bot/data.json', 'w'):
-            pass
+        with open(f'{os.getcwd()}/bot/data/data.json', 'w'):
+            ...
 
-        with open('bot/logs/log.log', 'w'):
-            pass
+        with open(f'{os.getcwd()}/bot/data/log.log', 'w'):
+            ...
 
     def run_server(self):
         self._logger.info('Starting bot itself...')
-        self.pout = [io.FileIO('bot/logs/log.log', mode='a'), io.FileIO('bot/logs/log.log', mode='a')]
+        self.pout = FileIO(f'{os.getcwd()}/bot/data/log.log', mode='a')
 
-        self.bot_process = subprocess.Popen(
+        self.bot_process = Popen(
             SUBPROCESS_CMD,
-            stdout=self.pout[0],
-            stderr=self.pout[1]
+            stdout=self.pout,
+            stderr=self.pout
         )
 
         self._logger.info('Starting Server...')
@@ -161,7 +166,7 @@ class Server(server.HTTPServer):
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
-                    datefmt='%y.%b.%Y %H:%M:%S')
+                    datefmt='%d.%b.%Y %H:%M:%S')
 
 http_server = Server()
 http_server.run_server()

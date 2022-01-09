@@ -1,9 +1,7 @@
-# Pycharm stuff
-.idea/
-start.bat
 bot/.env
-bot/logs
-bot/data.json
+bot/__pycache__
+bot/data
+bot/queues
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -96,7 +94,7 @@ celerybeat-schedule
 # Environments
 bot/.env
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/

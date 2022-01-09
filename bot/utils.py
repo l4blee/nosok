@@ -15,7 +15,8 @@ async def send_embed(ctx: commands.Context, description: str, color: discord.Col
         title=title,
         color=color
     )
-    await ctx.send(embed=embed)
+
+    return await ctx.send(embed=embed)
 
 
 async def is_connected(ctx: commands.Context):
@@ -27,6 +28,7 @@ async def is_connected(ctx: commands.Context):
         description='I am not connected to a voice channel yet!',
         color=ERROR_COLOR
     )
+
     raise exceptions.BotNotConnected
 
 
@@ -38,23 +40,27 @@ async def run_blocking(blocking_func: typing.Callable, bot: commands.Bot, *args,
 def get_components(embeds, current):
     return [
         [
-            Button(label='Prev', id='back', style=ButtonStyle.red),
             Button(
-                label=f'Page {int(embeds.index(embeds[current])) + 1}/{len(embeds)}',
+                label='Back',
+                id='back',
+                style=ButtonStyle.red
+            ),
+            Button(
+                label=f'Page {current + 1} / {len(embeds)}',
                 id='cur',
                 style=ButtonStyle.grey,
                 disabled=True
             ),
             Button(
                 label='Next',
-                id='front',
+                id='forward',
                 style=ButtonStyle.red
             )
         ],
         [
             Button(
-                label='Add this one',
-                id='preferred_track',
+                label='Add this',
+                id='lock',
                 style=ButtonStyle.green
             )
         ]

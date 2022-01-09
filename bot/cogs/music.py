@@ -1,68 +1,114 @@
 import asyncio
-import re
-import typing
-from collections import defaultdict
+from logging import getLogger
+from io import FileIO
+from os import makedirs
+from re import compile
 from subprocess import DEVNULL
+from typing import Generator, Optional
 
 import discord
-from discord.embeds import Embed
-from discord.ext import commands
-from discord_components.interaction import InteractionType
-
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
+from discord import Embed
+from discord.ext import commands
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-URL_REGEX = re.compile(URL_REGEX)
+URL_REGEX = compile(URL_REGEX)
+
+makedirs('bot/queues', exist_ok=True)
 
 
 class Queue:
-    def __init__(self):
-        self._tracks: list[tuple] = []
+    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file')
+
+    def __init__(self, guild_id: int):
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
-        self.now_playing: int = 0
+        self.now_playing: int = -1
         self.play_next: bool = True
         self.volume: float = 1.0
+        self.guild_id = guild_id
 
-    def add(self, url: str, title: str, mention: discord.User.mention) -> None:
-        self._tracks.append((url, title, mention))
+        self.queue_file = FileIO(f'bot/queues/{guild_id}.txt', 'a+')
 
-    def get_next(self) -> typing.Optional[tuple]:
+    @property
+    def tracks(self) -> list[tuple]:
+        self.queue_file.seek(0)
+        data = self.queue_file.read().decode('utf-8').split('\n')
+        
+        tracks = [tuple(i.split(',')) for i in data if i]
+        return tracks
+
+    def remove(self, index: int) -> tuple:
+        tracks = self.tracks
+
+        ret = tracks.pop(index)
+
+        self.clear()
+
+        to_write = [(','.join([i[0], i[1]]) + '\n').encode('utf-8') for i in tracks]
+        self.queue_file.writelines(to_write)
+
+        return ret
+
+    def add(self, url: str, mention: discord.User.mention) -> None:
+        self.queue_file.seek(0, 2)
+
+        to_write = (','.join([url, mention]) + '\n').encode('utf-8')
+        self.queue_file.write(to_write)
+
+    def get_next(self) -> Optional[tuple]:
+        tracks = self.tracks
+
         self.now_playing += int(self._loop != 2)
-        if self.now_playing >= len(self._tracks):
+        if self.now_playing >= len(tracks):
             if self._loop == 0:
                 self.now_playing = -1
                 self.play_next = False
                 return None
             else:
                 self.now_playing = 0
-
-        return self._tracks[self.now_playing]
+            
+        return tracks[self.now_playing]
 
     def __len__(self):
-        return len(self._tracks)
-
-    def remove(self, index: int) -> tuple:
-        return self._tracks.pop(index)
+        return len(self.tracks)
 
     def clear(self) -> None:
-        self._tracks.clear()
+        self.queue_file.close()
+        with open(f'bot/queues/{self.guild_id}.txt', 'w') as f:
+            f.write('')
+
+        self.queue_file = FileIO(f'bot/queues/{self.guild_id}.txt', 'a+')
 
     @property
     def is_empty(self) -> bool:
-        return not bool(self._tracks)
+        return not bool(self.tracks)
 
     @property
-    def queue(self) -> list:
-        return self._tracks
+    def queue(self) -> Generator:
+        for i in self.tracks:
+            url, mention = i
+            title = music_handler.get_info(url, is_url=True)[1]
+
+            yield url, title, mention
 
     @property
-    def current(self) -> typing.Optional[tuple]:
-        return self._tracks[self.now_playing] if len(self._tracks) > 0 else None
+    def current(self) -> Optional[tuple]:
+        tracks = self.tracks
+
+        if len(tracks) > 0:
+            url, mention = tracks[self.now_playing]
+            title = music_handler.get_info(url, is_url=True)[1]
+
+            output = url, title, mention
+        else:
+            output = None
+
+        return output
 
     @property
     def loop(self):
@@ -77,8 +123,10 @@ class Queue:
 
 
 class Music(commands.Cog):
+    __slots__ = ('_queues')
+
     def __init__(self):
-        self._queues: defaultdict[Queue] = defaultdict(Queue)
+        self._queues: dict = dict()
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
@@ -129,6 +177,7 @@ class Music(commands.Cog):
         if voice.is_playing():
             await self.stop(ctx)
         await voice.disconnect()
+        voice.cleanup()
 
     @commands.command(aliases=['ps'])
     @commands.check(is_connected)
@@ -176,7 +225,8 @@ class Music(commands.Cog):
         """
         Skips the current track and plays the next one
         """
-        ctx.voice_client.stop()
+        if ctx.voice_client:
+            ctx.voice_client.stop()
 
     @commands.command(aliases=['prev'])
     @commands.check(is_connected)
@@ -216,14 +266,15 @@ class Music(commands.Cog):
             try:
                 interaction = await ctx.bot.wait_for(
                     'button_click',
-                    check=lambda i: i.component.id in ['back', 'front', 'preferred_track'],
-                    timeout=10.0
+                    check=lambda i: i.component.id in ['back', 'forward', 'lock'],
+                    timeout=20.0
                 )
+
                 if interaction.component.id == 'back':
                     current -= 1
-                elif interaction.component.id == 'front':
+                elif interaction.component.id == 'forward':
                     current += 1
-                elif interaction.component.id == 'preferred_track':
+                elif interaction.component.id == 'lock':
                     if (track := tracks[current]) is not None:
                         await message.delete()
                         return track
@@ -233,8 +284,15 @@ class Music(commands.Cog):
                 elif current < 0:
                     current = len(embeds) - 1
 
+                await message.edit(
+                    '**Choose one of the following tracks:**',
+                    embed=embeds[current],
+                    components=get_components(embeds, current)
+                )
+
+                # Doesn't apply changes if I don't use both methods idk why
                 await interaction.respond(
-                    type=InteractionType.UpdateMessage,
+                    type=6, 
                     embed=embeds[current],
                     components=get_components(embeds, current)
                 )
@@ -274,9 +332,9 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url, title = music_handler.get_info(query)
+            url = query if URL_REGEX.match(query) else music_handler.get_url(query)
 
-            q.add(url, title, ctx.author.mention)
+            q.add(url, ctx.author.mention)
             q.now_playing = len(q) - 1
             stream = music_handler.get_stream(url)
             loop = ctx.bot.loop
@@ -327,7 +385,9 @@ class Music(commands.Cog):
                                                              ' -reconnect_delay_max 5')
         audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
+
         event_handler.on_song_start(ctx)
+
         await self.current(ctx)
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
@@ -363,6 +423,7 @@ class Music(commands.Cog):
                     ctx=ctx,
                     description='No tracks were specified',
                     color=BASE_COLOR)
+                
                 raise exceptions.NoTracksSpecified
 
             if song is None:
@@ -374,7 +435,7 @@ class Music(commands.Cog):
             
             url, title = song
 
-            q.add(url, title, ctx.author.mention)
+            q.add(url, ctx.author.mention)
             await send_embed(
                 ctx=ctx,
                 description=f'Queued: [{title}]({url})',
@@ -426,9 +487,9 @@ class Music(commands.Cog):
             if q.loop > 2:
                 q.loop = 0
 
-        embed = discord.Embed(description=f'Now looping is set to: `{loop_setting[q.loop]}`',
-                              color=BASE_COLOR)
-        await cxt.send(embed=embed)
+        await send_embed(ctx=ctx, 
+                         description=f'Now looping is set to: `{loop_setting[q.loop]}`',
+                         color=BASE_COLOR)
 
     @commands.command(aliases=['rm'])
     async def remove(self, ctx: commands.Context, index: int):
@@ -446,9 +507,12 @@ class Music(commands.Cog):
             )
             return
 
+        url, _ = res
+        title = music_handler.get_info(url, is_url=True)[1]
+
         await send_embed(
             ctx=ctx,
-            description=f'Removed: [{res[1]}]({res[0]})',
+            description=f'Removed: [{title}]({url})',
             color=BASE_COLOR
         )
 
@@ -481,6 +545,8 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
             raise IndexError('Index out of range')
+        else:
+            await self.play(ctx)
 
     @commands.command(aliases=['vol', 'v'])
     @commands.check(is_connected)
@@ -489,18 +555,19 @@ class Music(commands.Cog):
         Adjusts the volume.
         """
         if 0 > volume > 100:
-            embed = discord.Embed(
+            await send_embed(
+                ctx=ctx,
                 description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
         else:
             ctx.voice_client.source.volume = volume / 100
             self._queues[ctx.guild.id].volume = volume / 100
-            embed = discord.Embed(
+            await send_embed(
+                ctx=ctx,
                 description=f'Volume has been successfully changed to `{volume}%`',
                 color=BASE_COLOR
             )
-        await ctx.send(embed=embed)
 
     @commands.command(aliases=['sch'])
     async def search(self, ctx: commands.Context, *query):
@@ -527,7 +594,7 @@ class Music(commands.Cog):
         
         url, title = track
 
-        q.add(url, title, ctx.author.mention)
+        q.add(url, ctx.author.mention)
         if not voice.is_playing():
             stream = music_handler.get_stream(url)
             loop = ctx.bot.loop

@@ -1,33 +1,49 @@
-import logging
 import os
+import sys
+from gc import collect
 from importlib import import_module
+from logging import getLogger
 from pathlib import Path
+from traceback import print_exception
 
-import sqlalchemy as sa
-import discord
 from discord.ext import commands
 from discord_components.client import DiscordComponents
-from youtube_dl.utils import std_headers
 
-from base import DBBase, Session, BASE_PREFIX
+from base import BASE_PREFIX, ERROR_COLOR
 from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
+from exceptions import CustomException
+from utils import send_embed
+from orm.base import db
+from orm.models import GuildConfig
 
-USE_YOUTUBE = False
-
-
-class Config(DBBase):
-    __tablename__ = 'config'
-
-    guild_id = sa.Column('guild_id', sa.BigInteger, unique=True, primary_key=True)
-    prefix = sa.Column('prefix', sa.String, server_default='!')
+USE_YOUTUBE = True
 
 
 class MusicBot(commands.Bot):
+    __slots__ = ('_logger')
+
     def __init__(self, command_prefix):
-        super().__init__(command_prefix, case_insensetive=True)
-        self._logger = logging.getLogger('BOT')
+        super().__init__(command_prefix)
+        self._logger = getLogger('BOT')
+
+    async def on_command_error(self, ctx: commands.Context, exception):
+        if not isinstance(exception, CustomException):
+            if isinstance(exception, commands.CommandNotFound):
+                await send_embed(ctx,
+                                f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
+                                ERROR_COLOR)
+            else:
+                await send_embed(ctx,
+                             'An error occured during handling this command, please try again later.', 
+                             ERROR_COLOR)
+
+                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
+                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
+                
 
     def setup(self):
+        db.create_tables([GuildConfig])
+
         for cls in [
             import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
             for i in Path('./bot/cogs/').glob('*.py')
@@ -40,7 +56,13 @@ class MusicBot(commands.Bot):
         super().run(TOKEN, reconnect=True)
 
     async def on_ready(self):
+        Queue = import_module('cogs.music').__dict__['Queue']
+        self.get_cog('Music')._queues = {i.id: Queue(i.id) for i in self.guilds}
+        del Queue
+
         DiscordComponents(self)
+
+        collect()
         self._logger.info('Bot has been successfully launched')
 
     async def close(self):
@@ -48,23 +70,21 @@ class MusicBot(commands.Bot):
         await super().close()
 
 
-def get_prefix(_, msg: discord.Message) -> str:
-    with Session.begin() as s:
-        res = s.query(Config).filter_by(guild_id=msg.guild.id).first()
+def get_prefix(_, msg) -> str:
+    with db.atomic():
+        res = GuildConfig.get_or_none(GuildConfig.guild_id == msg.guild.id)
         return res.prefix if res is not None else BASE_PREFIX
 
 
 bot = MusicBot(get_prefix)
-con_handler = DataProcessor(bot)
+data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
 
 if USE_YOUTUBE:
-    std_headers['Aser-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                                'Chrome/51.0.2704.103 Safari/537.36'
     music_handler = YDLHandler({
         'simulate': True,
         'quiet': True,
-        'format': 'bestaudio/best'
+        'format': 'bestaudio'
     })
 else:
     music_handler = SCHandler()

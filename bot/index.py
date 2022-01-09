@@ -1,17 +1,20 @@
 import logging
 import os
 
-from base import DBBase
-from core import bot, con_handler
+if os.getenv('APP_STATUS', 'production') != 'production':
+    from dotenv import load_dotenv
+    load_dotenv('bot/.env')
 
-os.makedirs('bot/logs', exist_ok=True)
+from core import bot, data_processor
+
+os.makedirs('bot/data', exist_ok=True)
+os.makedirs('bot/queues', exist_ok=True)
+
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
-                    datefmt='%y.%b.%Y %H:%M:%S')
+                    datefmt='%d.%b.%Y %H:%M:%S')
 
-DBBase.metadata.create_all()
-
-con_handler.start()
+data_processor.start()
 bot.run()
 
-con_handler.close()
+data_processor.close()

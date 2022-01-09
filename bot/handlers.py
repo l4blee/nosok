@@ -1,19 +1,19 @@
-import asyncio
-import soundcloud
-import json
-import logging
 import os
-import re
-import threading
-import time
+from asyncio import run_coroutine_threadsafe
 from datetime import datetime, timedelta
-from http import server
+from json import dump
+from logging import getLogger
 from multiprocessing.pool import ThreadPool
+from re import compile
+from threading import Thread, Event
+from time import sleep
+import psutil
 
 import requests
 from discord.ext import commands
-from psutil import Process
-from youtube_dl import YoutubeDL as YtDL
+import discord
+from soundcloud import SoundCloud
+from yt_dlp import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase
 from utils import send_embed
@@ -25,7 +25,16 @@ class YDLHandler(MusicHandlerBase):
         self._scheme = scheme
         self._search_pattern = scheme + '://www.youtube.com/results?search_query='
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
-        self._video_regex = re.compile(r'watch\?v=(\S{11})')
+        self._video_regex = compile(r'watch\?v=(\S{11})')
+
+    def get_url(self, query: str) -> str:
+        query = '+'.join(query.split())
+
+        with requests.Session() as session:
+            res = session.get(self._search_pattern + query)
+
+        iterator = self._video_regex.finditer(res.text)
+        return self._video_pattern + next(iterator).group(1)
 
     def get_urls(self, query: str, max_results: int = 5) -> list:
         query = '+'.join(query.split())
@@ -67,13 +76,17 @@ class YDLHandler(MusicHandlerBase):
         with YtDL(self._ydl_opts) as ydl:
             streams = ydl.extract_info(url, download=False).get('formats')
 
+        streams = [i for i in streams if i.get('audio_ext') != 'none']
         return max([i for i in streams if i.get('fps') is None],
                    key=lambda x: x.get('tbr')).get('url')
 
 
 class SCHandler(MusicHandlerBase):
     def __init__(self):
-        self.client = soundcloud.SoundCloud(os.environ.get('CLIENT_ID'))
+        self.client = SoundCloud(os.environ.get('CLIENT_ID'))
+
+    def get_url(self, query: str) -> str:
+        return next(self.client.search_tracks(query)).permalink_url
 
     def get_urls(self, query: str, max_results: int = 5) -> list[str]:
         return [next(self.client.search_tracks(query)).permalink_url for _ in range(max_results)]
@@ -113,14 +126,15 @@ class EventHandler:
         self._bot = bot
         self.to_check: dict = dict()
 
-        self._thread = threading.Thread(target=self.loop,
-                                        daemon=True)
+        self._thread = Thread(target=self.loop,
+                              daemon=True)
         self._thread.start()
+
 
     def loop(self):
         while True:
-            asyncio.run_coroutine_threadsafe(self.checkall(), self._bot.loop)
-            time.sleep(100)
+            run_coroutine_threadsafe(self.checkall(), self._bot.loop)
+            sleep(60)
 
     def on_song_end(self, ctx: commands.Context):
         self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
@@ -129,44 +143,74 @@ class EventHandler:
         self.to_check[ctx] = None
 
     async def checkall(self):
-        for i in self.to_check.keys():
-            timestamp = self.to_check[i]
-            if timestamp and \
-                    datetime.now() >= timestamp and \
-                    not i.voice_client.is_playing():
-                music_cog = self._bot.get_cog('Music')
-                await music_cog.leave(i)
-                self.to_check[i] = None
+        for ctx, timestamp in self.to_check.items():
+            player = ctx.voice_client
+            if not player:
+                self.to_check[ctx] = None
+                continue
+
+            if player.is_playing():
+                self.to_check[ctx] = None
+                continue
+
+            if timestamp and datetime.now().time() >= timestamp.time():
+                await player.disconnect()
+                player.cleanup()
+
                 await send_embed(
-                    ctx=i,
-                    description='I have been staying AFK for too long, so I left the channel',
+                    ctx=ctx,
+                    description='I have been staying AFK for too long, so I left the voice channel',
                     color=BASE_COLOR
                 )
 
+                self.to_check[ctx] = None
 
-class DataProcessor(threading.Thread):
+
+class DataProcessor(Thread):
+    __slots__ = ('_bot', '_logger', '_stop')
+
     def __init__(self, bot):
         super().__init__(target=self.loop,
                          daemon=True)
-        self._stop = threading.Event()
+        self._stop = Event()
 
         self._bot = bot
-        self._logger = logging.getLogger('DataProcessor')
+        self._logger = getLogger('DataProcessor')
 
     def loop(self):
         while True:
-            with open(f'{os.getcwd() + "/bot/data.json"}', 'w') as f:
+            this_proc = psutil.Process()
+
+            voices = [i.voice_client for i in self._bot.guilds]
+            voices = [i.source for i in voices if i is not None]  # Check if connected
+            procs = [i.original._process for i in voices if i is not None]  # Get procs
+            cpu_utils = 0
+            mem_utils = 0
+
+            for i in filter(lambda x: x is not None, procs):
+                try:
+                    proc = psutil.Process(i.pid)
+
+                    cpu_utils += proc.cpu_percent()
+                    mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
+                except Exception as e:
+                    self._logger.exception(e, exc_info=True)
+
+            cpu_usage = this_proc.cpu_percent() + cpu_utils
+            mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
+
+            with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
                 data = {
                     'status': 'online',
                     'vars': {
-                        'servers': [i.id for i in self.bot.guilds],
-                        'latency': self.bot.latency,
-                        'memory_used': Process(os.getpid()).memory_info().rss / (1024 * 1024)
+                        'servers': len(self.bot.guilds),
+                        'cpu_used': cpu_usage,
+                        'memory_used': str(mem_usage) + 'M'
                     }
                 }
 
-                json.dump(data, f, indent=4)
-            time.sleep(5)
+                dump(data, f, indent=4)
+            sleep(0.25)
 
     @property
     def bot(self):
