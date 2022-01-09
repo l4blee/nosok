@@ -487,9 +487,9 @@ class Music(commands.Cog):
             if q.loop > 2:
                 q.loop = 0
 
-        embed = Embed(description=f'Now looping is set to: `{loop_setting[q.loop]}`',
-                              color=BASE_COLOR)
-        await cxt.send(embed=embed)
+        await send_embed(ctx=ctx, 
+                         description=f'Now looping is set to: `{loop_setting[q.loop]}`',
+                         color=BASE_COLOR)
 
     @commands.command(aliases=['rm'])
     async def remove(self, ctx: commands.Context, index: int):
@@ -555,18 +555,19 @@ class Music(commands.Cog):
         Adjusts the volume.
         """
         if 0 > volume > 100:
-            embed = Embed(
+            await send_embed(
+                ctx=ctx,
                 description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
         else:
             ctx.voice_client.source.volume = volume / 100
             self._queues[ctx.guild.id].volume = volume / 100
-            embed = Embed(
+            await send_embed(
+                ctx=ctx,
                 description=f'Volume has been successfully changed to `{volume}%`',
                 color=BASE_COLOR
             )
-        await ctx.send(embed=embed)
 
     @commands.command(aliases=['sch'])
     async def search(self, ctx: commands.Context, *query):
