@@ -49,7 +49,7 @@ class Queue:
 
         self.clear()
 
-        to_write = [(','.join([i[0], i[1]]) + '\n') for i in tracks].encode('utf-8')
+        to_write = [(','.join([i[0], i[1]]) + '\n').encode('utf-8') for i in tracks]
         self.queue_file.writelines(to_write)
 
         return ret
