@@ -37,7 +37,7 @@ class MusicBot(commands.Bot):
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
 
-                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
                 print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
                 
 

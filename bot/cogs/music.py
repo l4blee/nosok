@@ -21,8 +21,6 @@ URL_REGEX = compile(URL_REGEX)
 
 makedirs('bot/queues', exist_ok=True)
 
-logger = getLogger('fsdfgsdfjsdsdf')
-
 
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file')
