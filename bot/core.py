@@ -19,12 +19,12 @@ from orm.models import GuildConfig
 USE_YOUTUBE = True
 
 
-class MusicBot(commands.Bot):
+class Bot(commands.Bot):
     __slots__ = ('_logger')
 
     def __init__(self, command_prefix):
         super().__init__(command_prefix)
-        self._logger = getLogger('BOT')
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_command_error(self, ctx: commands.Context, exception):
         if not isinstance(exception, CustomException):
@@ -63,7 +63,7 @@ class MusicBot(commands.Bot):
         DiscordComponents(self)
 
         collect()
-        self._logger.info('Bot has been successfully launched')
+        self._logger.info('The bot has been successfully launched.')
 
     async def close(self):
         self._logger.info('The bot is being shut down...')
@@ -76,7 +76,7 @@ def get_prefix(_, msg) -> str:
         return res.prefix if res is not None else BASE_PREFIX
 
 
-bot = MusicBot(get_prefix)
+bot = Bot(get_prefix)
 data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
 

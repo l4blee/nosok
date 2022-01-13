@@ -1,5 +1,4 @@
 import asyncio
-from logging import getLogger
 from io import FileIO
 from os import makedirs
 from re import compile

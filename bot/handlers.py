@@ -175,19 +175,20 @@ class DataProcessor(Thread):
         self._stop = Event()
 
         self._bot = bot
-        self._logger = getLogger('DataProcessor')
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
         while True:
             this_proc = psutil.Process()
 
             voices = [i.voice_client for i in self._bot.guilds]
-            voices = [i.source for i in voices if i is not None]  # Check if connected
-            procs = [i.original._process for i in voices if i is not None]  # Get procs
+            procs = [i.source.original._process
+                     for i in voices
+                     if i and i.source]  # Get procs
             cpu_utils = 0
             mem_utils = 0
 
-            for i in filter(lambda x: x is not None, procs):
+            for i in filter(bool, procs):
                 try:
                     proc = psutil.Process(i.pid)
 
@@ -210,7 +211,7 @@ class DataProcessor(Thread):
                 }
 
                 dump(data, f, indent=4)
-            sleep(0.25)
+            sleep(5)
 
     @property
     def bot(self):

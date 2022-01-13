@@ -131,7 +131,7 @@ class Server(server.HTTPServer):
             ('0.0.0.0', int(os.environ.get('PORT', 5000))),
             RequestHandler
         )
-        self._logger = logging.getLogger('index')
+        self._logger = logging.getLogger(self.__class__.__qualname__)
         self.bot_process = None
         self.check_dirs()
 

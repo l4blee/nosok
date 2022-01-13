@@ -1,12 +1,11 @@
-import os
-from logging import getLogger
+from os import getenv
 from abc import ABC
 
-import discord
+from discord import Colour
 
-BASE_PREFIX = os.environ.get('BASE_PREFIX')
-BASE_COLOR = discord.Colour.from_rgb(241, 184, 19)
-ERROR_COLOR = discord.Colour.from_rgb(255, 0, 0)
+BASE_PREFIX = getenv('BASE_PREFIX', '!')
+BASE_COLOR = Colour.from_rgb(241, 184, 19)
+ERROR_COLOR = Colour.from_rgb(255, 0, 0)
 
 
 class MusicHandlerBase(ABC):
