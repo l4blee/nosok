@@ -6,11 +6,13 @@ from subprocess import DEVNULL
 from typing import Generator, Optional
 
 import discord
-import exceptions
-from base import BASE_COLOR, ERROR_COLOR
-from core import music_handler, event_handler
 from discord import Embed
 from discord.ext import commands
+
+import exceptions
+from player import Player
+from base import BASE_COLOR, ERROR_COLOR
+from core import music_handler, event_handler
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
@@ -472,7 +474,7 @@ class Music(commands.Cog):
         )
 
     @commands.command()
-    async def loop(self, cxt: commands.Context, option: str = ''):
+    async def loop(self, ctx: commands.Context, option: str = ''):
         """
         Changes loop option to None, Queue or Track
         """
