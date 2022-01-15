@@ -10,7 +10,6 @@ from discord import Embed
 from discord.ext import commands
 
 import exceptions
-from player import Player
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
 from utils import (is_connected, send_embed,
