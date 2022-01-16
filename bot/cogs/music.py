@@ -479,7 +479,7 @@ class Music(commands.Cog):
         """
         loop_setting = ['None', 'Current queue', 'Current track']
 
-        q: Queue = self._queues[cxt.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         if option:
             q.loop = ['None', 'Queue', 'Track'].index(option.capitalize())
         else:
