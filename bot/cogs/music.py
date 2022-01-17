@@ -202,12 +202,12 @@ class Music(commands.Cog):
             )
             return
 
-            await send_embed(
-                ctx=ctx,
-                title='Current song:',
-                description=f'[{current[1]}]({current[0]}) | {current[2]}',
-                color=BASE_COLOR
-            )
+        await send_embed(
+            ctx=ctx,
+            title='Current song:',
+            description=f'[{current[1]}]({current[0]}) | {current[2]}',
+            color=BASE_COLOR
+        )
 
     @commands.command(aliases=['n', 'next'])
     @commands.check(is_connected)
