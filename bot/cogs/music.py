@@ -57,7 +57,9 @@ class Queue:
     def add(self, url: str, mention: discord.User.mention) -> None:
         self.queue_file.seek(0, 2)
 
-        to_write = (','.join([url, mention]) + '\n').encode('utf-8')
+        title = music_handler.get_info(url, is_url=True)[1]
+
+        to_write = (','.join([url, title, mention]) + '\n').encode('utf-8')
         self.queue_file.write(to_write)
 
     def get_next(self) -> Optional[tuple]:
@@ -90,25 +92,11 @@ class Queue:
 
     @property
     def queue(self) -> Generator:
-        for i in self.tracks:
-            url, mention = i
-            title = music_handler.get_info(url, is_url=True)[1]
-
-            yield url, title, mention
+        yield from self.tracks  # yields url, title, mention
 
     @property
     def current(self) -> Optional[tuple]:
-        tracks = self.tracks
-
-        if len(tracks) > 0:
-            url, mention = tracks[self.now_playing]
-            title = music_handler.get_info(url, is_url=True)[1]
-
-            output = url, title, mention
-        else:
-            output = None
-
-        return output
+        return tracks[self.now_playing] if len(self.tracks) > 0 else None
 
     @property
     def loop(self):
@@ -116,7 +104,7 @@ class Queue:
 
     @loop.setter
     def loop(self, value: int):
-        if 2 < value < 0:
+        if 0 > value > 2:
             raise ValueError('Loop value is out of range')
 
         self._loop = value
@@ -202,7 +190,10 @@ class Music(commands.Cog):
         Displays current playing song.
         """
         voice = ctx.voice_client
-        if not voice.is_playing():
+        q: Queue = self._queues[ctx.guild.id]
+        current = q.current
+
+        if not voice.is_playing() or current is None:
             await send_embed(
                 ctx=ctx,
                 description='I am not playing any song for now!',
@@ -210,14 +201,12 @@ class Music(commands.Cog):
             )
             return
 
-        q: Queue = self._queues[ctx.guild.id]
-        current = q.current
-        await send_embed(
-            ctx=ctx,
-            title='Current song:',
-            description=f'[{current[1]}]({current[0]}) | {current[2]}',
-            color=BASE_COLOR
-        )
+            await send_embed(
+                ctx=ctx,
+                title='Current song:',
+                description=f'[{current[1]}]({current[0]}) | {current[2]}',
+                color=BASE_COLOR
+            )
 
     @commands.command(aliases=['n', 'next'])
     @commands.check(is_connected)
