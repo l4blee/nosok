@@ -96,7 +96,8 @@ class Queue:
 
     @property
     def current(self) -> Optional[tuple]:
-        return tracks[self.now_playing] if len(self.tracks) > 0 else None
+        tracks = self.tracks
+        return tracks[self.now_playing] if len(tracks) > 0 else None
 
     @property
     def loop(self):
