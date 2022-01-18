@@ -1,6 +1,6 @@
 import os
 import sys
-from gc import collect
+from time import perf_counter
 from importlib import import_module
 from logging import getLogger
 from pathlib import Path
@@ -23,7 +23,8 @@ class Bot(commands.Bot):
     __slots__ = ('_logger')
 
     def __init__(self, command_prefix):
-        super().__init__(command_prefix)
+        self._start_time = perf_counter()
+        super().__init__(command_prefix, case_insensitive=True)
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_command_error(self, ctx: commands.Context, exception):
@@ -62,8 +63,8 @@ class Bot(commands.Bot):
 
         DiscordComponents(self)
 
-        collect()
-        self._logger.info('The bot has been successfully launched.')
+        self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
+        delattr(self, '_start_time')
 
     async def close(self):
         self._logger.info('The bot is being shut down...')

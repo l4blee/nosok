@@ -19,9 +19,12 @@ URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 URL_REGEX = compile(URL_REGEX)
 
-ITEM_SEPARATOR = ']]]]'
+ITEM_SEPARATOR = ';;;;'
 
 makedirs('bot/queues', exist_ok=True)
+
+from logging import getLogger
+logger = getLogger(__name__)
 
 
 class Queue:
@@ -50,10 +53,12 @@ class Queue:
 
     def remove(self, index: int) -> tuple:
         tracks = self.tracks
-        
+
         ret = tracks.pop(index)
         self.clear()
-        self._write_to_queue_file(tracks)
+        
+        to_write = [(ITEM_SEPARATOR.join(i) + '\n').encode('utf-8') for i in tracks]
+        self.queue_file.writelines(to_write)
 
         return ret
 
@@ -61,7 +66,9 @@ class Queue:
         self.queue_file.seek(0, 2)
 
         title = music_handler.get_info(url, is_url=True)[1]
-        self._write_to_queue_file([url, title, mention])
+
+        to_write = ITEM_SEPARATOR.join([url, title, mention]).encode('utf-8')
+        self.queue_file.write(to_write)
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -433,9 +440,10 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
         else:
-            if len(q) > 0:
+            tracks = list(q.queue)
+            if len(tracks) > 0:
                 desc = ''
-                for index, item in enumerate(q.queue):
+                for index, item in enumerate(tracks):
                     url, title, mention = item
                     desc += f'{["", "now -> "][int(index == q.now_playing)]}' \
                             f'{index + 1}.\t[{title}]({url}) | {mention}\n'
