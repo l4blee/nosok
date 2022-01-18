@@ -23,9 +23,6 @@ ITEM_SEPARATOR = ';;;;'
 
 makedirs('bot/queues', exist_ok=True)
 
-from logging import getLogger
-logger = getLogger(__name__)
-
 
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file')
@@ -47,10 +44,6 @@ class Queue:
         tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
 
-    def _write_to_queue_file(self, items):
-        to_write = [(ITEM_SEPARATOR.join(i) + '\n').encode('utf-8') for i in items]
-        self.queue_file.writelines(to_write)
-
     def remove(self, index: int) -> tuple:
         tracks = self.tracks
 
@@ -67,7 +60,7 @@ class Queue:
 
         title = music_handler.get_info(url, is_url=True)[1]
 
-        to_write = ITEM_SEPARATOR.join([url, title, mention]).encode('utf-8')
+        to_write = (ITEM_SEPARATOR.join([url, title, mention]) + '\n').encode('utf-8')
         self.queue_file.write(to_write)
 
     def get_next(self) -> Optional[tuple]:
