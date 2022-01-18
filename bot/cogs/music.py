@@ -19,6 +19,8 @@ URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 URL_REGEX = compile(URL_REGEX)
 
+ITEM_SEPARATOR = ']]]]'
+
 makedirs('bot/queues', exist_ok=True)
 
 
@@ -39,7 +41,7 @@ class Queue:
         self.queue_file.seek(0)
         data = self.queue_file.read().decode('utf-8').split('\n')
         
-        tracks = [tuple(i.split(',')) for i in data if i]
+        tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
 
     def remove(self, index: int) -> tuple:
@@ -49,7 +51,7 @@ class Queue:
 
         self.clear()
 
-        to_write = [(','.join([i[0], i[1]]) + '\n').encode('utf-8') for i in tracks]
+        to_write = [(ITEM_SEPARATOR.join(i) + '\n').encode('utf-8') for i in tracks]
         self.queue_file.writelines(to_write)
 
         return ret
@@ -59,7 +61,7 @@ class Queue:
 
         title = music_handler.get_info(url, is_url=True)[1]
 
-        to_write = (','.join([url, title, mention]) + '\n').encode('utf-8')
+        to_write = (ITEM_SEPARATOR.join([url, title, mention]) + '\n').encode('utf-8')
         self.queue_file.write(to_write)
 
     def get_next(self) -> Optional[tuple]:
