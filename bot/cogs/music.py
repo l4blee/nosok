@@ -44,15 +44,16 @@ class Queue:
         tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
 
+    def _write_to_queue_file(self, items):
+        to_write = [(ITEM_SEPARATOR.join(i) + '\n').encode('utf-8') for i in items]
+        self.queue_file.writelines(to_write)
+
     def remove(self, index: int) -> tuple:
         tracks = self.tracks
-
+        
         ret = tracks.pop(index)
-
         self.clear()
-
-        to_write = [(ITEM_SEPARATOR.join(i) + '\n').encode('utf-8') for i in tracks]
-        self.queue_file.writelines(to_write)
+        self._write_to_queue_file(tracks)
 
         return ret
 
@@ -60,9 +61,7 @@ class Queue:
         self.queue_file.seek(0, 2)
 
         title = music_handler.get_info(url, is_url=True)[1]
-
-        to_write = (ITEM_SEPARATOR.join([url, title, mention]) + '\n').encode('utf-8')
-        self.queue_file.write(to_write)
+        self._write_to_queue_file([url, title, mention])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
