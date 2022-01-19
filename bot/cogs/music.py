@@ -499,8 +499,7 @@ class Music(commands.Cog):
             )
             return
 
-        url, _ = res
-        title = music_handler.get_info(url, is_url=True)[1]
+        url, title, _ = res
 
         await send_embed(
             ctx=ctx,
