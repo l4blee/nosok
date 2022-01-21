@@ -253,7 +253,7 @@ class Music(commands.Cog):
             components=get_components(embeds, current)
         )
 
-        while True:
+        while 1:
             try:
                 interaction = await ctx.bot.wait_for(
                     'button_click',

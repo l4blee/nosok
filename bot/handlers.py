@@ -1,5 +1,6 @@
 import os
 from asyncio import run_coroutine_threadsafe
+from gc import collect
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
@@ -132,7 +133,8 @@ class EventHandler:
 
 
     def loop(self):
-        while True:
+        while 1:
+            collect()
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
             sleep(60)
 
@@ -178,40 +180,43 @@ class DataProcessor(Thread):
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
-        while True:
-            this_proc = psutil.Process()
-
-            voices = [i.voice_client for i in self._bot.guilds]
-            procs = [i.source.original._process
-                     for i in voices
-                     if i and i.source]  # Get procs
-            cpu_utils = 0
-            mem_utils = 0
-
-            for i in filter(bool, procs):
-                try:
-                    proc = psutil.Process(i.pid)
-
-                    cpu_utils += proc.cpu_percent()
-                    mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
-                except Exception as e:
-                    self._logger.exception(e, exc_info=True)
-
-            cpu_usage = this_proc.cpu_percent() + cpu_utils
-            mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
-
-            with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
-                data = {
-                    'status': 'online',
-                    'vars': {
-                        'servers': len(self.bot.guilds),
-                        'cpu_used': cpu_usage,
-                        'memory_used': str(mem_usage) + 'M'
-                    }
-                }
-
-                dump(data, f, indent=4)
+        while 1:
+            self.read_and_collect()
             sleep(5)
+    
+    def read_and_collect(self):
+        this_proc = psutil.Process()
+
+        voices = [i.voice_client for i in self._bot.guilds]
+        procs = [i.source.original._process
+                    for i in voices
+                    if i and i.source]  # Get procs
+        cpu_utils = 0
+        mem_utils = 0
+
+        for i in filter(bool, procs):
+            try:
+                proc = psutil.Process(i.pid)
+
+                cpu_utils += proc.cpu_percent()
+                mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
+            except Exception as e:
+                self._logger.exception(e, exc_info=True)
+
+        cpu_usage = this_proc.cpu_percent() + cpu_utils
+        mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
+
+        with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
+            data = {
+                'status': 'online',
+                'vars': {
+                    'servers': len(self.bot.guilds),
+                    'cpu_used': cpu_usage,
+                    'memory_used': str(mem_usage) + 'M'
+                }
+            }
+
+            dump(data, f, indent=4)
 
     @property
     def bot(self):
