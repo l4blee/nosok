@@ -126,6 +126,7 @@ class EventHandler:
     def __init__(self, bot):
         self._bot = bot
         self.to_check: dict = dict()
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
         self._thread = Thread(target=self.loop,
                               daemon=True)
@@ -134,6 +135,7 @@ class EventHandler:
 
     def loop(self):
         while 1:
+            self._logger.info('Initiating guilds check and garbage collecting...')
             collect()
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
             sleep(60)
@@ -158,14 +160,15 @@ class EventHandler:
             if timestamp and datetime.now().time() >= timestamp.time():
                 await player.disconnect()
                 player.cleanup()
+                del player
+
+                self.to_check[ctx] = None
 
                 await send_embed(
                     ctx=ctx,
                     description='I have been staying AFK for too long, so I left the voice channel',
                     color=BASE_COLOR
                 )
-
-                self.to_check[ctx] = None
 
 
 class DataProcessor(Thread):
