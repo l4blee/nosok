@@ -34,7 +34,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                 'status': data['status']
             }
         elif self.path == '/vars':
-            out = data['vars']
+            out = data
         elif self.path == '/log':
             with open(f'{os.getcwd()}/bot/data/log.log') as f:
                 self.send_response(200, 'OK')
