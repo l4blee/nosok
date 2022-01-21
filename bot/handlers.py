@@ -159,8 +159,6 @@ class EventHandler:
 
             if timestamp and datetime.now().time() >= timestamp.time():
                 await player.disconnect()
-                player.cleanup()
-                del player
 
                 self.to_check[ctx] = None
 
