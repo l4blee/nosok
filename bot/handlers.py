@@ -214,7 +214,8 @@ class DataProcessor(Thread):
                     'servers': len(self.bot.guilds),
                     'cpu_used': cpu_usage,
                     'memory_used': str(mem_usage) + 'M'
-                }
+                },
+                'last_updated': datetime.now()
             }
 
             dump(data, f, indent=4)
