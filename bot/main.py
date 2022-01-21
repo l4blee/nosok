@@ -1,7 +1,8 @@
+import os
 import json
 import logging
-import os
-from http import server
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import FileIO
 from subprocess import Popen, TimeoutExpired
 from sys import executable
@@ -14,7 +15,7 @@ if os.getenv('APP_STATUS', 'production') != 'production':
 SUBPROCESS_CMD = [executable, f'{os.getcwd()}/bot/index.py']
 
 
-class RequestHandler(server.BaseHTTPRequestHandler):
+class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if os.path.exists(f'{os.getcwd()}/bot/data/data.json'):
             with open(f'{os.getcwd()}/bot/data/data.json') as f:
@@ -26,7 +27,8 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                     'servers': int('Nan'),
                     'latency': float('Nan'),
                     'memory_used': float('Nan')
-                }
+                },
+                'last_updated': datetime.now().strftime('%d.%b.%Y %H:%M:%S')
             }
 
         if self.path == '/':
@@ -45,6 +47,8 @@ class RequestHandler(server.BaseHTTPRequestHandler):
                     f.read().encode('utf-8')
                 )
                 return
+        elif self.path == '/favicon.ico':
+            return None
         else:
             self.send_error(409)
             return
@@ -76,8 +80,8 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             else:
                 self.server.bot_process = Popen(
                     SUBPROCESS_CMD,
-                    stdout=self.server.pout[0],
-                    stderr=self.server.pout[1]
+                    stdout=self.server.pout,
+                    stderr=self.server.pout
                 )
         elif parsed.path == '/terminate':
             print('terminating')
@@ -88,8 +92,8 @@ class RequestHandler(server.BaseHTTPRequestHandler):
 
             self.server.bot_process = Popen(
                 SUBPROCESS_CMD,
-                stdout=self.server.pout[0],
-                stderr=self.server.pout[1]
+                stdout=self.server.pout,
+                stderr=self.server.pout
             )
         else:
             self.send_error(400)
@@ -123,7 +127,7 @@ class RequestHandler(server.BaseHTTPRequestHandler):
             json.dump(data, f, indent=4)
 
 
-class Server(server.HTTPServer):
+class Server(HTTPServer):
     __slots__ = ('_logger', 'bot_process')
 
     def __init__(self):
@@ -146,7 +150,7 @@ class Server(server.HTTPServer):
 
     def run_server(self):
         self._logger.info('Starting bot itself...')
-        self.pout = FileIO(f'{os.getcwd()}/bot/data/log.log', mode='a')
+        self.pout = FileIO(f'{os.getcwd()}/bot/data/log.log', mode='a+')
 
         self.bot_process = Popen(
             SUBPROCESS_CMD,
@@ -156,8 +160,6 @@ class Server(server.HTTPServer):
 
         self._logger.info('Starting Server...')
         self.serve_forever()
-
-        self.close()
 
     def close(self):
         self._logger.info('Closing Server...')
@@ -169,4 +171,10 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%d.%b.%Y %H:%M:%S')
 
 http_server = Server()
-http_server.run_server()
+
+try:
+    http_server.run_server()
+except:
+    pass
+finally:
+    http_server.close()
