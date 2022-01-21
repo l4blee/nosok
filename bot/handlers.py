@@ -215,7 +215,7 @@ class DataProcessor(Thread):
                     'cpu_used': cpu_usage,
                     'memory_used': str(mem_usage) + 'M'
                 },
-                'last_updated': datetime.now()
+                'last_updated': datetime.now().strftime('%d.%b.%Y %H:%M:%S')
             }
 
             dump(data, f, indent=4)
