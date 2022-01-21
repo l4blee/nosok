@@ -1,12 +1,11 @@
 import os
-import json
 import logging
+from json import load, dump, dumps
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import FileIO
 from subprocess import Popen, TimeoutExpired
 from sys import executable
-from urllib.parse import urlparse
 
 if os.getenv('APP_STATUS', 'production') != 'production':
     from dotenv import load_dotenv
@@ -19,7 +18,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if os.path.exists(f'{os.getcwd()}/bot/data/data.json'):
             with open(f'{os.getcwd()}/bot/data/data.json') as f:
-                data = json.load(f)
+                data = load(f)
         else:
             data = {
                 'status': 'offline',
@@ -32,21 +31,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             }
 
         if self.path == '/':
-            out = {
-                'status': data['status']
-            }
+            out = f'Status: {data["status"]}'
         elif self.path == '/vars':
-            out = data
+            out = dumps(data, indent=4)
         elif self.path == '/log':
             with open(f'{os.getcwd()}/bot/data/log.log') as f:
-                self.send_response(200, 'OK')
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-
-                self.wfile.write(
-                    f.read().encode('utf-8')
-                )
-                return
+                out = f.read()
         elif self.path == '/favicon.ico':
             return None
         else:
@@ -57,12 +47,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
-        self.wfile.write(
-            json.dumps(out, indent=4).encode('utf-8')
-        )
+        self.wfile.write(out.encode('utf-8'))
 
     def do_POST(self):
-        parsed = urlparse(self.path)
         username, password = self.headers.get('Authorization').split(':')
 
         if not (username == os.environ.get('app_username')
@@ -72,8 +59,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         bot: Popen = self.server.bot_process
 
-        if parsed.path == '/launch':
-            print('launching bot')
+        if self.path == '/launch':
+            self.server._logger.info('Launching bot...')
             if bot is not None:
                 self.send_error(409)
                 return
@@ -83,11 +70,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                     stdout=self.server.pout,
                     stderr=self.server.pout
                 )
-        elif parsed.path == '/terminate':
-            print('terminating')
+        elif self.path == '/terminate':
+            self.server._logger.info('Terminating bot...')
             self.terminate_bot()
-        elif parsed.path == '/restart':
-            print('restarting')
+        elif self.path == '/restart':
+            self.server._logger.info('Restarting bot...')
             self.terminate_bot()
 
             self.server.bot_process = Popen(
@@ -103,9 +90,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
-        self.wfile.write(
-            'Done'.encode('utf-8')
-        )
+        self.wfile.write('Status: done'.encode('utf-8'))
 
     def terminate_bot(self):
         bot: Popen = self.server.bot_process
@@ -119,12 +104,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.server.bot_process = None
 
         with open(f'{os.getcwd()}/bot/data/data.json') as f:
-            data = json.load(f)
+            data = load(f)
 
         with open(f'{os.getcwd()}/bot/data/data.json', 'w') as f:
             data['status'] = 'offline'
 
-            json.dump(data, f, indent=4)
+            dump(data, f, indent=4)
 
 
 class Server(HTTPServer):
