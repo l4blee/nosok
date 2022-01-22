@@ -135,9 +135,9 @@ class EventHandler:
 
     def loop(self):
         while 1:
-            self._logger.info('Initiating guilds check and garbage collecting...')
-            collect()
+            unreachable = collect()
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
+            self._logger.info(f'Checked guilds and collected garbage, can\'t reach {unreachable} objects')
             sleep(60)
 
     def on_song_end(self, ctx: commands.Context):
