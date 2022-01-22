@@ -509,16 +509,16 @@ class Music(commands.Cog):
 
     async def _seek(self, ctx: commands.Context, index: int):
         q: Queue = self._queues[ctx.guild.id]
-        if 1 <= index <= len(q):
-            q.now_playing = index - 2
-            await self.skip(ctx)
-        elif q.is_empty:
+        if q.is_empty:
             await send_embed(
                 ctx=ctx,
                 description='Queue is empty!',
                 color=ERROR_COLOR
             )
             raise exceptions.QueueEmpty
+        elif 1 <= index <= len(q):
+            q.now_playing = index - 2
+            await self.skip(ctx)
         else:
             return -1
 

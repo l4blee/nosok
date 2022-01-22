@@ -1,5 +1,6 @@
 import os
 import logging
+from urllib.parse import urlparse
 from json import load, dump, dumps
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -29,16 +30,64 @@ class RequestHandler(BaseHTTPRequestHandler):
                 },
                 'last_updated': datetime.now().strftime('%d.%b.%Y %H:%M:%S')
             }
+        parsed = urlparse(self.path)
 
-        if self.path == '/':
+        if parsed.path in ['/launch', '/terminate', '/restart']:
+            if parsed.query:
+                try:
+                    query = dict(map(lambda x: tuple(x.split('=')), parsed.query.split('&')))
+                except ValueError:
+                    query = dict()
+            else:
+                query = dict()
+
+            if query.get('password') != os.getenv('app_password') or\
+                query.get('username') != os.getenv('app_username'):
+                self.send_error(401)
+                return
+
+            bot = self.server.bot_process
+
+        if parsed.path == '/launch':
+            self.server._logger.info('Launching bot...')
+            if bot is not None:
+                out = 'Status: the bot is already online!'
+            else:
+                self.server.bot_process = Popen(
+                    SUBPROCESS_CMD,
+                    stdout=self.server.pout,
+                    stderr=self.server.pout
+                )
+                out = 'Status: done'
+        elif parsed.path == '/terminate':
+            if bot is None:
+                out = 'Status: the bot is already offline'
+            else:
+                self.server._logger.info('Terminating bot...')
+                self.terminate_bot()
+                out = 'Status: done'
+        elif parsed.path == '/restart':
+            self.server._logger.info('Restarting bot...')
+
+            if bot is not None:
+                self.terminate_bot()
+
+            self.server.bot_process = Popen(
+                SUBPROCESS_CMD,
+                stdout=self.server.pout,
+                stderr=self.server.pout
+            )
+            out = 'Status: done'
+        elif parsed.path == '/':
             out = f'Status: {data["status"]}'
-        elif self.path == '/vars':
+        elif parsed.path == '/vars':
             out = dumps(data, indent=4)
-        elif self.path == '/log':
+        elif parsed.path == '/log':
             with open(f'{os.getcwd()}/bot/data/log.log') as f:
                 out = f.read()
-        elif self.path == '/favicon.ico':
-            return None
+        elif parsed.path == '/favicon.ico':
+            self.send_response(200, 'OK')
+            return
         else:
             self.send_error(409)
             return
@@ -58,8 +107,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             return
 
         bot: Popen = self.server.bot_process
+        parsed = urlparse(self.path)
 
-        if self.path == '/launch':
+        if parsed.path == '/launch':
             self.server._logger.info('Launching bot...')
             if bot is not None:
                 self.send_error(409)
@@ -70,10 +120,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                     stdout=self.server.pout,
                     stderr=self.server.pout
                 )
-        elif self.path == '/terminate':
+        elif parsed.path == '/terminate':
             self.server._logger.info('Terminating bot...')
             self.terminate_bot()
-        elif self.path == '/restart':
+        elif parsed.path == '/restart':
             self.server._logger.info('Restarting bot...')
             self.terminate_bot()
 
