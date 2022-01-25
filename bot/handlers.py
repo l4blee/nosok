@@ -131,7 +131,6 @@ class EventHandler(Thread):
 
         self._bot = bot
         self.to_check: dict = dict()
-        self.start()
 
     def loop(self):
         while 1:
