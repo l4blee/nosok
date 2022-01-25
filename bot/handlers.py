@@ -1,6 +1,5 @@
 import os
 from asyncio import run_coroutine_threadsafe
-from gc import collect
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
@@ -122,22 +121,21 @@ class SCHandler(MusicHandlerBase):
         return res.json()['url']
 
 
-class EventHandler:
+class EventHandler(Thread):
+    __slots__ = ('_bot', 'to_check', '_stop')
+
     def __init__(self, bot):
+        super().__init__(target=self.loop,
+                         daemon=True)
+        self._stop = Event()
+
         self._bot = bot
         self.to_check: dict = dict()
-        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
-
-        self._thread = Thread(target=self.loop,
-                              daemon=True)
-        self._thread.start()
-
+        self.start()
 
     def loop(self):
         while 1:
-            unreachable = collect()
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
-            self._logger.info(f'Checked guilds and collected garbage, can\'t reach {unreachable} objects')
             sleep(60)
 
     def on_song_end(self, ctx: commands.Context):
@@ -167,6 +165,12 @@ class EventHandler:
                     description='I have been staying AFK for too long, so I left the voice channel',
                     color=BASE_COLOR
                 )
+
+    def stopped(self):
+        return self._stop.is_set()
+
+    def close(self):
+        self._stop.set()
 
 
 class DataProcessor(Thread):
