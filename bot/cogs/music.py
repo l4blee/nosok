@@ -35,6 +35,7 @@ class Queue:
         self.guild_id = guild_id
 
         self.queue_file = f'bot/queues/{guild_id}.txt'
+        self.clear()
 
     @property
     def tracks(self) -> list[tuple]:

@@ -7,7 +7,7 @@ from multiprocessing.pool import ThreadPool
 from re import compile
 from threading import Thread, Event
 from time import sleep
-import psutil
+from psutil import Process
 
 import requests
 from discord.ext import commands
@@ -189,17 +189,17 @@ class DataProcessor(Thread):
             sleep(5)
     
     def read_and_collect(self):
-        this_proc = psutil.Process()
+        this_proc = Process()
 
         voices = [i.voice_client for i in self._bot.guilds]
         procs = [i.source.original._process
                     for i in voices
-                    if i and i.source]  # Get procs
+                    if i and i.source]
         cpu_utils = 0
         mem_utils = 0
 
         for i in filter(bool, procs):
-            proc = psutil.Process(i.pid)
+            proc = Process(i.pid)
 
             cpu_utils += proc.cpu_percent()
             mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
