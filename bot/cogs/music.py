@@ -34,34 +34,32 @@ class Queue:
         self.volume: float = 1.0
         self.guild_id = guild_id
 
-        self.queue_file = FileIO(f'bot/queues/{guild_id}.txt', 'a+')
+        self.queue_file = f'bot/queues/{guild_id}.txt'
 
     @property
     def tracks(self) -> list[tuple]:
-        self.queue_file.seek(0)
-        data = self.queue_file.read().decode('utf-8').split('\n')
+        with open(self.queue_file, 'r', encoding='utf-8') as f:
+            data = f.read().split('\n')
         
         tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
+    
+    def _write(self, data: list):
+        with open(self.queue_file, 'a', encoding='utf-8') as f:
+            f.writelines(data)
 
     def remove(self, index: int) -> tuple:
         tracks = self.tracks
 
         ret = tracks.pop(index)
         self.clear()
-        
-        to_write = [(ITEM_SEPARATOR.join(i) + '\n').encode('utf-8') for i in tracks]
-        self.queue_file.writelines(to_write)
+        self._write([ITEM_SEPARATOR.join(i) + '\n' for i in tracks])
 
         return ret
 
     def add(self, url: str, mention: discord.User.mention) -> None:
-        self.queue_file.seek(0, 2)
-
         title = music_handler.get_info(url, is_url=True)[1]
-
-        to_write = (ITEM_SEPARATOR.join([url, title, mention]) + '\n').encode('utf-8')
-        self.queue_file.write(to_write)
+        self._write([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -81,11 +79,8 @@ class Queue:
         return len(self.tracks)
 
     def clear(self) -> None:
-        self.queue_file.close()
-        with open(f'bot/queues/{self.guild_id}.txt', 'w') as f:
+        with open(self.queue_file, 'w') as f:
             f.write('')
-
-        self.queue_file = FileIO(f'bot/queues/{self.guild_id}.txt', 'a+')
 
     @property
     def is_empty(self) -> bool:

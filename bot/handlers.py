@@ -196,13 +196,10 @@ class DataProcessor(Thread):
         mem_utils = 0
 
         for i in filter(bool, procs):
-            try:
-                proc = psutil.Process(i.pid)
+            proc = psutil.Process(i.pid)
 
-                cpu_utils += proc.cpu_percent()
-                mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
-            except Exception as e:
-                self._logger.exception(e, exc_info=True)
+            cpu_utils += proc.cpu_percent()
+            mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
 
         cpu_usage = this_proc.cpu_percent() + cpu_utils
         mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
