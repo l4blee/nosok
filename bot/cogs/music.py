@@ -287,7 +287,7 @@ class Music(commands.Cog):
                 await message.delete()
                 break
 
-    @commands.command(aliases=['p'])
+    @commands.command(aliases=['p', 'р', 'п'])
     async def play(self, ctx: commands.Context, *query) -> None:
         """
         Plays current song.
