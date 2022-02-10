@@ -7,7 +7,7 @@ from multiprocessing.pool import ThreadPool
 from re import compile
 from threading import Thread, Event
 from time import sleep
-import psutil
+from psutil import Process
 
 import requests
 from discord.ext import commands
@@ -121,18 +121,19 @@ class SCHandler(MusicHandlerBase):
         return res.json()['url']
 
 
-class EventHandler:
+class EventHandler(Thread):
+    __slots__ = ('_bot', 'to_check', '_stop')
+
     def __init__(self, bot):
+        super().__init__(target=self.loop,
+                         daemon=True)
+        self._stop = Event()
+
         self._bot = bot
         self.to_check: dict = dict()
 
-        self._thread = Thread(target=self.loop,
-                              daemon=True)
-        self._thread.start()
-
-
     def loop(self):
-        while True:
+        while 1:
             run_coroutine_threadsafe(self.checkall(), self._bot.loop)
             sleep(60)
 
@@ -155,7 +156,8 @@ class EventHandler:
 
             if timestamp and datetime.now().time() >= timestamp.time():
                 await player.disconnect()
-                player.cleanup()
+
+                self.to_check[ctx] = None
 
                 await send_embed(
                     ctx=ctx,
@@ -163,7 +165,11 @@ class EventHandler:
                     color=BASE_COLOR
                 )
 
-                self.to_check[ctx] = None
+    def stopped(self):
+        return self._stop.is_set()
+
+    def close(self):
+        self._stop.set()
 
 
 class DataProcessor(Thread):
@@ -175,42 +181,44 @@ class DataProcessor(Thread):
         self._stop = Event()
 
         self._bot = bot
-        self._logger = getLogger('DataProcessor')
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
-        while True:
-            this_proc = psutil.Process()
+        while 1:
+            self.read_and_collect()
+            sleep(5)
+    
+    def read_and_collect(self):
+        this_proc = Process()
 
-            voices = [i.voice_client for i in self._bot.guilds]
-            voices = [i.source for i in voices if i is not None]  # Check if connected
-            procs = [i.original._process for i in voices if i is not None]  # Get procs
-            cpu_utils = 0
-            mem_utils = 0
+        voices = [i.voice_client for i in self._bot.guilds]
+        procs = [i.source.original._process
+                    for i in voices
+                    if i and i.source]
+        cpu_utils = 0
+        mem_utils = 0
 
-            for i in filter(lambda x: x is not None, procs):
-                try:
-                    proc = psutil.Process(i.pid)
+        for i in filter(bool, procs):
+            proc = Process(i.pid)
 
-                    cpu_utils += proc.cpu_percent()
-                    mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
-                except Exception as e:
-                    self._logger.exception(e, exc_info=True)
+            cpu_utils += proc.cpu_percent()
+            mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
 
-            cpu_usage = this_proc.cpu_percent() + cpu_utils
-            mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
+        cpu_usage = this_proc.cpu_percent() + cpu_utils
+        mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
 
-            with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
-                data = {
-                    'status': 'online',
-                    'vars': {
-                        'servers': len(self.bot.guilds),
-                        'cpu_used': cpu_usage,
-                        'memory_used': str(mem_usage) + 'M'
-                    }
-                }
+        with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
+            data = {
+                'status': 'online',
+                'vars': {
+                    'servers': len(self.bot.guilds),
+                    'cpu_used': cpu_usage,
+                    'memory_used': str(mem_usage) + 'M'
+                },
+                'last_updated': datetime.now().strftime('%d.%b.%Y %H:%M:%S')
+            }
 
-                dump(data, f, indent=4)
-            sleep(0.25)
+            dump(data, f, indent=4)
 
     @property
     def bot(self):
