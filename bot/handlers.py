@@ -7,7 +7,6 @@ from multiprocessing.pool import ThreadPool
 from re import compile as comp_
 from threading import Thread, Event
 from time import sleep
-from asyncio import sleep
 from psutil import Process
 
 import requests
