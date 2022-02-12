@@ -3,7 +3,7 @@ from os import getenv
 
 from discord import Colour
 
-BASE_PREFIX = getenv('BASE_PREFIX')
+BASE_PREFIX = getenv('BASE_PREFIX', '!')
 BASE_COLOR = Colour.from_rgb(241, 184, 19)
 ERROR_COLOR = Colour.from_rgb(255, 0, 0)
 
