@@ -27,7 +27,7 @@ class YDLHandler(MusicHandlerBase):
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
         self._video_regex = compile(r'watch\?v=(\S{11})')
 
-    def get_url(self, query: str) -> str:
+    async def get_url(self, query: str) -> str:
         query = '+'.join(query.split())
 
         with requests.Session() as session:
@@ -36,7 +36,7 @@ class YDLHandler(MusicHandlerBase):
         iterator = self._video_regex.finditer(res.text)
         return self._video_pattern + next(iterator).group(1)
 
-    def get_urls(self, query: str, max_results: int = 5) -> list:
+    async def get_urls(self, query: str, max_results: int = 5) -> list:
         query = '+'.join(query.split())
 
         with requests.Session() as session:
@@ -45,7 +45,7 @@ class YDLHandler(MusicHandlerBase):
         iterator = self._video_regex.finditer(res.text)
         return [self._video_pattern + next(iterator).group(1) for _ in range(max_results)]
 
-    def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
+    async def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
         links = self.get_urls(query, max_results=max_results)
         args = [(i, False) for i in links]  # link, download=False
 
@@ -56,7 +56,7 @@ class YDLHandler(MusicHandlerBase):
         res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         return res
 
-    def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
+    async def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
         if not is_url:
             query = '+'.join(query.split())
             with requests.Session() as session:
@@ -72,53 +72,13 @@ class YDLHandler(MusicHandlerBase):
 
         return url, title
 
-    def get_stream(self, url: str):
+    async def get_stream(self, url: str):
         with YtDL(self._ydl_opts) as ydl:
             streams = ydl.extract_info(url, download=False).get('formats')
 
         streams = [i for i in streams if i.get('audio_ext') != 'none']
         return max([i for i in streams if i.get('fps') is None],
                    key=lambda x: x.get('tbr')).get('url')
-
-
-class SCHandler(MusicHandlerBase):
-    def __init__(self):
-        self.client = SoundCloud(os.environ.get('CLIENT_ID'))
-
-    def get_url(self, query: str) -> str:
-        return next(self.client.search_tracks(query)).permalink_url
-
-    def get_urls(self, query: str, max_results: int = 5) -> list[str]:
-        return [next(self.client.search_tracks(query)).permalink_url for _ in range(max_results)]
-
-    def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
-        data = self.client.search_tracks(query)
-        output = []
-        for _ in range(max_results):
-            track = next(data)
-            output.append((track.permalink_url, track.title, track.artwork_url))
-
-        return output
-
-    def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
-        if not is_url:
-            track = next(self.client.search_tracks(query))
-        else:
-            track = self.client.resolve(query)
-
-        return track.permalink_url, track.title
-
-    def get_stream(self, url: str) -> str:
-        track = self.client.resolve(url)
-        url = [i for i in track.media.transcodings if i.format.mime_type == 'audio/mpeg'][0].url
-
-        headers = self.client.get_default_headers()
-        if self.client.auth_token:
-            headers['Authentication'] = f'OAuth {self.client.auth_token}'
-
-        res = requests.get(url, params={'client_id': self.client.client_id}, headers=headers)
-        res.raise_for_status()
-        return res.json()['url']
 
 
 class EventHandler:
@@ -129,7 +89,6 @@ class EventHandler:
         self._thread = Thread(target=self.loop,
                               daemon=True)
         self._thread.start()
-
 
     def loop(self):
         while True:

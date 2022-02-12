@@ -10,13 +10,11 @@ from discord.ext import commands
 from discord_components.client import DiscordComponents
 
 from base import BASE_PREFIX, ERROR_COLOR
-from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
+from handlers import YDLHandler, EventHandler, DataProcessor
 from exceptions import CustomException
 from utils import send_embed
 from orm.base import db
 from orm.models import GuildConfig
-
-USE_YOUTUBE = True
 
 
 class MusicBot(commands.Bot):
@@ -77,14 +75,11 @@ def get_prefix(_, msg) -> str:
 
 
 bot = MusicBot(get_prefix)
+
 data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
-
-if USE_YOUTUBE:
-    music_handler = YDLHandler({
-        'simulate': True,
-        'quiet': True,
-        'format': 'bestaudio'
-    })
-else:
-    music_handler = SCHandler()
+music_handler = YDLHandler({
+    'simulate': True,
+    'quiet': True,
+    'format': 'bestaudio'
+})

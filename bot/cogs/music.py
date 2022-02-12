@@ -88,11 +88,10 @@ class Queue:
     def is_empty(self) -> bool:
         return not bool(self.tracks)
 
-    @property
-    def queue(self) -> Generator:
+    async def queue(self) -> Generator:
         for i in self.tracks:
             url, mention = i
-            title = music_handler.get_info(url, is_url=True)[1]
+            title = await music_handler.get_info(url, is_url=True)[1]
 
             yield url, title, mention
 
