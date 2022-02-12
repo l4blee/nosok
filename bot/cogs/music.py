@@ -1,5 +1,4 @@
 import asyncio
-from logging import getLogger
 from io import FileIO
 from os import makedirs
 from re import compile
@@ -7,17 +6,20 @@ from subprocess import DEVNULL
 from typing import Generator, Optional
 
 import discord
+from discord import Embed
+from discord.ext import commands
+
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
-from discord import Embed
-from discord.ext import commands
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 URL_REGEX = compile(URL_REGEX)
+
+ITEM_SEPARATOR = ';;;;'
 
 makedirs('bot/queues', exist_ok=True)
 
@@ -32,33 +34,33 @@ class Queue:
         self.volume: float = 1.0
         self.guild_id = guild_id
 
-        self.queue_file = FileIO(f'bot/queues/{guild_id}.txt', 'a+')
+        self.queue_file = f'bot/queues/{guild_id}.txt'
+        self.clear()
 
     @property
     def tracks(self) -> list[tuple]:
-        self.queue_file.seek(0)
-        data = self.queue_file.read().decode('utf-8').split('\n')
+        with open(self.queue_file, 'r', encoding='utf-8') as f:
+            data = f.read().split('\n')
         
-        tracks = [tuple(i.split(',')) for i in data if i]
+        tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
+    
+    def _write(self, data: list):
+        with open(self.queue_file, 'a', encoding='utf-8') as f:
+            f.writelines(data)
 
     def remove(self, index: int) -> tuple:
         tracks = self.tracks
 
         ret = tracks.pop(index)
-
         self.clear()
-
-        to_write = [(','.join([i[0], i[1]]) + '\n').encode('utf-8') for i in tracks]
-        self.queue_file.writelines(to_write)
+        self._write([ITEM_SEPARATOR.join(i) + '\n' for i in tracks])
 
         return ret
 
-    def add(self, url: str, mention: discord.User.mention) -> None:
-        self.queue_file.seek(0, 2)
-
-        to_write = (','.join([url, mention]) + '\n').encode('utf-8')
-        self.queue_file.write(to_write)
+    async def add(self, url: str, mention: discord.User.mention) -> None:
+        title = (await music_handler.get_info(url, is_url=True))[1]
+        self._write([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -78,36 +80,21 @@ class Queue:
         return len(self.tracks)
 
     def clear(self) -> None:
-        self.queue_file.close()
-        with open(f'bot/queues/{self.guild_id}.txt', 'w') as f:
+        with open(self.queue_file, 'w') as f:
             f.write('')
-
-        self.queue_file = FileIO(f'bot/queues/{self.guild_id}.txt', 'a+')
 
     @property
     def is_empty(self) -> bool:
         return not bool(self.tracks)
 
-    async def queue(self) -> Generator:
-        for i in self.tracks:
-            url, mention = i
-            title = await music_handler.get_info(url, is_url=True)[1]
-
-            yield url, title, mention
+    @property
+    def queue(self) -> Generator:
+        yield from self.tracks  # yields url, title, mention
 
     @property
     def current(self) -> Optional[tuple]:
         tracks = self.tracks
-
-        if len(tracks) > 0:
-            url, mention = tracks[self.now_playing]
-            title = music_handler.get_info(url, is_url=True)[1]
-
-            output = url, title, mention
-        else:
-            output = None
-
-        return output
+        return tracks[self.now_playing] if len(tracks) > 0 else None
 
     @property
     def loop(self):
@@ -115,7 +102,7 @@ class Queue:
 
     @loop.setter
     def loop(self, value: int):
-        if 2 < value < 0:
+        if 0 > value > 2:
             raise ValueError('Loop value is out of range')
 
         self._loop = value
@@ -201,7 +188,10 @@ class Music(commands.Cog):
         Displays current playing song.
         """
         voice = ctx.voice_client
-        if not voice.is_playing():
+        q: Queue = self._queues[ctx.guild.id]
+        current = q.current
+
+        if not voice.is_playing() or current is None:
             await send_embed(
                 ctx=ctx,
                 description='I am not playing any song for now!',
@@ -209,8 +199,6 @@ class Music(commands.Cog):
             )
             return
 
-        q: Queue = self._queues[ctx.guild.id]
-        current = q.current
         await send_embed(
             ctx=ctx,
             title='Current song:',
@@ -261,7 +249,7 @@ class Music(commands.Cog):
             components=get_components(embeds, current)
         )
 
-        while True:
+        while 1:
             try:
                 interaction = await ctx.bot.wait_for(
                     'button_click',
@@ -299,7 +287,7 @@ class Music(commands.Cog):
                 await message.delete()
                 break
 
-    @commands.command(aliases=['p'])
+    @commands.command(aliases=['p', 'р', 'п'])
     async def play(self, ctx: commands.Context, *query) -> None:
         """
         Plays current song.
@@ -331,11 +319,11 @@ class Music(commands.Cog):
                 await self.queue(ctx, query)
                 return
 
-            url = query if URL_REGEX.match(query) else music_handler.get_url(query)
+            url = query if URL_REGEX.match(query) else await music_handler.get_url(query)
 
-            q.add(url, ctx.author.mention)
+            await q.add(url, ctx.author.mention)
             q.now_playing = len(q) - 1
-            stream = music_handler.get_stream(url)
+            stream = await music_handler.get_stream(url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:
@@ -362,7 +350,7 @@ class Music(commands.Cog):
                 event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
-            stream = music_handler.get_stream(res[0])
+            stream = await music_handler.get_stream(res[0])
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
 
@@ -391,9 +379,9 @@ class Music(commands.Cog):
 
     async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
         if URL_REGEX.match(query):
-            song = music_handler.get_info(query, is_url=True)
+            song = await music_handler.get_info(query, is_url=True)
         else:
-            tracks = list(await run_blocking(music_handler.get_infos, ctx.bot, query=query))
+            tracks = await music_handler.get_infos(query)
             song = await self._choose_track(ctx, tracks)
 
         return song
@@ -434,16 +422,17 @@ class Music(commands.Cog):
             
             url, title = song
 
-            q.add(url, ctx.author.mention)
+            await q.add(url, ctx.author.mention)
             await send_embed(
                 ctx=ctx,
                 description=f'Queued: [{title}]({url})',
                 color=BASE_COLOR
             )
         else:
-            if len(q) > 0:
+            tracks = list(q.queue)
+            if len(tracks) > 0:
                 desc = ''
-                for index, item in enumerate(q.queue):
+                for index, item in enumerate(tracks):
                     url, title, mention = item
                     desc += f'{["", "now -> "][int(index == q.now_playing)]}' \
                             f'{index + 1}.\t[{title}]({url}) | {mention}\n'
@@ -472,13 +461,13 @@ class Music(commands.Cog):
         )
 
     @commands.command()
-    async def loop(self, cxt: commands.Context, option: str = ''):
+    async def loop(self, ctx: commands.Context, option: str = ''):
         """
         Changes loop option to None, Queue or Track
         """
         loop_setting = ['None', 'Current queue', 'Current track']
 
-        q: Queue = self._queues[cxt.guild.id]
+        q: Queue = self._queues[ctx.guild.id]
         if option:
             q.loop = ['None', 'Queue', 'Track'].index(option.capitalize())
         else:
@@ -506,8 +495,7 @@ class Music(commands.Cog):
             )
             return
 
-        url, _ = res
-        title = music_handler.get_info(url, is_url=True)[1]
+        url, title, _ = res
 
         await send_embed(
             ctx=ctx,
@@ -517,16 +505,16 @@ class Music(commands.Cog):
 
     async def _seek(self, ctx: commands.Context, index: int):
         q: Queue = self._queues[ctx.guild.id]
-        if 1 <= index <= len(q):
-            q.now_playing = index - 2
-            await self.skip(ctx)
-        elif q.is_empty:
+        if q.is_empty:
             await send_embed(
                 ctx=ctx,
                 description='Queue is empty!',
                 color=ERROR_COLOR
             )
             raise exceptions.QueueEmpty
+        elif 1 <= index <= len(q):
+            q.now_playing = index - 2
+            await self.skip(ctx)
         else:
             return -1
 
@@ -581,7 +569,7 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
-        tracks = list(await run_blocking(music_handler.get_infos, ctx.bot, query=query))
+        tracks = await music_handler.get_infos(query)
         track = await self._choose_track(ctx, tracks)
 
         if not track:
@@ -593,9 +581,9 @@ class Music(commands.Cog):
         
         url, title = track
 
-        q.add(url, ctx.author.mention)
+        await q.add(url, ctx.author.mention)
         if not voice.is_playing():
-            stream = music_handler.get_stream(url)
+            stream = await music_handler.get_stream(url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:

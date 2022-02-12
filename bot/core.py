@@ -1,6 +1,6 @@
 import os
 import sys
-from gc import collect
+from time import perf_counter
 from importlib import import_module
 from logging import getLogger
 from pathlib import Path
@@ -17,12 +17,13 @@ from orm.base import db
 from orm.models import GuildConfig
 
 
-class MusicBot(commands.Bot):
+class Bot(commands.Bot):
     __slots__ = ('_logger')
 
     def __init__(self, command_prefix):
-        super().__init__(command_prefix)
-        self._logger = getLogger('BOT')
+        self._start_time = perf_counter()
+        super().__init__(command_prefix, case_insensitive=True)
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_command_error(self, ctx: commands.Context, exception):
         if not isinstance(exception, CustomException):
@@ -60,8 +61,8 @@ class MusicBot(commands.Bot):
 
         DiscordComponents(self)
 
-        collect()
-        self._logger.info('Bot has been successfully launched')
+        self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
+        delattr(self, '_start_time')
 
     async def close(self):
         self._logger.info('The bot is being shut down...')
@@ -74,10 +75,11 @@ def get_prefix(_, msg) -> str:
         return res.prefix if res is not None else BASE_PREFIX
 
 
-bot = MusicBot(get_prefix)
+bot = Bot(get_prefix)
 
 data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
+
 music_handler = YDLHandler({
     'simulate': True,
     'quiet': True,
