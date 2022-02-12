@@ -12,7 +12,6 @@ from psutil import Process
 import requests
 from discord.ext import commands
 import discord
-from soundcloud import SoundCloud
 from yt_dlp import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase
