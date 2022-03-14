@@ -1,7 +1,7 @@
 from base import BASE_COLOR
 from discord.ext import commands
-from orm.base import db
-from orm.models import GuildConfig
+
+from database import db
 from utils import send_embed
 
 
@@ -11,17 +11,7 @@ class Settings(commands.Cog):
         """
         Sets prefix for the current server.
         """
-        with db.atomic():
-            res = GuildConfig.get_or_none(GuildConfig.guild_id == ctx.guild.id)
-            if res is None:
-                GuildConfig\
-                    .insert(guild_id=ctx.guild.id, prefix=new_prefix)\
-                    .execute()
-            else:
-                GuildConfig\
-                    .update({GuildConfig.prefix: new_prefix})\
-                    .where(GuildConfig.guild_id == ctx.guild.id)\
-                    .execute()
+        await db.set_prefix(ctx, new_prefix)
 
         await send_embed(
             ctx=ctx,

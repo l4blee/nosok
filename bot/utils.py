@@ -20,7 +20,7 @@ async def send_embed(ctx: commands.Context, description: str, color: discord.Col
 
 
 async def is_connected(ctx: commands.Context):
-    if ctx.invoked_with == 'help' or ctx.voice_client:
+    if ctx.invoked_with == 'help' or ctx.voice_client is not None:
         return True
 
     await send_embed(
@@ -28,7 +28,6 @@ async def is_connected(ctx: commands.Context):
         description='I am not connected to a voice channel yet!',
         color=ERROR_COLOR
     )
-
     raise exceptions.BotNotConnected
 
 

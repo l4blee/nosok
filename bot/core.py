@@ -13,8 +13,8 @@ from base import BASE_PREFIX, ERROR_COLOR
 from handlers import YDLHandler, EventHandler, DataProcessor
 from exceptions import CustomException
 from utils import send_embed
-from orm.base import db
-from orm.models import GuildConfig
+
+from database import db
 
 
 class Bot(commands.Bot):
@@ -36,12 +36,11 @@ class Bot(commands.Bot):
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
 
-                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
-                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
-                
+        self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
+        print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
     def setup(self):
-        db.create_tables([GuildConfig])
+        # db.create_tables([GuildConfig])
 
         for cls in [
             import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
@@ -69,13 +68,7 @@ class Bot(commands.Bot):
         await super().close()
 
 
-def get_prefix(_, msg) -> str:
-    with db.atomic():
-        res = GuildConfig.get_or_none(GuildConfig.guild_id == msg.guild.id)
-        return res.prefix if res is not None else BASE_PREFIX
-
-
-bot = Bot(get_prefix)
+bot = Bot(db.get_prefix)
 
 data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
