@@ -1,4 +1,5 @@
 import asyncio
+from pprint import pprint as print
 from io import FileIO
 from os import makedirs
 from re import compile
@@ -708,7 +709,7 @@ class Music(commands.Cog):
                 {'guild_id': ctx.guild.id}
             )
 
-            if list(record):
+            if record.explain()['executionStats']['nReturned'] > 0:
                 names = [f'{index + 1}. {item.get("name")}' for index, item in enumerate(record)]
                 description = '\n'.join(names)
             else:
