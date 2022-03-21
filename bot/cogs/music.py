@@ -717,7 +717,7 @@ class Music(commands.Cog):
             
             await send_embed(
                 ctx=ctx, 
-                title='Playlists:',
+                title='Available playlists:',
                 description=description, 
                 color=BASE_COLOR
             )
