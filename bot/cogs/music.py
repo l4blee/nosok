@@ -12,6 +12,7 @@ from discord.ext import commands
 import exceptions
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
+from database import db
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
@@ -58,8 +59,8 @@ class Queue:
 
         return ret
 
-    async def add(self, url: str, mention: discord.User.mention) -> None:
-        title = (await music_handler.get_info(url, is_url=True))[1]
+    async def add(self, url: str, mention: discord.User.mention, title: str = None) -> None:
+        title = title or (await music_handler.get_info(url, is_url=True))[1]
         self._write([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
@@ -76,7 +77,7 @@ class Queue:
             
         return tracks[self.now_playing]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.tracks)
 
     def clear(self) -> None:
@@ -422,7 +423,11 @@ class Music(commands.Cog):
             
             url, title = song
 
-            await q.add(url, ctx.author.mention)
+            await q.add(
+                url=url,
+                title=title,
+                mention=ctx.author.mention
+            )
             await send_embed(
                 ctx=ctx,
                 description=f'Queued: [{title}]({url})',
@@ -581,7 +586,11 @@ class Music(commands.Cog):
         
         url, title = track
 
-        await q.add(url, ctx.author.mention)
+        await q.add(
+            url=url,
+            title=title,
+            mention=ctx.author.mention
+        )
         if not voice.is_playing():
             stream = await music_handler.get_stream(url)
             loop = ctx.bot.loop
@@ -590,5 +599,147 @@ class Music(commands.Cog):
             await send_embed(
                 ctx=ctx,
                 description=f'Queued: [{title}]({url})',
+                color=BASE_COLOR
+            )
+
+    @commands.command(aliases=['cp'])
+    async def create_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Creates/changes a playlist from current queue.
+        """
+        q: Queue = self._queues[ctx.guild.id]
+        if not q.tracks:
+            await send_embed(
+                ctx=ctx, 
+                description='There are not tracks in the queue!',
+                color=ERROR_COLOR)
+            return
+
+        db.playlists.replace_one(
+            {
+                'guild_id': ctx.guild.id,
+                'name': name
+            },
+            {
+                'guild_id': ctx.guild.id,
+                'name': name,
+                'playlist': q.tracks
+            },
+            upsert=True
+        )
+
+        await send_embed(
+            ctx=ctx, 
+            description=f'Playlist `{name}` has been succesfully created!', 
+            color=BASE_COLOR)
+
+    @commands.command(aliases=['load', 'lp'])
+    async def load_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Loads existing playlist.
+        """
+        q: Queue = self._queues[ctx.guild.id]
+
+        record = db.playlists.find_one(
+            {
+                'guild_id': ctx.guild.id,
+                'name': name
+            }
+        )
+
+        if record is None:
+            await send_embed(
+            ctx=ctx, 
+            description=f'Playlist with name `{name}` doesn\'t exist.', 
+            color=ERROR_COLOR)
+            return
+
+        playlist = record.get('playlist')
+
+        q.clear()
+        for i in playlist:
+            await q.add(
+                url=i[0],
+                title=i[1],
+                mention=i[2]
+            )
+
+        await send_embed(
+            ctx=ctx, 
+            description=f'Playlist `{name}` has been loaded.', 
+            color=BASE_COLOR)
+
+    @commands.command()
+    async def playlists(self, ctx: commands.Context, *name):
+        """
+        Displays all playlists from the current guild or the one mentioned.
+        """
+        q: Queue = self._queues[ctx.guild.id]
+        name = ' '.join(name)
+        
+        if name:
+            record = db.playlists.find_one(
+                {
+                    'guild_id': ctx.guild.id,
+                    'name': name
+                }
+            )
+
+            if record is None:
+                await send_embed(
+                    ctx=ctx, 
+                    description=f'Playlist with name `{name}` doesn\'t exist.', 
+                    color=ERROR_COLOR)
+                return
+            
+            playlist = record.get('playlist')
+            description = ''
+            for index, item in enumerate(playlist):
+                url, title, mention = item
+                description += f'{index + 1}.\t[{title}]({url}) | {mention}\n'
+            
+            await send_embed(
+                ctx=ctx,
+                title=f'{name}:',
+                description=description, 
+                color=BASE_COLOR)
+        else:
+            record = db.playlists.find(
+                {'guild_id': ctx.guild.id}
+            )
+
+            if list(record):
+                names = [f'{index + 1}. {item.get("name")}' for index, item in enumerate(record)]
+                description = '\n'.join(names)
+            else:
+                description = 'There are no playlists for this guild!'
+            
+            await send_embed(
+                ctx=ctx, 
+                title='Playlists:',
+                description=description, 
+                color=BASE_COLOR
+            )
+
+    @commands.command(aliases=['rmp'])
+    async def remove_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Removes a playlist with name given.
+        """
+        result = db.playlists.delete_one(
+            {   
+                'guild_id': ctx.guild.id,
+                'name': name
+            }
+        )
+        if result.deleted_count == 0:
+            await send_embed(
+                ctx=ctx, 
+                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                color=ERROR_COLOR)
+        else:
+            await send_embed(
+                ctx=ctx,
+                description=f'Playlist `{name}` has been successfully deleted.',
                 color=BASE_COLOR
             )

@@ -22,13 +22,14 @@ class MongoDB:
         self.client = MongoClient(conn_url)
 
         # Main database
-        self.guilds = self.client.guilds
+        self.prefixes = self.client.guilds.prefixes
+        self.playlists = self.client.guilds.playlists
         self._logger.info('Successfully connected to Mongo, going further.')
 
     async def get_prefix(self, _, msg: Message) -> str:
         guild_id = msg.guild.id
 
-        guild_record = self.guilds.prefixes.find_one({
+        guild_record = self.prefixes.find_one({
             'guild_id': guild_id
         })
 
@@ -38,7 +39,7 @@ class MongoDB:
         return guild_record.get('prefix')
     
     async def set_prefix(self, ctx: Context, new_prefix: str) -> None:
-        self.guilds.prefixes.replace_one(
+        self.prefixes.replace_one(
             {'guild_id': ctx.guild.id},
             {
                 'guild_id': ctx.guild.id,
@@ -48,7 +49,7 @@ class MongoDB:
         )
 
 
-# Creaing DB right here to use everywhere without loop imports, etc.
+# Creaing DB right here to use everywhere without loop imports, issues, etc.
 db = MongoDB(
     getenv('DATABASE_URL') % {
         'username': getenv('DB_USERNAME'),

@@ -31,6 +31,11 @@ class Bot(commands.Bot):
                 await send_embed(ctx,
                                 f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
                                 ERROR_COLOR)
+            elif isinstance(exception, commands.MissingRequiredArgument):
+                await send_embed(ctx,
+                                f'Please provide {exception.param.name}. '
+                                f'Type `{ctx.prefix}help {ctx.invoked_with}` to get help.', 
+                                ERROR_COLOR)
             else:
                 await send_embed(ctx,
                              'An error occured during handling this command, please try again later.', 
@@ -40,8 +45,6 @@ class Bot(commands.Bot):
         print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
     def setup(self):
-        # db.create_tables([GuildConfig])
-
         for cls in [
             import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
             for i in Path('./bot/cogs/').glob('*.py')
