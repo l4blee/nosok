@@ -113,8 +113,13 @@ class Queue:
 class Music(commands.Cog):
     __slots__ = ('_queues')
 
-    def __init__(self):
+    def __init__(self, bot):
         self._queues: dict = dict()
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self._queues = {g.id: Queue(g.id) for g in self.bot.guilds}
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
@@ -183,7 +188,7 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
 
-    @commands.command(aliases=['c'])
+    @commands.command(aliases=['cur'])
     @commands.check(is_connected)
     async def current(self, ctx: commands.Context) -> None:
         """
@@ -603,7 +608,18 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
 
-    @commands.command(aliases=['cp'])
+    # Playlists
+
+    @commands.group(aliases=['plists'], pass_context=True)
+    async def playlists(self, ctx: commands.Context):
+        """
+        Playlists-realated category.
+        """
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help('playlists')
+            return
+
+    @playlists.command(name='create', aliases=['c'])
     async def create_playlist(self, ctx: commands.Context, *, name: str):
         """
         Creates/changes a playlist from current queue.
@@ -634,7 +650,7 @@ class Music(commands.Cog):
             description=f'Playlist `{name}` has been succesfully created!', 
             color=BASE_COLOR)
 
-    @commands.command(aliases=['load', 'lp'])
+    @playlists.command(name='load', aliases=['l'])
     async def load_playlist(self, ctx: commands.Context, *, name: str):
         """
         Loads existing playlist.
@@ -670,8 +686,8 @@ class Music(commands.Cog):
             description=f'Playlist `{name}` has been loaded.', 
             color=BASE_COLOR)
 
-    @commands.command()
-    async def playlists(self, ctx: commands.Context, *name):
+    @playlists.command(name='list', aliases=['li'])
+    async def list_playlist(self, ctx: commands.Context, *name):
         """
         Displays all playlists from the current guild or the one mentioned.
         """
@@ -722,7 +738,7 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
 
-    @commands.command(aliases=['rmp'])
+    @playlists.command(name='remove', aliases=['rm'])
     async def remove_playlist(self, ctx: commands.Context, *, name: str):
         """
         Removes a playlist with name given.
@@ -744,3 +760,7 @@ class Music(commands.Cog):
                 description=f'Playlist `{name}` has been successfully deleted.',
                 color=BASE_COLOR
             )
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Music(bot))

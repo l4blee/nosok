@@ -45,11 +45,8 @@ class Bot(commands.Bot):
         print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
     def setup(self):
-        for cls in [
-            import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
-            for i in Path('./bot/cogs/').glob('*.py')
-        ]:
-            self.add_cog(eval('cls()'))
+        for i in Path('bot/cogs/').glob('*.py'):
+            self.load_extension(f'cogs.{i.stem}')
 
     def run(self):
         self.setup()
@@ -57,10 +54,6 @@ class Bot(commands.Bot):
         super().run(TOKEN, reconnect=True)
 
     async def on_ready(self):
-        Queue = import_module('cogs.music').__dict__['Queue']
-        self.get_cog('Music')._queues = {i.id: Queue(i.id) for i in self.guilds}
-        del Queue
-
         DiscordComponents(self)
 
         self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')

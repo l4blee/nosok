@@ -18,3 +18,7 @@ class Settings(commands.Cog):
             description=f'Prefix has been successfully changed to `{new_prefix}`',
             color=BASE_COLOR
         )
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Settings())
