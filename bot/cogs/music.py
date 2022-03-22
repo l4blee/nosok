@@ -626,7 +626,7 @@ class Music(commands.Cog):
     @playlists.command(name='show')
     async def show_playlist(self, ctx: commands.Context, *, name: str):
         """
-        Displays an existing playlist for wthis guild with given name.
+        Displays an existing playlist for this guild with given name.
         """
         record = db.playlists.find_one(
             {
