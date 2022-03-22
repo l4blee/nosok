@@ -10,6 +10,7 @@ from discord import Embed
 from discord.ext import commands
 
 import exceptions
+from player import BassVolumeTransformer
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
 from database import db
@@ -26,14 +27,16 @@ makedirs('bot/queues', exist_ok=True)
 
 
 class Queue:
-    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file')
+    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
 
     def __init__(self, guild_id: int):
         self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
         self.now_playing: int = -1
         self.play_next: bool = True
-        self.volume: float = 1.0
         self.guild_id = guild_id
+
+        self.volume: float = 1.0
+        self.bass_boost: int = 0
 
         self.queue_file = f'bot/queues/{guild_id}.txt'
         self.clear()
@@ -363,7 +366,6 @@ class Music(commands.Cog):
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
         if q.play_next:
-            ctx.message.content = ''
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
         else:
             event_handler.on_song_end(ctx)
@@ -376,7 +378,9 @@ class Music(commands.Cog):
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
-        audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
+        # audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
+        audio_source = BassVolumeTransformer(audio_source, volume=1.0, bass_accentuate=q.bass_boost)
+
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
 
         event_handler.on_song_start(ctx)
@@ -557,14 +561,15 @@ class Music(commands.Cog):
                 description=f'Volume must be in the range from `0` to `100`, not {volume}',
                 color=ERROR_COLOR
             )
-        else:
-            ctx.voice_client.source.volume = volume / 100
-            self._queues[ctx.guild.id].volume = volume / 100
-            await send_embed(
-                ctx=ctx,
-                description=f'Volume has been successfully changed to `{volume}%`',
-                color=BASE_COLOR
-            )
+            return 
+
+        ctx.voice_client.source.volume = volume / 100
+        self._queues[ctx.guild.id].volume = volume / 100
+        await send_embed(
+            ctx=ctx,
+            description=f'Volume has been successfully changed to `{volume}%`',
+            color=BASE_COLOR
+        )
 
     @commands.command(aliases=['sch'])
     async def search(self, ctx: commands.Context, *query):
@@ -609,7 +614,7 @@ class Music(commands.Cog):
 
     # Playlists
 
-    @commands.group(aliases=['plists', 'playlist', 'pl'], pass_context=True)
+    @commands.group(aliases=['plists', 'playlist', 'pl'])
     async def playlists(self, ctx: commands.Context):
         """
         Playlists-realated category.
@@ -762,6 +767,28 @@ class Music(commands.Cog):
                 description=f'Playlist `{name}` has been successfully deleted.',
                 color=BASE_COLOR
             )
+
+    @commands.command(aliases=['bb'])
+    async def bass_boost(self, ctx: commands.Context, level: float):
+        """
+        Boosts a bass line for the track
+        """
+        q: Queue = self._queues[ctx.guild.id]
+        q.bass_boost = level
+        if ctx.voice_client is None:
+            await send_embed(
+                ctx=ctx,
+                description='I am not playing anything yet!',
+                color=ERROR_COLOR
+            )
+            return
+
+        ctx.voice_client.source.bass_accentuate = level
+        await send_embed(
+            ctx=ctx, 
+            description=f'Bass boost level changed to `{level}db`', 
+            color=BASE_COLOR
+        )
 
 
 def setup(bot: commands.Bot):
