@@ -2,7 +2,6 @@ bot/.env
 bot/__pycache__
 bot/data
 bot/queues
-/server
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
