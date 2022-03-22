@@ -110,15 +110,15 @@ class Queue:
 
 
 class Music(commands.Cog):
-    __slots__ = ('_queues')
+    __slots__ = ('_queues', '_bot')
 
     def __init__(self, bot):
         self._queues: dict = dict()
-        self.bot = bot
+        self._bot = bot
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self._queues = {g.id: Queue(g.id) for g in self.bot.guilds}
+        self._queues = {g.id: Queue(g.id) for g in self._bot.guilds}
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context, voice_channel: discord.VoiceChannel = None) -> None:
