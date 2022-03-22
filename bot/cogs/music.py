@@ -609,7 +609,7 @@ class Music(commands.Cog):
 
     # Playlists
 
-    @commands.group(aliases=['plists'], pass_context=True)
+    @commands.group(aliases=['plists', 'playlist', 'pl'], pass_context=True)
     async def playlists(self, ctx: commands.Context):
         """
         Playlists-realated category.
@@ -617,6 +617,38 @@ class Music(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send_help('playlists')
             return
+
+    @playlists.command(name='show')
+    async def show_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Displays an existing playlist for wthis guild with given name.
+        """
+        record = db.playlists.find_one(
+            {
+                'guild_id': ctx.guild.id,
+                'name': name
+            }
+        )
+
+        if record is None:
+            await send_embed(
+                ctx=ctx, 
+                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                color=ERROR_COLOR)
+            return
+        
+        playlist = record.get('playlist')
+        description = ''
+        for index, item in enumerate(playlist):
+            url, title, mention = item
+            description += f'{index + 1}.\t[{title}]({url}) | {mention}\n'
+        
+        await send_embed(
+            ctx=ctx,
+            title=f'{name}:',
+            description=description, 
+            color=BASE_COLOR
+        )
 
     @playlists.command(name='create', aliases=['c'])
     async def create_playlist(self, ctx: commands.Context, *, name: str):
@@ -686,56 +718,27 @@ class Music(commands.Cog):
             color=BASE_COLOR)
 
     @playlists.command(name='list', aliases=['li'])
-    async def list_playlist(self, ctx: commands.Context, *name):
+    async def list_playlist(self, ctx: commands.Context):
         """
         Displays all playlists from the current guild or the one mentioned.
         """
         q: Queue = self._queues[ctx.guild.id]
-        name = ' '.join(name)
-        
-        if name:
-            record = db.playlists.find_one(
-                {
-                    'guild_id': ctx.guild.id,
-                    'name': name
-                }
-            )
+        record = db.playlists.find(
+            {'guild_id': ctx.guild.id}
+        )
 
-            if record is None:
-                await send_embed(
-                    ctx=ctx, 
-                    description=f'Playlist with name `{name}` doesn\'t exist.', 
-                    color=ERROR_COLOR)
-                return
-            
-            playlist = record.get('playlist')
-            description = ''
-            for index, item in enumerate(playlist):
-                url, title, mention = item
-                description += f'{index + 1}.\t[{title}]({url}) | {mention}\n'
-            
-            await send_embed(
-                ctx=ctx,
-                title=f'{name}:',
-                description=description, 
-                color=BASE_COLOR)
+        if record.explain()['executionStats']['nReturned'] > 0:
+            names = [f'{index + 1}. {item.get("name")}' for index, item in enumerate(record)]
+            description = '\n'.join(names)
         else:
-            record = db.playlists.find(
-                {'guild_id': ctx.guild.id}
-            )
-
-            if record.explain()['executionStats']['nReturned'] > 0:
-                names = [f'{index + 1}. {item.get("name")}' for index, item in enumerate(record)]
-                description = '\n'.join(names)
-            else:
-                description = 'There are no playlists for this guild!'
-            
-            await send_embed(
-                ctx=ctx, 
-                title='Available playlists:',
-                description=description, 
-                color=BASE_COLOR
-            )
+            description = 'There are no playlists for this guild!'
+        
+        await send_embed(
+            ctx=ctx, 
+            title='Available playlists:',
+            description=description, 
+            color=BASE_COLOR
+        )
 
     @playlists.command(name='remove', aliases=['rm'])
     async def remove_playlist(self, ctx: commands.Context, *, name: str):
