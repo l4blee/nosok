@@ -35,13 +35,12 @@ class BassVolumeTransformer(AudioSource):
                            0.0)
 
     @property
-    def bass_accentuate(self) -> int:
+    def bass_accentuate(self) -> float:
         return self._bass
     
     @bass_accentuate.setter
-    def bass_accentuate(self, value: int):
-        self._bass = max(min(10, value), 
-                         0)
+    def bass_accentuate(self, value: float):
+        self._bass = value
 
     def _bass_boost(self, sample: bytes) -> bytes:
         if self._bass == 0:
@@ -61,7 +60,10 @@ class BassVolumeTransformer(AudioSource):
         bass_factor = int(est_std - est_mean * 0.015) or self._last_freq
         self._last_freq = bass_factor
 
-        lower = sample.low_pass_filter(bass_factor) + self._bass
+        lower = sample.low_pass_filter(bass_factor)
+        # gain = (-25 - lower.dBFS) + self._bass
+        lower = lower.apply_gain(-25 - lower.dBFS + self._bass)
+
         output = sample.overlay(lower)
 
         return output.raw_data

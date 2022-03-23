@@ -786,7 +786,7 @@ class Music(commands.Cog):
         ctx.voice_client.source.bass_accentuate = level
         await send_embed(
             ctx=ctx, 
-            description=f'Bass boost level changed to `{level}db`', 
+            description=f'Bass boost level has been set to `{level}db`', 
             color=BASE_COLOR
         )
 
