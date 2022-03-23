@@ -21,8 +21,9 @@ class BassVolumeTransformer(AudioSource):
         self.original = original
         self._volume = volume
         self._bass = bass_accentuate
-
-        self._last_freq = 100  # 100Hz as basic bass freq to avoid issues
+        
+        # 100Hz as basic bass freq to avoid issues, when bass_factor is 0.
+        self._last_bass_factor = 100
 
     @property
     def volume(self) -> float:
@@ -57,12 +58,12 @@ class BassVolumeTransformer(AudioSource):
 
         est_mean = mean(sample_list)
         est_std = 3 * std(sample_list) / (2 ** 0.5)
-        bass_factor = int(est_std - est_mean * 0.015) or self._last_freq
+        bass_factor = int(est_std - est_mean * 0.015) or self._last_bass_factor
         self._last_freq = bass_factor
 
         lower = sample.low_pass_filter(bass_factor)
-        # gain = (-25 - lower.dBFS) + self._bass
-        lower = lower.apply_gain(-25 - lower.dBFS + self._bass)
+        gain = self._bass - sample.dBFS
+        lower = lower.apply_gain(gain)
 
         output = sample.overlay(lower)
 
