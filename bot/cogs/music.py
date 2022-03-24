@@ -776,7 +776,7 @@ class Music(commands.Cog):
         guild_id, name = share_code.split('-')
         record = db.playlists.find_one(
             {
-                'guild_id': guild_id,
+                'guild_id': int(guild_id),
                 'name': name
             }
         )
@@ -786,17 +786,23 @@ class Music(commands.Cog):
                 description=f'Playlist with name `{name}` doesn\'t exist.', 
                 color=ERROR_COLOR)
             return
-        
-        db.playlists.insert_one(
+ 
+        db.playlists.replace_one(
+            {
+                'guild_id': ctx.guild.id,
+                'name': name
+            },
             {
                 'guild_id': ctx.guild.id,
                 'name': name,
                 'playlist': record.get('playlist')
-            }
+            },
+            upsert=True
         )
+
         await send_embed(
             ctx=ctx,
-            desciption=f'Playlist {name} has been added for your guild.',
+            description=f'Playlist `{name}` has been added for your guild.',
             color=BASE_COLOR
         )
 
