@@ -36,7 +36,7 @@ class Queue:
         self.guild_id = guild_id
 
         self.volume: float = 1.0
-        self.bass_boost: int = 0
+        self.bass_boost: float = 0.0
 
         self.queue_file = f'bot/queues/{guild_id}.txt'
         self.clear()
@@ -49,7 +49,7 @@ class Queue:
         tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
     
-    def _write(self, data: list):
+    def _write_to_queue(self, data: list):
         with open(self.queue_file, 'a', encoding='utf-8') as f:
             f.writelines(data)
 
@@ -58,13 +58,13 @@ class Queue:
 
         ret = tracks.pop(index)
         self.clear()
-        self._write([ITEM_SEPARATOR.join(i) + '\n' for i in tracks])
+        self._write_to_queue([ITEM_SEPARATOR.join(i) + '\n' for i in tracks])
 
         return ret
 
     async def add(self, url: str, mention: discord.User.mention, title: str = None) -> None:
         title = title or (await music_handler.get_info(url, is_url=True))[1]
-        self._write([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
+        self._write_to_queue([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -140,7 +140,7 @@ class Music(commands.Cog):
         if not voice:
             await send_embed(
                 ctx=ctx,
-                description='Connect to a voice channel first',
+                description='Connect to a voice channel first.',
                 color=ERROR_COLOR
             )
             raise exceptions.UserNotConnected
@@ -166,7 +166,7 @@ class Music(commands.Cog):
     @commands.check(is_connected)
     async def leave(self, ctx: commands.Context) -> None:
         """
-        Makes bot leave your current channel.
+        Makes bot leave voice channel.
         """
         voice = ctx.voice_client
         if voice.is_playing():
@@ -178,7 +178,7 @@ class Music(commands.Cog):
     @commands.check(is_connected)
     async def pause(self, ctx: commands.Context) -> None:
         """
-        Pauses current song. Use `play` command to resume.
+        Pauses current song.
         """
         voice = ctx.voice_client
         if voice.is_playing():
@@ -219,7 +219,7 @@ class Music(commands.Cog):
     @commands.check(is_connected)
     async def skip(self, ctx: commands.Context):
         """
-        Skips the current track and plays the next one
+        Skips the current track and plays the next one.
         """
         if ctx.voice_client:
             ctx.voice_client.stop()
@@ -228,7 +228,7 @@ class Music(commands.Cog):
     @commands.check(is_connected)
     async def previous(self, ctx: commands.Context):
         """
-        Plays a track before the current one
+        Plays a track before the current one.
         """
         q = self._queues[ctx.guild.id]
         res = await self._seek(ctx, q.now_playing)
@@ -299,7 +299,7 @@ class Music(commands.Cog):
     @commands.command(aliases=['p', 'р', 'п'])
     async def play(self, ctx: commands.Context, *query) -> None:
         """
-        Plays current song.
+        Plays specified track or resumes current song.
         """
         query = ' '.join(query)
         voice = ctx.voice_client
@@ -307,7 +307,7 @@ class Music(commands.Cog):
             if not ctx.author.voice:
                 await send_embed(
                     ctx=ctx,
-                    description='Connect to a voice channel first',
+                    description='Connect to a voice channel first.',
                     color=ERROR_COLOR
                 )
                 raise exceptions.UserNotConnected
@@ -345,7 +345,7 @@ class Music(commands.Cog):
                 if not res:
                     await send_embed(
                         ctx=ctx,
-                        description='The queue has ended',
+                        description='The queue has ended.',
                         color=BASE_COLOR
                     )
                     event_handler.on_song_end(ctx)
@@ -353,7 +353,7 @@ class Music(commands.Cog):
             else:
                 await send_embed(
                     ctx=ctx,
-                    description='There are no songs in the queue',
+                    description='There are no songs in the queue.',
                     color=ERROR_COLOR
                 )
                 event_handler.on_song_end(ctx)
@@ -418,7 +418,7 @@ class Music(commands.Cog):
             if not song:
                 await send_embed(
                     ctx=ctx,
-                    description='No tracks were specified',
+                    description='No tracks were specified.',
                     color=BASE_COLOR)
                 
                 raise exceptions.NoTracksSpecified
@@ -426,7 +426,7 @@ class Music(commands.Cog):
             if song is None:
                 await send_embed(
                     ctx=ctx,
-                    description='Canceled.',
+                    description='Cancelled.',
                     color=BASE_COLOR)
                 return
             
@@ -477,7 +477,7 @@ class Music(commands.Cog):
     @commands.command()
     async def loop(self, ctx: commands.Context, option: str = ''):
         """
-        Changes loop option to None, Queue or Track
+        Changes loop option to None, Queue or Track.
         """
         loop_setting = ['None', 'Current queue', 'Current track']
 
@@ -650,7 +650,7 @@ class Music(commands.Cog):
         
         await send_embed(
             ctx=ctx,
-            title=f'{name}:',
+            title=f'{name} (share code: {ctx.guild.id}-{name}):',
             description=description, 
             color=BASE_COLOR
         )
@@ -722,7 +722,7 @@ class Music(commands.Cog):
             description=f'Playlist `{name}` has been loaded.', 
             color=BASE_COLOR)
 
-    @playlists.command(name='list', aliases=['li'])
+    @playlists.command(name='list', aliases=['li', 'ls'])
     async def list_playlist(self, ctx: commands.Context):
         """
         Displays all playlists from the current guild or the one mentioned.
@@ -748,7 +748,7 @@ class Music(commands.Cog):
     @playlists.command(name='remove', aliases=['rm'])
     async def remove_playlist(self, ctx: commands.Context, *, name: str):
         """
-        Removes a playlist with name given.
+        Removes a playlist with the name given.
         """
         result = db.playlists.delete_one(
             {   
@@ -768,10 +768,42 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
 
+    @commands.Command(aliases=['as'])
+    async def add_shared(self, ctx: commands.Context, share_code: str):
+        """
+        Adds an existing playlist from another guild.
+        """
+        guild_id, name = share_code.split('-')
+        record = db.playlists.find_one(
+            {
+                'guild_id': guild_id,
+                'name': name
+            }
+        )
+        if record is None:
+            await send_embed(
+                ctx=ctx, 
+                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                color=ERROR_COLOR)
+            return
+        
+        db.playlists.insert_one(
+            {
+                'guild_id': ctx.guild.id,
+                'name': name,
+                'playlist': record.get('playlist')
+            }
+        )
+        await send_embed(
+            ctx=ctx,
+            desciption=f'Playlist {name} has been added for your guild.',
+            color=BASE_COLOR
+        )
+
     @commands.command(aliases=['bb'])
     async def bass_boost(self, ctx: commands.Context, level: float):
         """
-        Boosts a bass line for the track
+        Boosts a bass line for the track.
         """
         q: Queue = self._queues[ctx.guild.id]
         q.bass_boost = level
@@ -786,7 +818,7 @@ class Music(commands.Cog):
         ctx.voice_client.source.bass_accentuate = level
         await send_embed(
             ctx=ctx, 
-            description=f'Bass boost level has been set to `{level}db`', 
+            description=f'Bass boost level has been set to `{level}db`.', 
             color=BASE_COLOR
         )
 

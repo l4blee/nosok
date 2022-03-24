@@ -1,5 +1,8 @@
 from logging import basicConfig, INFO
 from os import makedirs, getenv
+import numpy
+
+numpy.seterr(all='ignore')
 
 # Lading env vars if needed
 if getenv('APP_STATUS', 'production') != 'production':
