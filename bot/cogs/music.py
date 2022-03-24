@@ -255,7 +255,7 @@ class Music(commands.Cog):
         message = await ctx.reply(
             '**Choose one of the following tracks:**',
             embed=embeds[current],
-            components=get_components(embeds, current)
+            components=get_components(len(embeds), current)
         )
 
         while 1:
@@ -283,14 +283,14 @@ class Music(commands.Cog):
                 await message.edit(
                     '**Choose one of the following tracks:**',
                     embed=embeds[current],
-                    components=get_components(embeds, current)
+                    components=get_components(len(embeds), current)
                 )
 
                 # Doesn't apply changes if I don't use both methods idk why
                 await interaction.respond(
                     type=6, 
                     embed=embeds[current],
-                    components=get_components(embeds, current)
+                    components=get_components(len(embeds), current)
                 )
             except asyncio.TimeoutError:
                 await message.delete()

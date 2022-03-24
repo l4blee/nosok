@@ -1,16 +1,16 @@
-import functools
-import typing
+from functools import partial
+from typing import Callable, Any
 
-import discord
+from discord import Colour, Embed
 from discord.ext import commands
-from discord_components import Button, ButtonStyle
+from discord_components import Button, ButtonStyle, Component
 
 import exceptions
 from base import ERROR_COLOR
 
 
-async def send_embed(ctx: commands.Context, description: str, color: discord.Colour, title: str = ''):
-    embed = discord.Embed(
+async def send_embed(ctx: commands.Context, description: str, color: Colour, title: str = '') -> Embed:
+    embed = Embed(
         description=description,
         title=title,
         color=color
@@ -31,12 +31,12 @@ async def is_connected(ctx: commands.Context):
     raise exceptions.BotNotConnected
 
 
-async def run_blocking(blocking_func: typing.Callable, bot: commands.Bot, *args, **kwargs) -> typing.Any:
-    func = functools.partial(blocking_func, *args, **kwargs)
+async def run_blocking(blocking_func: Callable, bot: commands.Bot, *args, **kwargs) -> Any:
+    func = partial(blocking_func, *args, **kwargs)
     return await bot.loop.run_in_executor(None, func)
 
 
-def get_components(embeds, current):
+def get_components(length: int, current: int) -> list[Component]:
     return [
         [
             Button(
@@ -45,7 +45,7 @@ def get_components(embeds, current):
                 style=ButtonStyle.red
             ),
             Button(
-                label=f'Page {current + 1} / {len(embeds)}',
+                label=f'Page {current + 1} / {length}',
                 id='cur',
                 style=ButtonStyle.grey,
                 disabled=True
