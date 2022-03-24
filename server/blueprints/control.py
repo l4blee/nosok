@@ -1,6 +1,7 @@
 from os import getenv
+from json import dumps
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, request
 
 from handler import handler
 
@@ -8,6 +9,12 @@ bp = Blueprint(
     'control',
     __name__
 )
+
+def jsonify(**kwargs):
+    response = Response(dumps(kwargs, indent=4))
+    response.mimetype = 'application/json'
+    response.content_type = 'application/json'
+    return response
 
 def check_auth(params):
     password, username = params.get('password'), params.get('username')
@@ -18,9 +25,9 @@ def check_auth(params):
 def launch():
     params = request.args.to_dict()
     if not check_auth(params):
-        return jsonify(message='Unathorized'), 401
+        return jsonify(status='error', message='Unathorized'), 401
         
-    resp = Response(f'Status: {handler.launch()}')
+    resp = jsonify(**handler.launch())
     resp.headers['Content-type'] = 'application/json'
     return resp
 
@@ -31,7 +38,7 @@ def terminate():
     if not check_auth(params):
         return jsonify(message='Unathorized'), 401
 
-    resp = Response(f'Status: {handler.terminate()}')
+    resp = jsonify(**handler.terminate())
     resp.headers['Content-type'] = 'application/json'
     return resp
 
@@ -42,7 +49,7 @@ def restart():
     if not check_auth(params):
         return jsonify(message='Unathorized'), 401
 
-    resp = Response(f'Status: {handler.restart()}')
+    resp = jsonify(**handler.restart())
     resp.headers['Content-type'] = 'application/json'
     return resp
 

@@ -33,10 +33,10 @@ class BotHandler:
             data['status'] = status
             json.dump(data, f, indent=4)
 
-    def launch(self) -> str:
+    def launch(self) -> dict:
         self._logger.info('Launching bot...')
         if self.bot_proc is not None:
-            return 'The bot is already online!'
+            return dict(status='error', message='The bot is already online!')
         
         self.bot_proc = Popen(
             SUBPROCESS_CMD,
@@ -44,12 +44,12 @@ class BotHandler:
             stderr=self.pout
         )
         self.set_status('online')
-        return 'Success'
+        return dict(status='success', message=None)
 
-    def terminate(self) -> str:
+    def terminate(self) -> dict:
         self._logger.info('Terminating bot...')
         if self.bot_proc is None:
-            return 'The bot is already offline!'
+            return dict(status='error', message='The bot is already offline!')
 
         try:
             self.bot_proc.terminate()
@@ -60,14 +60,15 @@ class BotHandler:
             self.bot_proc = None
         
         self.set_status('offline')
-        return 'Success'
+        return dict(status='success', message=None)
 
-    def restart(self) -> str:
+    def restart(self) -> dict:
         self._logger.info('Restarting bot...')
         self.terminate()
+        self.set_status('restarting')
         self.launch()
 
-        return 'Success'
+        return dict(status='success', message=None)
 
 
 handler = BotHandler()
