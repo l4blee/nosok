@@ -8,6 +8,7 @@ from typing import Generator, Optional
 import discord
 from discord import Embed
 from discord.ext import commands
+from discord_components import Button, ButtonStyle
 
 import exceptions
 from database import db
@@ -262,7 +263,8 @@ class Music(commands.Cog):
             try:
                 interaction = await ctx.bot.wait_for(
                     'button_click',
-                    check=lambda i: i.component.id in ['back', 'forward', 'lock'],
+                    check=lambda i: i.component.id in ['back', 'forward', 'lock'] and\
+                                    i.message == message,
                     timeout=20.0
                 )
 
@@ -647,13 +649,75 @@ class Music(commands.Cog):
         for index, item in enumerate(playlist):
             url, title, mention = item
             description += f'{index + 1}.\t[{title}]({url}) | {mention}\n'
-        
-        await send_embed(
-            ctx=ctx,
+
+        embed = Embed(
             title=f'{name} (share code: {ctx.guild.id}-{name}):',
-            description=description, 
+            description=description,
             color=BASE_COLOR
         )
+
+        btn = Button(
+            label='Rename',
+            id='rename',
+            style=ButtonStyle.grey
+        )
+
+        message = await ctx.send(
+            embed=embed,
+            components=[btn]
+        )
+        btn.set_disabled(True)
+
+        try:
+            interaction = await ctx.bot.wait_for(
+                'button_click',
+                check=lambda i: i.component.id == 'rename' and\
+                                i.message == message,
+                timeout=10
+            )
+
+            await interaction.respond(
+                type=6,
+                embed=embed,
+                components=[btn]
+            )
+
+            await self.rename_playlist(ctx, name)
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            await message.edit(components=[btn])
+
+    async def rename_playlist(self, ctx, name):
+        entry = await send_embed(
+            ctx=ctx,
+            description=f'Choose new name for `{name}` playlist.',
+            color=BASE_COLOR
+        )
+
+        try:
+            msg = await ctx.bot.wait_for(
+                'message',
+                timeout=10
+            )
+
+            db.playlists.update_one(
+                {
+                    'name': name,
+                    'guild_id': ctx.guild.id
+                },
+                {
+                    '$set': {'name': msg.content}
+                }
+            )
+        except asyncio.TimeoutError:
+            await entry.delete()
+            return
+
+        await send_embed(
+            ctx=ctx, 
+            description=f'Playlist `{name}` has been renamed to `{msg.content}`!',
+            color=BASE_COLOR)
 
     @playlists.command(name='create', aliases=['c'])
     async def create_playlist(self, ctx: commands.Context, *, name: str):
@@ -722,28 +786,6 @@ class Music(commands.Cog):
             description=f'Playlist `{name}` has been loaded.', 
             color=BASE_COLOR)
 
-    @playlists.command(name='list', aliases=['li', 'ls'])
-    async def list_playlist(self, ctx: commands.Context):
-        """
-        Displays all playlists from the current guild or the one mentioned.
-        """
-        q: Queue = self._queues[ctx.guild.id]
-        record = db.playlists.find(
-            {'guild_id': ctx.guild.id}
-        )
-
-        if record.explain()['executionStats']['nReturned'] > 0:
-            names = [f'{index + 1}. {item.get("name")}' for index, item in enumerate(record)]
-            description = '\n'.join(names)
-        else:
-            description = 'There are no playlists for this guild!'
-        
-        await send_embed(
-            ctx=ctx, 
-            title='Available playlists:',
-            description=description, 
-            color=BASE_COLOR
-        )
 
     @playlists.command(name='remove', aliases=['rm'])
     async def remove_playlist(self, ctx: commands.Context, *, name: str):
@@ -767,6 +809,29 @@ class Music(commands.Cog):
                 description=f'Playlist `{name}` has been successfully deleted.',
                 color=BASE_COLOR
             )
+
+    @playlists.command(name='list', aliases=['li', 'ls'])
+    async def list_playlist(self, ctx: commands.Context):
+        """
+        Displays all playlists from the current guild or the one mentioned.
+        """
+        q: Queue = self._queues[ctx.guild.id]
+        record = db.playlists.find(
+            {'guild_id': ctx.guild.id}
+        )
+
+        if record.explain()['executionStats']['nReturned'] > 0:
+            names = [f'**{index + 1}.** {item.get("name")}' for index, item in enumerate(record)]
+            description = '\n'.join(names)
+        else:
+            description = 'There are no playlists for this guild!'
+        
+        await send_embed(
+            ctx=ctx, 
+            title='Available playlists:',
+            description=description, 
+            color=BASE_COLOR
+        )
 
     @playlists.command(aliases=['as'])
     async def add_shared(self, ctx: commands.Context, share_code: str):
@@ -812,7 +877,6 @@ class Music(commands.Cog):
         Boosts a bass line for the track.
         """
         q: Queue = self._queues[ctx.guild.id]
-        q.bass_boost = level
         if ctx.voice_client is None:
             await send_embed(
                 ctx=ctx,
@@ -822,9 +886,10 @@ class Music(commands.Cog):
             return
 
         ctx.voice_client.source.bass_accentuate = level
+        q.bass_boost = ctx.voice_client.source.bass_accentuate
         await send_embed(
             ctx=ctx, 
-            description=f'Bass boost level has been set to `{level}db`.', 
+            description=f'Bass boost level has been set to `{q.bass_boost}db`.', 
             color=BASE_COLOR
         )
 

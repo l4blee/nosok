@@ -56,7 +56,7 @@ class Bot(commands.Bot):
     async def on_ready(self):
         DiscordComponents(self)
 
-        self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
+        self._logger.info(f'The bot itself has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
         delattr(self, '_start_time')
 
     async def close(self):

@@ -1,11 +1,12 @@
 import logging
+import warnings
 
 from io import BytesIO
 from audioop import mul
 
 from discord.player import PCMVolumeTransformer, FFmpegPCMAudio, AudioSource
 from pydub import AudioSegment
-from numpy import std, mean
+from numpy import std, mean, errstate
 
 logger = logging.getLogger('player')
 
@@ -41,33 +42,35 @@ class BassVolumeTransformer(AudioSource):
     
     @bass_accentuate.setter
     def bass_accentuate(self, value: float):
-        self._bass = value
+        self._bass = min(max(value, -20), 200)
 
     def _bass_boost(self, sample: bytes) -> bytes:
-        if self._bass == 0:
-            return sample
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            if self._bass == 0:
+                return sample
 
-        sample = AudioSegment.from_raw(
-            BytesIO(sample),
-            sample_width=2,
-            frame_rate=48000,
-            channels=2
-        )
+            sample = AudioSegment.from_raw(
+                BytesIO(sample),
+                sample_width=2,
+                frame_rate=48000,
+                channels=2
+            )
 
-        sample_list = sample.get_array_of_samples()
+            sample_list = sample.get_array_of_samples()
 
-        est_mean = mean(sample_list)
-        est_std = 3 * std(sample_list) / (2 ** 0.5)
-        bass_factor = int(est_std - est_mean * 0.015) or self._last_bass_factor
-        self._last_freq = bass_factor
+            est_mean = mean(sample_list)
+            est_std = 3 * std(sample_list) / (2 ** 0.5)
+            bass_factor = int(est_std - est_mean * 0.015) or self._last_bass_factor
+            self._last_freq = bass_factor
 
-        lower = sample.low_pass_filter(bass_factor)
-        gain = self._bass - sample.dBFS
-        lower = lower.apply_gain(gain)
+            lower = sample.low_pass_filter(bass_factor)
+            gain = self._bass - sample.dBFS
+            lower = lower.apply_gain(gain)
 
-        output = sample.overlay(lower)
+            output = sample.overlay(lower)
 
-        return output.raw_data
+            return output.raw_data
 
     def read(self):
         orig = self.original.read()  # Getting original sound
