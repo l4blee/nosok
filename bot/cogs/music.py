@@ -768,7 +768,7 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
 
-    @playlists.ommand(aliases=['as'])
+    @playlists.command(aliases=['as'])
     async def add_shared(self, ctx: commands.Context, share_code: str):
         """
         Adds an existing playlist from another guild.
