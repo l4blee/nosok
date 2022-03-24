@@ -10,10 +10,10 @@ from discord import Embed
 from discord.ext import commands
 
 import exceptions
+from database import db
 from player import BassVolumeTransformer
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
-from database import db
 from utils import (is_connected, send_embed,
                    get_components, run_blocking)
 
@@ -768,7 +768,7 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
 
-    @commands.Command(aliases=['as'])
+    @playlists.ommand(aliases=['as'])
     async def add_shared(self, ctx: commands.Context, share_code: str):
         """
         Adds an existing playlist from another guild.
