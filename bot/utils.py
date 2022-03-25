@@ -71,11 +71,13 @@ COMPONENTS = {
         ),
         Button(
             label='Load',
-            id='load'
+            id='load',
+            style=ButtonStyle.green
         ),
         Button(
             label='Delete',
-            id='delete'
+            id='delete',
+            style=ButtonStyle.red
         )
     ]]
 }
