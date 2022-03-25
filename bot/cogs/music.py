@@ -662,6 +662,7 @@ class Music(commands.Cog):
             embed=embed,
             components=components
         )
+        flag = False
 
         try:
             interaction = await ctx.bot.wait_for(
@@ -680,10 +681,6 @@ class Music(commands.Cog):
                 )
 
                 await self.rename_playlist(ctx, name)
-
-                for i in components[0]:
-                    i.set_disabled(True)
-                await message.edit(components=components)
             elif interaction.component.id == 'load':
                 components[0][1].set_disabled(True)
                 await interaction.respond(
@@ -693,15 +690,17 @@ class Music(commands.Cog):
                 )
 
                 await self._load_playlist(ctx, name)
-
-                for i in components[0]:
-                    i.set_disabled(True)
-                await message.edit(components=components)
             elif interaction.component.id == 'delete':
                 await self._delete_playlist(ctx, name)
                 await message.delete()
+                flag = True
         except asyncio.TimeoutError:
             pass
+        finally:
+            if not flag:
+                for i in components[0]:
+                    i.set_disabled(True)
+                await message.edit(components=components)
 
     async def rename_playlist(self, ctx, name):
         entry = await send_embed(
