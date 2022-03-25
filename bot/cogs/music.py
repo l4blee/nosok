@@ -236,7 +236,7 @@ class Music(commands.Cog):
         if res == -1:
             await send_embed(
                 ctx=ctx,
-                description='There are no tracks before current song',
+                description='There are no tracks before current song.',
                 color=ERROR_COLOR
             )
             raise exceptions.NoTracksBefore
@@ -247,16 +247,16 @@ class Music(commands.Cog):
         tracks = tracks[0]
 
         for url, title, thumbnail in tracks:
-            embed = Embed(title=title, url=url)
+            embed = Embed(title=title, url=url, color=BASE_COLOR)
             embed.set_thumbnail(url=thumbnail)
             embed.set_author(name=ctx.author)
             embeds.append(embed)
 
         current = 0
-        message = await ctx.reply(
+        message = await ctx.send(
             '**Choose one of the following tracks:**',
             embed=embeds[current],
-            components=get_components(len(embeds), current)
+            components=get_components('search')(len(embeds), current)
         )
 
         while 1:
@@ -285,14 +285,14 @@ class Music(commands.Cog):
                 await message.edit(
                     '**Choose one of the following tracks:**',
                     embed=embeds[current],
-                    components=get_components(len(embeds), current)
+                    components=get_components('search')(len(embeds), current)
                 )
 
                 # Doesn't apply changes if I don't use both methods idk why
                 await interaction.respond(
                     type=6, 
                     embed=embeds[current],
-                    components=get_components(len(embeds), current)
+                    components=get_components('search')(len(embeds), current)
                 )
             except asyncio.TimeoutError:
                 await message.delete()
@@ -592,7 +592,7 @@ class Music(commands.Cog):
         if not track:
             await send_embed(
                 ctx=ctx,
-                description='No tracks were specified',
+                description='No tracks were specified.',
                 color=BASE_COLOR)
             raise exceptions.NoTracksSpecified
         
@@ -656,37 +656,52 @@ class Music(commands.Cog):
             color=BASE_COLOR
         )
 
-        btn = Button(
-            label='Rename',
-            id='rename',
-            style=ButtonStyle.grey
-        )
+        components = get_components('playlist')
 
         message = await ctx.send(
             embed=embed,
-            components=[btn]
+            components=components
         )
-        btn.set_disabled(True)
 
         try:
             interaction = await ctx.bot.wait_for(
                 'button_click',
-                check=lambda i: i.component.id == 'rename' and\
+                check=lambda i: i.component.id in ['rename', 'load', 'delete'] and\
                                 i.message == message,
                 timeout=10
             )
 
-            await interaction.respond(
-                type=6,
-                embed=embed,
-                components=[btn]
-            )
+            if interaction.component.id == 'rename':
+                components[0][0].set_disabled(True)
+                await interaction.respond(
+                    type=6,
+                    embed=embed,
+                    components=components
+                )
 
-            await self.rename_playlist(ctx, name)
+                await self.rename_playlist(ctx, name)
+
+                for i in components[0]:
+                    i.set_disabled(True)
+                await message.edit(components=components)
+            elif interaction.component.id == 'load':
+                components[0][1].set_disabled(True)
+                await interaction.respond(
+                    type=6,
+                    embed=embed,
+                    components=components
+                )
+
+                await self._load_playlist(ctx, name)
+
+                for i in components[0]:
+                    i.set_disabled(True)
+                await message.edit(components=components)
+            elif interaction.component.id == 'delete':
+                await self._delete_playlist(ctx, name)
+                await message.delete()
         except asyncio.TimeoutError:
             pass
-        finally:
-            await message.edit(components=[btn])
 
     async def rename_playlist(self, ctx, name):
         entry = await send_embed(
@@ -698,7 +713,7 @@ class Music(commands.Cog):
         try:
             msg = await ctx.bot.wait_for(
                 'message',
-                timeout=10
+                timeout=15
             )
 
             db.playlists.update_one(
@@ -749,12 +764,9 @@ class Music(commands.Cog):
             ctx=ctx, 
             description=f'Playlist `{name}` has been succesfully created!', 
             color=BASE_COLOR)
-
-    @playlists.command(name='load', aliases=['l'])
-    async def load_playlist(self, ctx: commands.Context, *, name: str):
-        """
-        Loads existing playlist.
-        """
+    
+    async def _load_playlist(self, ctx, name):
+        # Had to put this whole function separately to the Command to use above.
         q: Queue = self._queues[ctx.guild.id]
 
         record = db.playlists.find_one(
@@ -786,12 +798,15 @@ class Music(commands.Cog):
             description=f'Playlist `{name}` has been loaded.', 
             color=BASE_COLOR)
 
+    @playlists.command(name='load', aliases=['l'])
+    async def load_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Loads existing playlist.
+        """
+        self._load(ctx, name)
 
-    @playlists.command(name='remove', aliases=['rm'])
-    async def remove_playlist(self, ctx: commands.Context, *, name: str):
-        """
-        Removes a playlist with the name given.
-        """
+    async def _delete_playlist(self, ctx, name):
+        # The same thing as the self._load_playlist method has...
         result = db.playlists.delete_one(
             {   
                 'guild_id': ctx.guild.id,
@@ -809,6 +824,14 @@ class Music(commands.Cog):
                 description=f'Playlist `{name}` has been successfully deleted.',
                 color=BASE_COLOR
             )
+
+
+    @playlists.command(name='delete', aliases=['rm', 'remove', 'del'])
+    async def delete_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Deletes a playlist with the name given.
+        """
+        self._delete_playlist(ctx, name)
 
     @playlists.command(name='list', aliases=['li', 'ls'])
     async def list_playlist(self, ctx: commands.Context):

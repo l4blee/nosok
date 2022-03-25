@@ -1,5 +1,6 @@
 from functools import partial
-from typing import Callable, Any
+from copy import deepcopy
+from typing import Callable, Any, Union
 
 from discord import Colour, Embed
 from discord.ext import commands
@@ -36,31 +37,49 @@ async def run_blocking(blocking_func: Callable, bot: commands.Bot, *args, **kwar
     return await bot.loop.run_in_executor(None, func)
 
 
-def get_components(length: int, current: int) -> list[Component]:
-    return [
+COMPONENTS = {
+    'search': lambda length, current: [
         [
             Button(
-                label='Back',
                 id='back',
-                style=ButtonStyle.red
+                emoji='◀'
             ),
             Button(
-                label=f'Page {current + 1} / {length}',
+                label=f'Page {current + 1}/{length}',
                 id='cur',
-                style=ButtonStyle.grey,
                 disabled=True
             ),
             Button(
-                label='Next',
                 id='forward',
-                style=ButtonStyle.red
+                emoji='▶'
             )
         ],
         [
+            Button(label=' ', disabled=True),
             Button(
                 label='Add this',
                 id='lock',
                 style=ButtonStyle.green
-            )
+            ),
+            Button(label=' ', disabled=True)
         ]
-    ]
+    ],
+    'playlist': [[
+        Button(
+            label='Rename',
+            id='rename'
+        ),
+        Button(
+            label='Load',
+            id='load'
+        ),
+        Button(
+            label='Delete',
+            id='delete'
+        )
+    ]]
+}
+
+
+def get_components(name: str) -> Union[list[Component], Callable]:
+    return deepcopy(COMPONENTS[name])
