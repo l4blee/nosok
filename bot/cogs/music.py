@@ -651,7 +651,7 @@ class Music(commands.Cog):
             description += f'{index + 1}.\t[{title}]({url}) | {mention}\n'
 
         embed = Embed(
-            title=f'{name} (share code: {ctx.guild.id}-{name}):',
+            title=f'{name} (share code: {ctx.guild.id}-{"_".join(name.split(" "))}):',
             description=description,
             color=BASE_COLOR
         )
@@ -802,7 +802,7 @@ class Music(commands.Cog):
         """
         Loads existing playlist.
         """
-        self._load(ctx, name)
+        self._load_playlist(ctx, name)
 
     async def _delete_playlist(self, ctx, name):
         # The same thing as the self._load_playlist method has...
@@ -861,6 +861,7 @@ class Music(commands.Cog):
         Adds an existing playlist from another guild.
         """
         guild_id, name = share_code.split('-')
+        name = ' '.join(name.split('_'))
         record = db.playlists.find_one(
             {
                 'guild_id': int(guild_id),
