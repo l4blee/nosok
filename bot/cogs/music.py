@@ -572,7 +572,7 @@ class Music(commands.Cog):
         )
 
     @commands.command(aliases=['sch'])
-    async def search(self, ctx: commands.Context, *, query: str = None):
+    async def search(self, ctx: commands.Context, *, query: str):
         """
         Searches for a song on YouTube and gives you 5 options to choose.
         """
