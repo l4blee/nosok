@@ -299,11 +299,10 @@ class Music(commands.Cog):
                 break
 
     @commands.command(aliases=['p', 'р', 'п'])
-    async def play(self, ctx: commands.Context, *query) -> None:
+    async def play(self, ctx: commands.Context, *, query: str = None) -> None:
         """
         Plays specified track or resumes current song.
         """
-        query = ' '.join(query)
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
@@ -408,12 +407,11 @@ class Music(commands.Cog):
         return url, title
 
     @commands.command(aliases=['q'])
-    async def queue(self, ctx: commands.Context, *query) -> None:
+    async def queue(self, ctx: commands.Context, *, query: str = None) -> None:
         """
         Displays current queue.
         """
         q: Queue = self._queues[ctx.guild.id]
-        query = ' '.join(query)
         if query:
             song = await self._get_track(ctx, query)
             
@@ -574,12 +572,11 @@ class Music(commands.Cog):
         )
 
     @commands.command(aliases=['sch'])
-    async def search(self, ctx: commands.Context, *query):
+    async def search(self, ctx: commands.Context, *, query: str = None):
         """
         Searches for a song on YouTube and gives you 5 options to choose.
         """
         q: Queue = self._queues[ctx.guild.id]
-        query = ' '.join(query)
 
         if not ctx.voice_client:
             await ctx.author.voice.channel.connect()
@@ -796,6 +793,8 @@ class Music(commands.Cog):
             ctx=ctx, 
             description=f'Playlist `{name}` has been loaded.', 
             color=BASE_COLOR)
+
+        self.play(ctx)
 
     @playlists.command(name='load', aliases=['l'])
     async def load_playlist(self, ctx: commands.Context, *, name: str):
