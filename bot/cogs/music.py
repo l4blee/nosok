@@ -801,7 +801,7 @@ class Music(commands.Cog):
         """
         Loads existing playlist.
         """
-        self._load_playlist(ctx, name)
+        await self._load_playlist(ctx, name)
 
     async def _delete_playlist(self, ctx, name):
         # The same thing as the self._load_playlist method has...
@@ -829,7 +829,7 @@ class Music(commands.Cog):
         """
         Deletes a playlist with the name given.
         """
-        self._delete_playlist(ctx, name)
+        await self._delete_playlist(ctx, name)
 
     @playlists.command(name='list', aliases=['li', 'ls'])
     async def list_playlist(self, ctx: commands.Context):
