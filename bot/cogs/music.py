@@ -299,7 +299,7 @@ class Music(commands.Cog):
                 break
 
     @commands.command(aliases=['p', 'р', 'п'])
-    async def play(self, ctx: commands.Context, *, query: str = None) -> None:
+    async def play(self, ctx: commands.Context, *, query: str = '') -> None:
         """
         Plays specified track or resumes current song.
         """
@@ -794,7 +794,7 @@ class Music(commands.Cog):
             description=f'Playlist `{name}` has been loaded.', 
             color=BASE_COLOR)
 
-        self.play(ctx)
+        await self.play(ctx)
 
     @playlists.command(name='load', aliases=['l'])
     async def load_playlist(self, ctx: commands.Context, *, name: str):
