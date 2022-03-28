@@ -321,12 +321,12 @@ class Music(commands.Cog):
 
         if query != '':
             if voice.is_playing():
-                await self.queue(ctx, query)
+                await self.queue(ctx, query=query)
                 return
 
             if voice.is_paused():
                 await voice.resume()
-                await self.queue(ctx, query)
+                await self.queue(ctx, query=query)
                 return
 
             url = query if URL_REGEX.match(query) else await music_handler.get_url(query)
@@ -686,9 +686,9 @@ class Music(commands.Cog):
                     components=components
                 )
 
-                await self._load_playlist(ctx, name)
+                await self.load_playlist(ctx, name=name)
             elif interaction.component.id == 'delete':
-                await self._delete_playlist(ctx, name)
+                await self.delete_playlist(ctx, name=name)
                 await message.delete()
                 flag = True
         except asyncio.TimeoutError:
@@ -759,10 +759,13 @@ class Music(commands.Cog):
         await send_embed(
             ctx=ctx, 
             description=f'Playlist `{name}` has been succesfully created!', 
-            color=BASE_COLOR)
-    
-    async def _load_playlist(self, ctx, name):
-        # Had to put this whole function separately to the Command to use above.
+            color=BASE_COLOR)        
+
+    @playlists.command(name='load', aliases=['l'])
+    async def load_playlist(self, ctx: commands.Context, *, name: str):
+        """
+        Loads existing playlist.
+        """
         q: Queue = self._queues[ctx.guild.id]
 
         record = db.playlists.find_one(
@@ -795,16 +798,12 @@ class Music(commands.Cog):
             color=BASE_COLOR)
 
         await self.play(ctx)
-
-    @playlists.command(name='load', aliases=['l'])
-    async def load_playlist(self, ctx: commands.Context, *, name: str):
+     
+    @playlists.command(name='delete', aliases=['rm', 'remove', 'del'])
+    async def delete_playlist(self, ctx: commands.Context, *, name: str):
         """
-        Loads existing playlist.
+        Deletes a playlist with the name given.
         """
-        await self._load_playlist(ctx, name)
-
-    async def _delete_playlist(self, ctx, name):
-        # The same thing as the self._load_playlist method has...
         result = db.playlists.delete_one(
             {   
                 'guild_id': ctx.guild.id,
@@ -822,14 +821,6 @@ class Music(commands.Cog):
                 description=f'Playlist `{name}` has been successfully deleted.',
                 color=BASE_COLOR
             )
-
-
-    @playlists.command(name='delete', aliases=['rm', 'remove', 'del'])
-    async def delete_playlist(self, ctx: commands.Context, *, name: str):
-        """
-        Deletes a playlist with the name given.
-        """
-        await self._delete_playlist(ctx, name)
 
     @playlists.command(name='list', aliases=['li', 'ls'])
     async def list_playlist(self, ctx: commands.Context):
