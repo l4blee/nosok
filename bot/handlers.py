@@ -26,7 +26,7 @@ class YDLHandler(MusicHandlerBase):
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
         self._video_regex = comp_(r'watch\?v=(\S{11})')
 
-    async def get_url(self, query: str) -> str:
+    async def get_url(self, query: str) -> str:  # video url
         query = '+'.join(query.split())
 
         with requests.Session() as session:
@@ -98,23 +98,28 @@ class EventHandler(Thread):
         self.to_check[ctx] = datetime.now() + timedelta(minutes=5)
 
     def on_song_start(self, ctx: commands.Context):
-        self.to_check[ctx] = None
+        if ctx in self.to_check:
+            del self.to_check[ctx]
+
+    '''async def on_message(self, message: discord.Message):
+        ctx = await self._bot.get_context(message)
+        self.to_check[ctx] = message'''
 
     async def checkall(self):
         for ctx, timestamp in self.to_check.items():
             player = ctx.voice_client
             if not player:
-                self.to_check[ctx] = None
+                del self.to_check[ctx]
                 continue
 
             if player.is_playing():
-                self.to_check[ctx] = None
+                del self.to_check[ctx]
                 continue
 
             if timestamp and datetime.now().time() >= timestamp.time():
                 await player.disconnect()
 
-                self.to_check[ctx] = None
+                del self.to_check[ctx]
 
                 await send_embed(
                     ctx=ctx,

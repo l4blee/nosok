@@ -25,6 +25,13 @@ class Bot(commands.Bot):
         super().__init__(command_prefix, case_insensitive=True)
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
+    async def on_message(self, message):
+        '''if message.author != self.user.id:
+            await event_handler.on_message(message)'''
+        # TODO: use event_handler to make bot leave a voice channel with message 
+
+        await super().on_message(message)
+
     async def on_command_error(self, ctx: commands.Context, exception):
         if not isinstance(exception, CustomException):
             if isinstance(exception, commands.CommandNotFound):
@@ -50,8 +57,7 @@ class Bot(commands.Bot):
 
     def run(self):
         self.setup()
-        TOKEN = os.getenv('TOKEN')
-        super().run(TOKEN, reconnect=True)
+        super().run(os.getenv('TOKEN'), reconnect=True)
 
     async def on_ready(self):
         DiscordComponents(self)
