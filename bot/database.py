@@ -24,7 +24,7 @@ class MongoDB:
         # Main database
         self.prefixes = self.client.guilds.prefixes
         self.playlists = self.client.guilds.playlists
-        self._logger.info('Successfully connected to Mongo, going further.')
+        self._logger.info('Successfully connected to Mongo, going further...')
 
     async def get_prefix(self, _, msg: Message) -> str:
         guild_id = msg.guild.id
