@@ -10,13 +10,11 @@ from discord.ext import commands
 from discord_components.client import DiscordComponents
 
 from base import BASE_PREFIX, ERROR_COLOR
-from handlers import YDLHandler, EventHandler, DataProcessor, SCHandler
+from handlers import YDLHandler, EventHandler, DataProcessor
 from exceptions import CustomException
 from utils import send_embed
-from orm.base import db
-from orm.models import GuildConfig
 
-USE_YOUTUBE = True
+from database import db
 
 
 class Bot(commands.Bot):
@@ -27,43 +25,44 @@ class Bot(commands.Bot):
         super().__init__(command_prefix, case_insensitive=True)
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
+    async def on_message(self, message):
+        '''if message.author != self.user.id:
+            await event_handler.on_message(message)'''
+        # TODO: use event_handler to make bot leave a voice channel with message 
+
+        await super().on_message(message)
+
     async def on_command_error(self, ctx: commands.Context, exception):
         if not isinstance(exception, CustomException):
             if isinstance(exception, commands.CommandNotFound):
                 await send_embed(ctx,
                                 f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
                                 ERROR_COLOR)
+            elif isinstance(exception, commands.MissingRequiredArgument):
+                await send_embed(ctx,
+                                f'Please provide {exception.param.name}. '
+                                f'Type `{ctx.prefix}help {ctx.invoked_with}` to get help.', 
+                                ERROR_COLOR)
             else:
                 await send_embed(ctx,
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
 
-                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
-                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
-                
+        self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
+        print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
     def setup(self):
-        db.create_tables([GuildConfig])
-
-        for cls in [
-            import_module(f'cogs.{i.stem}').__dict__[i.stem.title()]
-            for i in Path('./bot/cogs/').glob('*.py')
-        ]:
-            self.add_cog(eval('cls()'))
+        for i in Path('bot/cogs/').glob('*.py'):
+            self.load_extension(f'cogs.{i.stem}')
 
     def run(self):
         self.setup()
-        TOKEN = os.getenv('TOKEN')
-        super().run(TOKEN, reconnect=True)
+        super().run(os.getenv('TOKEN'), reconnect=True)
 
     async def on_ready(self):
-        Queue = import_module('cogs.music').__dict__['Queue']
-        self.get_cog('Music')._queues = {i.id: Queue(i.id) for i in self.guilds}
-        del Queue
-
         DiscordComponents(self)
 
-        self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
+        self._logger.info(f'The bot itself has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
         delattr(self, '_start_time')
 
     async def close(self):
@@ -71,21 +70,13 @@ class Bot(commands.Bot):
         await super().close()
 
 
-def get_prefix(_, msg) -> str:
-    with db.atomic():
-        res = GuildConfig.get_or_none(GuildConfig.guild_id == msg.guild.id)
-        return res.prefix if res is not None else BASE_PREFIX
+bot = Bot(db.get_prefix)
 
-
-bot = Bot(get_prefix)
 data_processor = DataProcessor(bot)
 event_handler = EventHandler(bot)
 
-if USE_YOUTUBE:
-    music_handler = YDLHandler({
-        'simulate': True,
-        'quiet': True,
-        'format': 'bestaudio'
-    })
-else:
-    music_handler = SCHandler()
+music_handler = YDLHandler({
+    'simulate': True,
+    'quiet': True,
+    'format': 'bestaudio'
+})

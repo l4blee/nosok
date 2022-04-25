@@ -1,2 +1,2 @@
-web: python bot/main.py
+web: python server/main.py
 worker: python pinger/index.py

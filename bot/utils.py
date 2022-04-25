@@ -1,16 +1,17 @@
-import functools
-import typing
+from functools import partial
+from copy import deepcopy
+from typing import Callable, Any, Union
 
-import discord
+from discord import Colour, Embed
 from discord.ext import commands
-from discord_components import Button, ButtonStyle
+from discord_components import Button, ButtonStyle, Component
 
 import exceptions
 from base import ERROR_COLOR
 
 
-async def send_embed(ctx: commands.Context, description: str, color: discord.Colour, title: str = ''):
-    embed = discord.Embed(
+async def send_embed(ctx: commands.Context, description: str, color: Colour, title: str = '') -> Embed:
+    embed = Embed(
         description=description,
         title=title,
         color=color
@@ -20,7 +21,7 @@ async def send_embed(ctx: commands.Context, description: str, color: discord.Col
 
 
 async def is_connected(ctx: commands.Context):
-    if ctx.invoked_with == 'help' or ctx.voice_client:
+    if ctx.invoked_with == 'help' or ctx.voice_client is not None:
         return True
 
     await send_embed(
@@ -28,40 +29,59 @@ async def is_connected(ctx: commands.Context):
         description='I am not connected to a voice channel yet!',
         color=ERROR_COLOR
     )
-
     raise exceptions.BotNotConnected
 
 
-async def run_blocking(blocking_func: typing.Callable, bot: commands.Bot, *args, **kwargs) -> typing.Any:
-    func = functools.partial(blocking_func, *args, **kwargs)
+async def run_blocking(blocking_func: Callable, bot: commands.Bot, *args, **kwargs) -> Any:
+    func = partial(blocking_func, *args, **kwargs)
     return await bot.loop.run_in_executor(None, func)
 
 
-def get_components(embeds, current):
-    return [
+COMPONENTS = {
+    'search': lambda length, current: [
         [
             Button(
-                label='Back',
                 id='back',
-                style=ButtonStyle.red
+                emoji='◀'
             ),
             Button(
-                label=f'Page {current + 1} / {len(embeds)}',
+                label=f'Page {current + 1}/{length}',
                 id='cur',
-                style=ButtonStyle.grey,
                 disabled=True
             ),
             Button(
-                label='Next',
                 id='forward',
-                style=ButtonStyle.red
+                emoji='▶'
             )
         ],
         [
+            Button(label=' ', disabled=True),
             Button(
                 label='Add this',
                 id='lock',
                 style=ButtonStyle.green
-            )
+            ),
+            Button(label=' ', disabled=True)
         ]
-    ]
+    ],
+    'playlist': [[
+        Button(
+            label='Rename',
+            id='rename'
+        ),
+        Button(
+            label='Load',
+            id='load',
+            style=ButtonStyle.green
+        ),
+        Button(
+            label='Delete',
+            id='delete',
+            style=ButtonStyle.red
+        )
+    ]]
+}
+
+
+def get_components(name: str) -> Union[list[Component], Callable]:
+    return deepcopy(COMPONENTS[name])
