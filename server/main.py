@@ -21,3 +21,4 @@ if __name__ == '__main__':
     
     handler.launch()
     app.run('0.0.0.0', port=getenv('PORT', 8080))
+    handler.terminate()

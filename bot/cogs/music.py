@@ -130,20 +130,10 @@ class Music(commands.Cog):
         Makes the bot join your current voice channel
         """
         if ctx.voice_client:
-            await send_embed(
-                ctx=ctx,
-                description='I am already connected to a voice channel!',
-                color=ERROR_COLOR,
-            )
             raise exceptions.AlreadyConnected
 
         voice = ctx.author.voice
         if not voice:
-            await send_embed(
-                ctx=ctx,
-                description='Connect to a voice channel first.',
-                color=ERROR_COLOR
-            )
             raise exceptions.UserNotConnected
 
         if voice_channel:
@@ -233,12 +223,7 @@ class Music(commands.Cog):
         """
         q = self._queues[ctx.guild.id]
         res = await self._seek(ctx, q.now_playing)
-        if res == -1:
-            await send_embed(
-                ctx=ctx,
-                description='There are no tracks before current song.',
-                color=ERROR_COLOR
-            )
+        if not res:
             raise exceptions.NoTracksBefore
 
     @staticmethod
@@ -306,11 +291,6 @@ class Music(commands.Cog):
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
-                await send_embed(
-                    ctx=ctx,
-                    description='Connect to a voice channel first.',
-                    color=ERROR_COLOR
-                )
                 raise exceptions.UserNotConnected
 
             await ctx.author.voice.channel.connect()
@@ -352,11 +332,6 @@ class Music(commands.Cog):
                     event_handler.on_song_end(ctx)
                     return
             else:
-                await send_embed(
-                    ctx=ctx,
-                    description='There are no songs in the queue.',
-                    color=ERROR_COLOR
-                )
                 event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
@@ -415,12 +390,7 @@ class Music(commands.Cog):
         if query:
             song = await self._get_track(ctx, query)
             
-            if not song:
-                await send_embed(
-                    ctx=ctx,
-                    description='No tracks were specified.',
-                    color=BASE_COLOR)
-                
+            if not song:                
                 raise exceptions.NoTracksSpecified
 
             if song is None:
@@ -520,17 +490,12 @@ class Music(commands.Cog):
     async def _seek(self, ctx: commands.Context, index: int):
         q: Queue = self._queues[ctx.guild.id]
         if q.is_empty:
-            await send_embed(
-                ctx=ctx,
-                description='Queue is empty!',
-                color=ERROR_COLOR
-            )
             raise exceptions.QueueEmpty
         elif 1 <= index <= len(q):
             q.now_playing = index - 2
             await self.skip(ctx)
         else:
-            return -1
+            return False
 
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
@@ -587,10 +552,6 @@ class Music(commands.Cog):
         track = await self._choose_track(ctx, tracks)
 
         if not track:
-            await send_embed(
-                ctx=ctx,
-                description='No tracks were specified.',
-                color=BASE_COLOR)
             raise exceptions.NoTracksSpecified
         
         url, title = track

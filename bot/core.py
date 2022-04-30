@@ -26,27 +26,37 @@ class Bot(commands.Bot):
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_message(self, message):
-        '''if message.author != self.user.id:
+        '''if not message.author.bot:
             await event_handler.on_message(message)'''
-        # TODO: use event_handler to make bot leave a voice channel with message 
+        # TODO: use event_handler to make the bot leave a voice channel with a message accepted
 
         await super().on_message(message)
 
     async def on_command_error(self, ctx: commands.Context, exception):
-        if not isinstance(exception, CustomException):
+        if isinstance(exception, CustomException):
+            await send_embed(
+                ctx=ctx, 
+                description=exception.description, 
+                color=exception.type_.value)
+            return
+        else:
             if isinstance(exception, commands.CommandNotFound):
                 await send_embed(ctx,
                                 f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
                                 ERROR_COLOR)
+                return
             elif isinstance(exception, commands.MissingRequiredArgument):
                 await send_embed(ctx,
                                 f'Please provide {exception.param.name}. '
                                 f'Type `{ctx.prefix}help {ctx.invoked_with}` to get help.', 
                                 ERROR_COLOR)
+                return
             else:
                 await send_embed(ctx,
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
+                return
+            
 
         self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
         print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
