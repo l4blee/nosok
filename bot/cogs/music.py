@@ -300,7 +300,7 @@ class Music(commands.Cog):
         q.play_next = True
 
         if query:
-            if len(query) < getenv('MINIMAL_QUEURY_LENGTH'):
+            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
                 raise exceptions.QueryTooShort()
             if voice.is_playing():
                 await self.queue(ctx, query=query)
@@ -390,7 +390,7 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
-            if len(query) < getenv('MINIMAL_QUEURY_LENGTH'):
+            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
                 raise exception.QueryTooShort()
             song = await self._get_track(ctx, query)
             
@@ -507,7 +507,7 @@ class Music(commands.Cog):
         Seeks a specified track with an index and plays it.
         """
         q = self._queues[ctx.guild.id]
-        
+
         res = await self._seek(ctx, index - 1)
         if res is None:
             await send_embed(
@@ -553,7 +553,7 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
-        if len(query) < getenv('MINIMAL_QUEURY_LENGTH'):
+        if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
             raise exceptions.QueryTooShort()
 
         tracks = await music_handler.get_infos(query)

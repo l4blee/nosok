@@ -38,24 +38,24 @@ class Bot(commands.Bot):
                 ctx=ctx, 
                 description=exception.description, 
                 color=exception.type_.value)
-            return
+            # return
         else:
             if isinstance(exception, commands.CommandNotFound):
                 await send_embed(ctx,
                                 f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
                                 ERROR_COLOR)
-                return
+                # return
             elif isinstance(exception, commands.MissingRequiredArgument):
                 await send_embed(ctx,
                                 f'Please provide {exception.param.name}. '
                                 f'Type `{ctx.prefix}help {ctx.invoked_with}` to get help.', 
                                 ERROR_COLOR)
-                return
+                # return
             else:
                 await send_embed(ctx,
                              'An error occured during handling this command, please try again later.', 
                              ERROR_COLOR)
-                return
+                # return
             
 
         self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
