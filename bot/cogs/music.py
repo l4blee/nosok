@@ -1,6 +1,6 @@
 import asyncio
 from io import FileIO
-from os import makedirs
+from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
 from typing import Generator, Optional
@@ -222,8 +222,8 @@ class Music(commands.Cog):
         Plays a track before the current one.
         """
         q = self._queues[ctx.guild.id]
-        res = await self._seek(ctx, q.now_playing)
-        if not res:
+        res = await self._seek(ctx, q.now_playing - 1)
+        if res is None:
             raise exceptions.NoTracksBefore
 
     @staticmethod
@@ -300,7 +300,7 @@ class Music(commands.Cog):
         q.play_next = True
 
         if query:
-            if len(query) < 10:
+            if len(query) < getenv('MINIMAL_QUEURY_LENGTH'):
                 raise exceptions.QueryTooShort()
             if voice.is_playing():
                 await self.queue(ctx, query=query)
@@ -390,7 +390,7 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
-            if len(query) < 10:
+            if len(query) < getenv('MINIMAL_QUEURY_LENGTH'):
                 raise exception.QueryTooShort()
             song = await self._get_track(ctx, query)
             
@@ -496,10 +496,10 @@ class Music(commands.Cog):
         if q.is_empty:
             raise exceptions.QueueEmpty
         elif 1 <= index <= len(q):
-            q.now_playing = index - 2
+            q.now_playing = index - 1
             await self.skip(ctx)
-        else:
-            return False
+        
+        return
 
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
@@ -507,8 +507,9 @@ class Music(commands.Cog):
         Seeks a specified track with an index and plays it.
         """
         q = self._queues[ctx.guild.id]
-        res = await self._seek(ctx, index)
-        if res == -1:
+        
+        res = await self._seek(ctx, index - 1)
+        if res is None:
             await send_embed(
                 ctx=ctx,
                 description=f'Index must be in range `1` to `{len(q)}`, not `{index}`',
@@ -552,7 +553,7 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
-        if len(query) < 10:
+        if len(query) < getenv('MINIMAL_QUEURY_LENGTH'):
             raise exceptions.QueryTooShort()
 
         tracks = await music_handler.get_infos(query)
