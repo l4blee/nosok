@@ -25,13 +25,6 @@ class Bot(commands.Bot):
         super().__init__(command_prefix, case_insensitive=True)
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
-    async def on_message(self, message):
-        '''if not message.author.bot:
-            await event_handler.on_message(message)'''
-        # TODO: use event_handler to make the bot leave a voice channel with a message accepted
-
-        await super().on_message(message)
-
     async def on_command_error(self, ctx: commands.Context, exception):
         if isinstance(exception, CustomException):
             await send_embed(

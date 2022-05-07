@@ -1,9 +1,11 @@
 import asyncio
+import pickle
 from io import FileIO
 from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
 from typing import Generator, Optional
+from dataclasses import dataclass
 
 import discord
 from discord import Embed
@@ -27,6 +29,12 @@ ITEM_SEPARATOR = ';;;;'
 makedirs('bot/queues', exist_ok=True)
 
 
+@dataclass(order=True, slots=True)
+class Track:
+    url: str
+    title: str
+    mention: str
+
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
 
@@ -39,33 +47,38 @@ class Queue:
         self.volume: float = 1.0
         self.bass_boost: float = 0.0
 
-        self.queue_file = f'bot/queues/{guild_id}.txt'
+        self.queue_file = f'bot/queues/{guild_id}'
         self.clear()
 
     @property
-    def tracks(self) -> list[tuple]:
-        with open(self.queue_file, 'r', encoding='utf-8') as f:
-            data = f.read().split('\n')
+    def tracks(self) -> list[Track]:
+        with open(self.queue_file, 'rb') as f:
+            tracks = pickle.load(f, encoding='utf-8')
+        #     data = f.read().split('\n')
         
-        tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
+        # tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
     
-    def _write_to_queue(self, data: list):
-        with open(self.queue_file, 'a', encoding='utf-8') as f:
-            f.writelines(data)
+    def _write_to_queue(self, data: list) -> None:
+        with open(self.queue_file, 'r+b') as f:
+            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            # f.writelines(data)
 
-    def remove(self, index: int) -> tuple:
+    def remove(self, index: int) -> Track:
         tracks = self.tracks
 
         ret = tracks.pop(index)
         self.clear()
-        self._write_to_queue([ITEM_SEPARATOR.join(i) + '\n' for i in tracks])
+        self._write_to_queue(tracks)
 
         return ret
 
     async def add(self, url: str, mention: discord.User.mention, title: str = None) -> None:
         title = title or (await music_handler.get_info(url, is_url=True))[1]
-        self._write_to_queue([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
+
+        self._write_to_queue([Track(url, title, mention)])
+
+        # self._write_to_queue([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -202,7 +215,7 @@ class Music(commands.Cog):
         await send_embed(
             ctx=ctx,
             title='Current song:',
-            description=f'[{current[1]}]({current[0]}) | {current[2]}',
+            description=f'[{current.title}]({current.url}) | {current.mention}',
             color=BASE_COLOR
         )
 
@@ -337,7 +350,7 @@ class Music(commands.Cog):
                 event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
-            stream = await music_handler.get_stream(res[0])
+            stream = await music_handler.get_stream(res.url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
 
@@ -404,7 +417,7 @@ class Music(commands.Cog):
                     color=BASE_COLOR)
                 return
             
-            url, title = song
+            url, title = song.url, song.title
 
             await q.add(
                 url=url,
@@ -756,9 +769,9 @@ class Music(commands.Cog):
         q.clear()
         for i in playlist:
             await q.add(
-                url=i[0],
-                title=i[1],
-                mention=i[2]
+                url=i.url,
+                title=i.title,
+                mention=i.mention
             )
 
         await send_embed(
