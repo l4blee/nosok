@@ -1,9 +1,11 @@
 import asyncio
+import pickle
 from io import FileIO
-from os import makedirs
+from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
 from typing import Generator, Optional
+from dataclasses import dataclass
 
 import discord
 from discord import Embed
@@ -27,6 +29,12 @@ ITEM_SEPARATOR = ';;;;'
 makedirs('bot/queues', exist_ok=True)
 
 
+@dataclass(order=True, slots=True)
+class Track:
+    url: str
+    title: str
+    mention: str
+
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
 
@@ -39,33 +47,38 @@ class Queue:
         self.volume: float = 1.0
         self.bass_boost: float = 0.0
 
-        self.queue_file = f'bot/queues/{guild_id}.txt'
+        self.queue_file = f'bot/queues/{guild_id}'
         self.clear()
 
     @property
-    def tracks(self) -> list[tuple]:
-        with open(self.queue_file, 'r', encoding='utf-8') as f:
-            data = f.read().split('\n')
+    def tracks(self) -> list[Track]:
+        with open(self.queue_file, 'rb') as f:
+            tracks = pickle.load(f, encoding='utf-8')
+        #     data = f.read().split('\n')
         
-        tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
+        # tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
         return tracks
     
-    def _write_to_queue(self, data: list):
-        with open(self.queue_file, 'a', encoding='utf-8') as f:
-            f.writelines(data)
+    def _write_to_queue(self, data: list) -> None:
+        with open(self.queue_file, 'r+b') as f:
+            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            # f.writelines(data)
 
-    def remove(self, index: int) -> tuple:
+    def remove(self, index: int) -> Track:
         tracks = self.tracks
 
         ret = tracks.pop(index)
         self.clear()
-        self._write_to_queue([ITEM_SEPARATOR.join(i) + '\n' for i in tracks])
+        self._write_to_queue(tracks)
 
         return ret
 
     async def add(self, url: str, mention: discord.User.mention, title: str = None) -> None:
         title = title or (await music_handler.get_info(url, is_url=True))[1]
-        self._write_to_queue([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
+
+        self._write_to_queue([Track(url, title, mention)])
+
+        # self._write_to_queue([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -130,20 +143,10 @@ class Music(commands.Cog):
         Makes the bot join your current voice channel
         """
         if ctx.voice_client:
-            await send_embed(
-                ctx=ctx,
-                description='I am already connected to a voice channel!',
-                color=ERROR_COLOR,
-            )
             raise exceptions.AlreadyConnected
 
         voice = ctx.author.voice
         if not voice:
-            await send_embed(
-                ctx=ctx,
-                description='Connect to a voice channel first.',
-                color=ERROR_COLOR
-            )
             raise exceptions.UserNotConnected
 
         if voice_channel:
@@ -212,7 +215,7 @@ class Music(commands.Cog):
         await send_embed(
             ctx=ctx,
             title='Current song:',
-            description=f'[{current[1]}]({current[0]}) | {current[2]}',
+            description=f'[{current.title}]({current.url}) | {current.mention}',
             color=BASE_COLOR
         )
 
@@ -232,13 +235,8 @@ class Music(commands.Cog):
         Plays a track before the current one.
         """
         q = self._queues[ctx.guild.id]
-        res = await self._seek(ctx, q.now_playing)
-        if res == -1:
-            await send_embed(
-                ctx=ctx,
-                description='There are no tracks before current song.',
-                color=ERROR_COLOR
-            )
+        res = await self._seek(ctx, q.now_playing - 1)
+        if res is None:
             raise exceptions.NoTracksBefore
 
     @staticmethod
@@ -299,18 +297,13 @@ class Music(commands.Cog):
                 break
 
     @commands.command(aliases=['p', 'р', 'п'])
-    async def play(self, ctx: commands.Context, *, query: str = '') -> None:
+    async def play(self, ctx: commands.Context, *, query: str = None) -> None:
         """
         Plays specified track or resumes current song.
         """
         voice = ctx.voice_client
         if not voice:
             if not ctx.author.voice:
-                await send_embed(
-                    ctx=ctx,
-                    description='Connect to a voice channel first.',
-                    color=ERROR_COLOR
-                )
                 raise exceptions.UserNotConnected
 
             await ctx.author.voice.channel.connect()
@@ -319,7 +312,9 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         q.play_next = True
 
-        if query != '':
+        if query:
+            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
+                raise exceptions.QueryTooShort()
             if voice.is_playing():
                 await self.queue(ctx, query=query)
                 return
@@ -352,15 +347,10 @@ class Music(commands.Cog):
                     event_handler.on_song_end(ctx)
                     return
             else:
-                await send_embed(
-                    ctx=ctx,
-                    description='There are no songs in the queue.',
-                    color=ERROR_COLOR
-                )
                 event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
-            stream = await music_handler.get_stream(res[0])
+            stream = await music_handler.get_stream(res.url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
 
@@ -413,14 +403,11 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
+            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
+                raise exception.QueryTooShort()
             song = await self._get_track(ctx, query)
             
-            if not song:
-                await send_embed(
-                    ctx=ctx,
-                    description='No tracks were specified.',
-                    color=BASE_COLOR)
-                
+            if not song:                
                 raise exceptions.NoTracksSpecified
 
             if song is None:
@@ -430,7 +417,7 @@ class Music(commands.Cog):
                     color=BASE_COLOR)
                 return
             
-            url, title = song
+            url, title = song.url, song.title
 
             await q.add(
                 url=url,
@@ -520,17 +507,12 @@ class Music(commands.Cog):
     async def _seek(self, ctx: commands.Context, index: int):
         q: Queue = self._queues[ctx.guild.id]
         if q.is_empty:
-            await send_embed(
-                ctx=ctx,
-                description='Queue is empty!',
-                color=ERROR_COLOR
-            )
             raise exceptions.QueueEmpty
         elif 1 <= index <= len(q):
-            q.now_playing = index - 2
+            q.now_playing = index - 1
             await self.skip(ctx)
-        else:
-            return -1
+        
+        return
 
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
@@ -538,8 +520,9 @@ class Music(commands.Cog):
         Seeks a specified track with an index and plays it.
         """
         q = self._queues[ctx.guild.id]
-        res = await self._seek(ctx, index)
-        if res == -1:
+
+        res = await self._seek(ctx, index - 1)
+        if res is None:
             await send_embed(
                 ctx=ctx,
                 description=f'Index must be in range `1` to `{len(q)}`, not `{index}`',
@@ -583,14 +566,13 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
+        if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
+            raise exceptions.QueryTooShort()
+
         tracks = await music_handler.get_infos(query)
         track = await self._choose_track(ctx, tracks)
 
         if not track:
-            await send_embed(
-                ctx=ctx,
-                description='No tracks were specified.',
-                color=BASE_COLOR)
             raise exceptions.NoTracksSpecified
         
         url, title = track
@@ -787,9 +769,9 @@ class Music(commands.Cog):
         q.clear()
         for i in playlist:
             await q.add(
-                url=i[0],
-                title=i[1],
-                mention=i[2]
+                url=i.url,
+                title=i.title,
+                mention=i.mention
             )
 
         await send_embed(

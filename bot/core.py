@@ -25,15 +25,13 @@ class Bot(commands.Bot):
         super().__init__(command_prefix, case_insensitive=True)
         self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
-    async def on_message(self, message):
-        '''if message.author != self.user.id:
-            await event_handler.on_message(message)'''
-        # TODO: use event_handler to make bot leave a voice channel with message 
-
-        await super().on_message(message)
-
     async def on_command_error(self, ctx: commands.Context, exception):
-        if not isinstance(exception, CustomException):
+        if isinstance(exception, CustomException):
+            await send_embed(
+                ctx=ctx, 
+                description=exception.description, 
+                color=exception.type_.value)
+        else:
             if isinstance(exception, commands.CommandNotFound):
                 await send_embed(ctx,
                                 f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
@@ -45,11 +43,11 @@ class Bot(commands.Bot):
                                 ERROR_COLOR)
             else:
                 await send_embed(ctx,
-                             'An error occured during handling this command, please try again later.', 
-                             ERROR_COLOR)
-
-        self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
-        print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
+                                'An error occured during handling this command, please try again later.', 
+                                ERROR_COLOR)
+                
+                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
+                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
     def setup(self):
         for i in Path('bot/cogs/').glob('*.py'):

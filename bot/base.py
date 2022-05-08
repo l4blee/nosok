@@ -1,7 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from os import getenv
 
 from discord import Colour
+from discord.ext import commands
 
 BASE_PREFIX = getenv('BASE_PREFIX', '!')
 BASE_COLOR = Colour.from_rgb(241, 184, 19)
@@ -47,3 +48,13 @@ class MusicHandlerBase(ABC):
         Returns a url to a stream of the video passed.
         """
         raise NotImplementedError
+
+
+class CustomException(commands.CommandError, ABC):
+    """
+    Base class for all the exceptions below
+    """
+    
+    @abstractproperty
+    def description(self) -> str:
+        raise NotImplemented
