@@ -385,8 +385,7 @@ class Music(commands.Cog):
         if not track:
             return
 
-        url, title, _ = track
-        return url, title
+        return track.url, track.title
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *, query: str = None) -> None:
