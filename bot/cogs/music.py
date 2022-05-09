@@ -375,13 +375,13 @@ class Music(commands.Cog):
 
         return song
 
-    async def _choose_track(self, ctx: commands.Context, tracks):
+    async def _choose_track(self, ctx: commands.Context, tracks) -> Track:
         track = await self.get_pagination(ctx, tracks)
 
         if not track:
             return
 
-        return track.url, track.title
+        return track
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *, query: str = None) -> None:
