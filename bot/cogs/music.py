@@ -35,6 +35,7 @@ class Track:
     title: str
     mention: str
 
+
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
 
@@ -53,16 +54,11 @@ class Queue:
     @property
     def tracks(self) -> list[Track]:
         with open(self.queue_file, 'rb') as f:
-            tracks = pickle.load(f, encoding='utf-8')
-        #     data = f.read().split('\n')
-        
-        # tracks = [tuple(i.split(ITEM_SEPARATOR)) for i in data if i]
-        return tracks
+            return pickle.load(f, encoding='utf-8')
     
     def _write_to_queue(self, data: list) -> None:
         with open(self.queue_file, 'r+b') as f:
             pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            # f.writelines(data)
 
     def remove(self, index: int) -> Track:
         tracks = self.tracks
@@ -77,8 +73,6 @@ class Queue:
         title = title or (await music_handler.get_info(url, is_url=True))[1]
 
         self._write_to_queue([Track(url, title, mention)])
-
-        # self._write_to_queue([ITEM_SEPARATOR.join([url, title, mention]) + '\n'])
 
     def get_next(self) -> Optional[tuple]:
         tracks = self.tracks
@@ -98,8 +92,8 @@ class Queue:
         return len(self.tracks)
 
     def clear(self) -> None:
-        with open(self.queue_file, 'w') as f:
-            f.write('')
+        with open(self.queue_file, 'wb') as f:
+            pickle.dump([], f)
 
     @property
     def is_empty(self) -> bool:
@@ -145,14 +139,14 @@ class Music(commands.Cog):
         if ctx.voice_client:
             raise exceptions.AlreadyConnected
 
-        voice = ctx.author.voice
-        if not voice:
-            raise exceptions.UserNotConnected
-
         if voice_channel:
             await voice_channel.connect()
-        else:
-            await voice.channel.connect()
+            return 
+
+        if not (voice := ctx.author.voice):
+            raise exceptions.UserNotConnected
+        
+        await voice.channel.connect()
 
     @commands.command(aliases=['s'])
     @commands.check(is_connected)
@@ -314,7 +308,7 @@ class Music(commands.Cog):
 
         if query:
             if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
-                raise exceptions.QueryTooShort()
+                raise exceptions.QueryTooShort
             if voice.is_playing():
                 await self.queue(ctx, query=query)
                 return
@@ -567,7 +561,7 @@ class Music(commands.Cog):
         voice = ctx.voice_client
 
         if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
-            raise exceptions.QueryTooShort()
+            raise exceptions.QueryTooShort
 
         tracks = await music_handler.get_infos(query)
         track = await self._choose_track(ctx, tracks)

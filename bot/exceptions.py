@@ -13,7 +13,7 @@ class AlreadyConnected(CustomException):
     """
     Occurs when the bot is already connected to the channel.
     """
-    description = 'I\'m already connected to a voice channel.'
+    description = 'I am already connected to a voice channel.'
     type_ = ExceptionType['ERROR']
 
 
@@ -29,7 +29,7 @@ class AlreadyPlaying(CustomException):
     """
     Occurs when the audio is already playing.
     """
-    description = 'I\'m already playing an audio!'
+    description = 'I am already playing an audio!'
     type_ = ExceptionType['ERROR']
 
 
@@ -69,16 +69,8 @@ class BotNotConnected(CustomException):
     """
     Occurs when the bot isn't connected to a voice channel yet.
     """
-    description = 'I\'m not connected to a voice channel yet!'
+    description = 'I am not connected to a voice channel yet!'
     type_ = ExceptionType['ERROR']
-
-
-class TimeoutExceeded(CustomException):
-    """
-    Occurs, when a user chooses one of the songs more than 1 minute.
-    """
-    description = 'No tracks were specified.'
-    type_ = ExceptionType['NOTIFICATION']
 
 
 class NoTracksSpecified(CustomException):
