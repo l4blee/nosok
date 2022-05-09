@@ -75,7 +75,7 @@ class YDLHandler(MusicHandlerBase):
         # res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         # return res
 
-    async def get_info(self, query: str, is_url: bool = False) -> Trackgit :
+    async def get_info(self, query: str, is_url: bool = False) -> Track:
         if not is_url:
             query = '+'.join(query.split())
             with requests.Session() as session:

@@ -99,10 +99,6 @@ class Queue:
         return not bool(self.tracks)
 
     @property
-    def queue(self) -> Generator:
-        yield from self.tracks  # yields url, title, mention
-
-    @property
     def current(self) -> Optional[tuple]:
         tracks = self.tracks
         return tracks[self.now_playing] if len(tracks) > 0 else None
@@ -407,21 +403,19 @@ class Music(commands.Cog):
                     description='Cancelled.',
                     color=BASE_COLOR)
                 return
-            
-            url, title = song.url, song.title
 
             await q.add(
-                url=url,
-                title=title,
+                url=song.url,
+                title=song.title,
                 mention=ctx.author.mention
             )
             await send_embed(
                 ctx=ctx,
-                description=f'Queued: [{title}]({url})',
+                description=f'Queued: [{song.title}]({song.url})',
                 color=BASE_COLOR
             )
         else:
-            tracks = list(q.queue)
+            tracks = list(q.tracks)
             if len(tracks) > 0:
                 desc = ''
                 for index, item in enumerate(tracks):
