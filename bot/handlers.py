@@ -1,9 +1,9 @@
 import os
-from asyncio import run_coroutine_threadsafe
+import asyncio
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
-from multiprocessing.pool import ThreadPool
+# from multiprocessing.pool import ThreadPool
 from re import compile as comp_
 from threading import Thread, Event
 from time import sleep
@@ -35,7 +35,7 @@ class YDLHandler(MusicHandlerBase):
         iterator = self._video_regex.finditer(res.text)
         return self._video_pattern + next(iterator).group(1)
 
-    async def get_urls(self, query: str, max_results: int = 5) -> list:
+    async def get_urls(self, query: str, max_results: int = 5) -> list[str]:
         query = '+'.join(query.split())
 
         with requests.Session() as session:
@@ -46,14 +46,27 @@ class YDLHandler(MusicHandlerBase):
 
     async def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
         links = await self.get_urls(query, max_results=max_results)
-        args = [(i, False) for i in links]  # link, download=False
 
         with YtDL(self._ydl_opts) as ydl:
-            p: ThreadPool = ThreadPool(max_results)
-            res = p.starmap(ydl.extract_info, args)
+            reqs = [asyncio.to_thread(ydl.extract_info, i) for i in links]
 
-        res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
-        return res
+        return [
+            (self._video_pattern + result.get('id'), 
+                result.get('title'), 
+                result.get('thumbnails')[0]['url'])
+            for result in await asyncio.gather(*reqs)
+        ]
+
+        # The code below seems to work a bit faster, need proper testing
+
+        # args = [(i, False) for i in links]  # link, download=False
+
+        # with YtDL(self._ydl_opts) as ydl:
+        #     p: ThreadPool = ThreadPool(max_results)
+        #     res = p.starmap(ydl.extract_info, args)
+
+        # res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
+        # return res
 
     async def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
         if not is_url:
@@ -91,7 +104,7 @@ class EventHandler(Thread):
 
     def loop(self):
         while 1:
-            run_coroutine_threadsafe(self.checkall(), self._bot.loop)
+            asyncio.run_coroutine_threadsafe(self.checkall(), self._bot.loop)
             sleep(60)
 
     def on_song_end(self, ctx: commands.Context):
