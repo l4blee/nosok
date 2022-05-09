@@ -8,6 +8,7 @@ from re import compile as comp_
 from threading import Thread, Event
 from time import sleep
 from psutil import Process
+from dataclasses import dataclass
 
 import requests
 from discord.ext import commands
@@ -16,6 +17,12 @@ from yt_dlp import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase
 from utils import send_embed
+
+@dataclass(order=True, slots=True)
+class Track:
+    url: str
+    title: str
+    mention: str
 
 
 class YDLHandler(MusicHandlerBase):
@@ -44,16 +51,16 @@ class YDLHandler(MusicHandlerBase):
         iterator = self._video_regex.finditer(res.text)
         return [self._video_pattern + next(iterator).group(1) for _ in range(max_results)]
 
-    async def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
+    async def get_infos(self, query: str, max_results: int = 5) -> list[Track]:
         links = await self.get_urls(query, max_results=max_results)
 
         with YtDL(self._ydl_opts) as ydl:
             reqs = [asyncio.to_thread(ydl.extract_info, i) for i in links]
 
         return [
-            (self._video_pattern + result.get('id'), 
-                result.get('title'), 
-                result.get('thumbnails')[0]['url'])
+            Track(self._video_pattern + result.get('id'), 
+                  result.get('title'), 
+                  result.get('thumbnails')[0]['url'])
             for result in await asyncio.gather(*reqs)
         ]
 

@@ -617,7 +617,6 @@ class Music(commands.Cog):
         playlist = record.get('playlist')
         description = ''
         for index, item in enumerate(playlist):
-            url, title, mention = item
             description += f'{index + 1}.\t[{item.title}]({item.url}) | {item.mention}\n'
 
         embed = Embed(
