@@ -22,7 +22,7 @@ from utils import send_embed
 class Track:
     url: str
     title: str
-    mention: str
+    thumbnail: str
 
 
 class YDLHandler(MusicHandlerBase):
@@ -75,7 +75,7 @@ class YDLHandler(MusicHandlerBase):
         # res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         # return res
 
-    async def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
+    async def get_info(self, query: str, is_url: bool = False) -> Trackgit :
         if not is_url:
             query = '+'.join(query.split())
             with requests.Session() as session:
@@ -87,9 +87,10 @@ class YDLHandler(MusicHandlerBase):
             url = query
 
         with YtDL(self._ydl_opts) as ydl:
-            title = ydl.extract_info(url, download=False).get('title')
+            data = ydl.extract_info(url, download=False)
+            title, thumbnail = data.get('title'), data.get('thumbnails')[0]['url']
 
-        return url, title
+        return Track(url, title, thumbnail)
 
     async def get_stream(self, url: str):
         with YtDL(self._ydl_opts) as ydl:

@@ -370,7 +370,7 @@ class Music(commands.Cog):
 
         await self.current(ctx)
 
-    async def _get_track(self, ctx: commands.Context, query: str) -> tuple:
+    async def _get_track(self, ctx: commands.Context, query: str) -> Track:
         if URL_REGEX.match(query):
             song = await music_handler.get_info(query, is_url=True)
         else:
