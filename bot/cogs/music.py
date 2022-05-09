@@ -69,11 +69,11 @@ class Queue:
         return ret
 
     async def add(self, url: str, mention: discord.User.mention, title: str = None) -> None:
-        title = title or (await music_handler.get_info(url, is_url=True))[1]
+        title = title or (await music_handler.get_info(url, is_url=True)).title
 
         self._write_to_queue([Track(url, title, mention)])
 
-    def get_next(self) -> Optional[tuple]:
+    def get_next(self) -> Optional[Track]:
         tracks = self.tracks
 
         self.now_playing += int(self._loop != 2)
@@ -99,7 +99,7 @@ class Queue:
         return not bool(self.tracks)
 
     @property
-    def current(self) -> Optional[tuple]:
+    def current(self) -> Optional[Track]:
         tracks = self.tracks
         return tracks[self.now_playing] if len(tracks) > 0 else None
 
@@ -558,12 +558,10 @@ class Music(commands.Cog):
 
         if not track:
             raise exceptions.NoTracksSpecified
-        
-        url, title = track
 
         await q.add(
-            url=url,
-            title=title,
+            url=track.url,
+            title=track.title,
             mention=ctx.author.mention
         )
         if not voice.is_playing():
