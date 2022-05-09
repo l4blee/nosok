@@ -237,9 +237,9 @@ class Music(commands.Cog):
         embeds = []
         tracks = tracks[0]
 
-        for url, title, thumbnail in tracks:
-            embed = Embed(title=title, url=url, color=BASE_COLOR)
-            embed.set_thumbnail(url=thumbnail)
+        for item in tracks:
+            embed = Embed(title=item.title, url=item.url, color=BASE_COLOR)
+            embed.set_thumbnail(url=item.thumbnail)
             embed.set_author(name=ctx.author)
             embeds.append(embed)
 
