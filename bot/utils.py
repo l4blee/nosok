@@ -1,4 +1,3 @@
-from functools import partial
 from copy import deepcopy
 from typing import Callable, Any, Union
 
@@ -25,11 +24,6 @@ async def is_connected(ctx: commands.Context):
         return True
 
     raise exceptions.BotNotConnected
-
-
-async def run_blocking(blocking_func: Callable, bot: commands.Bot, *args, **kwargs) -> Any:
-    func = partial(blocking_func, *args, **kwargs)
-    return await bot.loop.run_in_executor(None, func)
 
 
 COMPONENTS = {

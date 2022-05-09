@@ -17,8 +17,7 @@ from database import db
 from player import BassVolumeTransformer
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
-from utils import (is_connected, send_embed,
-                   get_components, run_blocking)
+from utils import is_connected, send_embed, get_components
 
 URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s(" \
             r")<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
@@ -58,7 +57,7 @@ class Queue:
     
     def _write_to_queue(self, data: list) -> None:
         with open(self.queue_file, 'r+b') as f:
-            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(data, f, protocol=-1)
 
     def remove(self, index: int) -> Track:
         tracks = self.tracks
@@ -352,8 +351,8 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         if q.play_next:
             return asyncio.run_coroutine_threadsafe(self.play(ctx), loop)
-        else:
-            event_handler.on_song_end(ctx)
+
+        event_handler.on_song_end(ctx)
 
     async def _play(self, ctx: commands.Context, stream, loop):
         q = self._queues[ctx.guild.id]
@@ -363,8 +362,7 @@ class Music(commands.Cog):
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
-        # audio_source = discord.PCMVolumeTransformer(audio_source, volume=q.volume)
-        audio_source = BassVolumeTransformer(audio_source, volume=1.0, bass_accentuate=q.bass_boost)
+        audio_source = BassVolumeTransformer(audio_source, volume=q.volume, bass_accentuate=q.bass_boost)
 
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
 
