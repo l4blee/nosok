@@ -1,5 +1,5 @@
 import asyncio
-import pickle
+import _pickle as pickle
 from io import FileIO
 from os import makedirs, getenv
 from re import compile
@@ -434,9 +434,8 @@ class Music(commands.Cog):
             if len(tracks) > 0:
                 desc = ''
                 for index, item in enumerate(tracks):
-                    url, title, mention = item
                     desc += f'{["", "now -> "][int(index == q.now_playing)]}' \
-                            f'{index + 1}.\t[{title}]({url}) | {mention}\n'
+                            f'{index + 1}.\t[{item.title}]({item.url}) | {item.mention}\n'
             else:
                 desc = 'There are no tracks in the queue for now!'
 
@@ -627,7 +626,7 @@ class Music(commands.Cog):
         description = ''
         for index, item in enumerate(playlist):
             url, title, mention = item
-            description += f'{index + 1}.\t[{title}]({url}) | {mention}\n'
+            description += f'{index + 1}.\t[{item.title}]({item.url}) | {item.mention}\n'
 
         embed = Embed(
             title=f'{name} (share code: {ctx.guild.id}-{"_".join(name.split(" "))}):',
@@ -718,7 +717,7 @@ class Music(commands.Cog):
         Creates/changes a playlist from current queue.
         """
         q: Queue = self._queues[ctx.guild.id]
-        if not q.tracks:
+        if q.is_empty:
             await send_embed(
                 ctx=ctx, 
                 description='There are not tracks in the queue!',
