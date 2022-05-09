@@ -1,5 +1,5 @@
 import asyncio
-import pickle
+import _pickle as pickle
 from io import FileIO
 from os import makedirs, getenv
 from re import compile
