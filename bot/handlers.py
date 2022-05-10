@@ -1,5 +1,5 @@
-import os
 import asyncio
+from os import getcwd
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
@@ -15,14 +15,8 @@ from discord.ext import commands
 import discord
 from yt_dlp import YoutubeDL as YtDL
 
-from base import BASE_COLOR, MusicHandlerBase
+from base import BASE_COLOR, MusicHandlerBase, Track
 from utils import send_embed
-
-@dataclass(order=True, slots=True)
-class Track:
-    url: str
-    title: str
-    thumbnail: str
 
 
 class YDLHandler(MusicHandlerBase):
@@ -51,7 +45,7 @@ class YDLHandler(MusicHandlerBase):
         iterator = self._video_regex.finditer(res.text)
         return [self._video_pattern + next(iterator).group(1) for _ in range(max_results)]
 
-    async def get_infos(self, query: str, max_results: int = 5) -> list[Track]:
+    async def get_metas(self, query: str, max_results: int = 5) -> list[Track]:
         links = await self.get_urls(query, max_results=max_results)
 
         with YtDL(self._ydl_opts) as ydl:
@@ -75,7 +69,7 @@ class YDLHandler(MusicHandlerBase):
         # res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
         # return res
 
-    async def get_info(self, query: str, is_url: bool = False) -> Track:
+    async def get_metadata(self, query: str, is_url: bool = False) -> Track:
         if not is_url:
             query = '+'.join(query.split())
             with requests.Session() as session:
@@ -190,7 +184,7 @@ class DataProcessor(Thread):
         cpu_usage = this_proc.cpu_percent() + cpu_utils
         mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
 
-        with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
+        with open(f'{getcwd() + "/bot/data/data.json"}', 'w') as f:
             data = {
                 'status': 'online',
                 'vars': {

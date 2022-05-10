@@ -69,7 +69,7 @@ class Queue:
         return ret
 
     async def add(self, url: str, mention: discord.User.mention, title: str = None) -> None:
-        title = title or (await music_handler.get_info(url, is_url=True)).title
+        title = title or (await music_handler.get_metadata(url, is_url=True)).title
 
         self._write_to_queue([Track(url, title, mention)])
 
@@ -368,9 +368,9 @@ class Music(commands.Cog):
 
     async def _get_track(self, ctx: commands.Context, query: str) -> Track:
         if URL_REGEX.match(query):
-            song = await music_handler.get_info(query, is_url=True)
+            song = await music_handler.get_metadata(query, is_url=True)
         else:
-            tracks = await music_handler.get_infos(query)
+            tracks = await music_handler.get_metas(query)
             song = await self._choose_track(ctx, tracks)
 
         return song
@@ -553,7 +553,7 @@ class Music(commands.Cog):
         if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
             raise exceptions.QueryTooShort
 
-        tracks = await music_handler.get_infos(query)
+        tracks = await music_handler.get_metas(query)
         track = await self._choose_track(ctx, tracks)
 
         if not track:
