@@ -86,3 +86,4 @@ class QueryTooShort(CustomException):
     Occurs, when a user tries to search a song with too short query (<10 symbols).
     """
     description = 'Query is too short.'
+    type_ = ExceptionType['ERROR']
