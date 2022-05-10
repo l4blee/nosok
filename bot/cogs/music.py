@@ -302,7 +302,7 @@ class Music(commands.Cog):
         q.play_next = True
 
         if query:
-            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
+            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH', 10)):
                 raise exceptions.QueryTooShort
             if voice.is_playing():
                 await self.queue(ctx, query=query)
@@ -390,7 +390,7 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
         if query:
-            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
+            if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH', 10)):
                 raise exception.QueryTooShort()
             song = await self._get_track(ctx, query)
             
@@ -550,7 +550,7 @@ class Music(commands.Cog):
 
         voice = ctx.voice_client
 
-        if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH')):
+        if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH', 10)):
             raise exceptions.QueryTooShort
 
         tracks = await music_handler.get_metas(query)
