@@ -591,7 +591,7 @@ class Music(commands.Cog):
         """
         Displays an existing playlist for this guild with given name.
         """
-        record = db.playlists.find_one(
+        record = db.guilds.playlists.find_one(
             {
                 'guild_id': ctx.guild.id,
                 'name': name
@@ -675,7 +675,7 @@ class Music(commands.Cog):
                 timeout=15
             )
 
-            db.playlists.update_one(
+            db.guilds.playlists.update_one(
                 {
                     'name': name,
                     'guild_id': ctx.guild.id
@@ -706,7 +706,7 @@ class Music(commands.Cog):
                 color=ERROR_COLOR)
             return
 
-        db.playlists.replace_one(
+        db.guilds.playlists.replace_one(
             {
                 'guild_id': ctx.guild.id,
                 'name': name
@@ -731,7 +731,7 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
 
-        record = db.playlists.find_one(
+        record = db.guilds.playlists.find_one(
             {
                 'guild_id': ctx.guild.id,
                 'name': name
@@ -767,7 +767,7 @@ class Music(commands.Cog):
         """
         Deletes a playlist with the name given.
         """
-        result = db.playlists.delete_one(
+        result = db.guilds.playlists.delete_one(
             {   
                 'guild_id': ctx.guild.id,
                 'name': name
@@ -791,7 +791,7 @@ class Music(commands.Cog):
         Displays all playlists from the current guild or the one mentioned.
         """
         q: Queue = self._queues[ctx.guild.id]
-        record = db.playlists.find(
+        record = db.guilds.playlists.find(
             {'guild_id': ctx.guild.id}
         )
 
@@ -815,7 +815,7 @@ class Music(commands.Cog):
         """
         guild_id, name = share_code.split('-')
         name = ' '.join(name.split('_'))
-        record = db.playlists.find_one(
+        record = db.guilds.playlists.find_one(
             {
                 'guild_id': int(guild_id),
                 'name': name
@@ -828,7 +828,7 @@ class Music(commands.Cog):
                 color=ERROR_COLOR)
             return
  
-        db.playlists.replace_one(
+        db.guilds.playlists.replace_one(
             {
                 'guild_id': ctx.guild.id,
                 'name': name
