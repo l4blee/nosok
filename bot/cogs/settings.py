@@ -11,11 +11,39 @@ class Settings(commands.Cog):
         """
         Sets prefix for the current server.
         """
-        await db.set_prefix(ctx, new_prefix)
+        db.guilds.configs.update_one(
+            {'guild_id': ctx.guild.id},
+            {
+                '$set': {
+                    'prefix': new_prefix
+                }
+            },
+            upsert=True
+        )
 
         await send_embed(
             ctx=ctx,
             description=f'Prefix has been successfully changed to `{new_prefix}`',
+            color=BASE_COLOR
+        )
+
+    # @commands.command(aliases=['lang'])
+    async def set_language(self, ctx: commands.Context, new_lang: str):
+        # TODO: check if language is available
+        # possibly do it through Enum and make replies within send_embed function
+        db.guilds.configs.update_one(
+            {'guild_id': ctx.guild.id},
+            {
+                '$set': {
+                    'language': new_lang
+                }
+            },
+            upsert=True
+        )
+
+        await send_embed(
+            ctx=ctx,
+            description=f'Language has been successfully changed to `{new_lang}`',
             color=BASE_COLOR
         )
 

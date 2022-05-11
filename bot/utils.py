@@ -10,6 +10,7 @@ from base import ERROR_COLOR
 
 
 async def send_embed(ctx: commands.Context, description: str, color: Colour, title: str = '') -> Embed:
+    # TODO: Implement different languages support 
     embed = Embed(
         description=description,
         title=title,
