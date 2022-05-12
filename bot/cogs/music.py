@@ -34,6 +34,13 @@ class Track:
     title: str
     mention: str
 
+    def to_list(self) -> tuple:
+        return url, title, mention
+
+    @classmethod
+    def from_list(self, data: Union[list, tuple]) -> Track:
+        return Track(*data)
+
 
 class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
@@ -575,6 +582,28 @@ class Music(commands.Cog):
                 color=BASE_COLOR
             )
 
+    @commands.command(aliases=['bb'])
+    async def bass_boost(self, ctx: commands.Context, level: float):
+        """
+        Boosts a bass line for the track.
+        """
+        q: Queue = self._queues[ctx.guild.id]
+        if ctx.voice_client is None:
+            await send_embed(
+                ctx=ctx,
+                description='I am not playing anything yet!',
+                color=ERROR_COLOR
+            )
+            return
+
+        ctx.voice_client.source.bass_accentuate = level
+        q.bass_boost = ctx.voice_client.source.bass_accentuate
+        await send_embed(
+            ctx=ctx, 
+            description=f'Bass boost level has been set to `{q.bass_boost}db`.', 
+            color=BASE_COLOR
+        )
+
     # Playlists
 
     @commands.group(aliases=['plists', 'playlist', 'pl'])
@@ -605,7 +634,7 @@ class Music(commands.Cog):
                 color=ERROR_COLOR)
             return
         
-        playlist = record.get('playlist')
+        playlist = [Track.from_list(i) for i in record.get('playlist')]
         description = ''
         for index, item in enumerate(playlist):
             description += f'{index + 1}.\t[{item.title}]({item.url}) | {item.mention}\n'
@@ -681,7 +710,9 @@ class Music(commands.Cog):
                     'guild_id': ctx.guild.id
                 },
                 {
-                    '$set': {'name': msg.content}
+                    '$set': {
+                        'name': msg.content
+                    }
                 }
             )
         except asyncio.TimeoutError:
@@ -691,7 +722,8 @@ class Music(commands.Cog):
         await send_embed(
             ctx=ctx, 
             description=f'Playlist `{name}` has been renamed to `{msg.content}`!',
-            color=BASE_COLOR)
+            color=BASE_COLOR
+        )
 
     @playlists.command(name='create', aliases=['c'])
     async def create_playlist(self, ctx: commands.Context, *, name: str):
@@ -706,15 +738,15 @@ class Music(commands.Cog):
                 color=ERROR_COLOR)
             return
 
-        db.guilds.playlists.replace_one(
+        db.guilds.playlists.update_one(
             {
                 'guild_id': ctx.guild.id,
                 'name': name
             },
             {
-                'guild_id': ctx.guild.id,
-                'name': name,
-                'playlist': q.tracks
+                '$set': {
+                    'playlist': [i.to_list() for i in q.tracks]
+                }
             },
             upsert=True
         )
@@ -740,12 +772,13 @@ class Music(commands.Cog):
 
         if record is None:
             await send_embed(
-            ctx=ctx, 
-            description=f'Playlist with name `{name}` doesn\'t exist.', 
-            color=ERROR_COLOR)
+                ctx=ctx, 
+                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                color=ERROR_COLOR
+            )
             return
 
-        playlist = record.get('playlist')
+        playlist = [Track.from_list(i) for i in record.get('playlist')]
 
         q.clear()
         for i in playlist:
@@ -778,15 +811,16 @@ class Music(commands.Cog):
                 ctx=ctx, 
                 description=f'Playlist with name `{name}` doesn\'t exist.', 
                 color=ERROR_COLOR)
-        else:
-            await send_embed(
-                ctx=ctx,
-                description=f'Playlist `{name}` has been successfully deleted.',
-                color=BASE_COLOR
-            )
+            return
+
+        await send_embed(
+            ctx=ctx,
+            description=f'Playlist `{name}` has been successfully deleted.',
+            color=BASE_COLOR
+        )
 
     @playlists.command(name='list', aliases=['li', 'ls'])
-    async def list_playlist(self, ctx: commands.Context):
+    async def list_playlists(self, ctx: commands.Context):
         """
         Displays all playlists from the current guild or the one mentioned.
         """
@@ -843,29 +877,7 @@ class Music(commands.Cog):
 
         await send_embed(
             ctx=ctx,
-            description=f'Playlist `{name}` has been added for your guild.',
-            color=BASE_COLOR
-        )
-
-    @commands.command(aliases=['bb'])
-    async def bass_boost(self, ctx: commands.Context, level: float):
-        """
-        Boosts a bass line for the track.
-        """
-        q: Queue = self._queues[ctx.guild.id]
-        if ctx.voice_client is None:
-            await send_embed(
-                ctx=ctx,
-                description='I am not playing anything yet!',
-                color=ERROR_COLOR
-            )
-            return
-
-        ctx.voice_client.source.bass_accentuate = level
-        q.bass_boost = ctx.voice_client.source.bass_accentuate
-        await send_embed(
-            ctx=ctx, 
-            description=f'Bass boost level has been set to `{q.bass_boost}db`.', 
+            description=f'Playlist `{name}` has been added to your guild.',
             color=BASE_COLOR
         )
 
