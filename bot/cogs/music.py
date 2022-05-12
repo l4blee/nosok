@@ -4,7 +4,7 @@ from io import FileIO
 from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
-from typing import Generator, Optional
+from typing import Generator, Optional, Union
 from dataclasses import dataclass
 
 import discord
