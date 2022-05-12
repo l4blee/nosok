@@ -38,7 +38,7 @@ class Track:
         return url, title, mention
 
     @classmethod
-    def from_list(self, data: Union[list, tuple]) -> Track:
+    def from_list(self, data: Union[list, tuple]):
         return Track(*data)
 
 
