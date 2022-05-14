@@ -18,4 +18,7 @@ async def get_phrase(ctx: commands.Context, key: str) -> str:
     if lang not in LOCALES:
         return LOCALES['EN'][key]
 
-    return LOCALES[lang][key]
+    try:
+        return LOCALES[lang][key]
+    except KeyError:
+        return LOCALES['EN'][key]
