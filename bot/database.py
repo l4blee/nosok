@@ -37,7 +37,7 @@ class MongoDB:
 
     async def get_language(self, ctx: Context) -> str:
         guild_record = self.guilds.configs.find_one({
-            'guild_id': msg.guild.id
+            'guild_id': ctx.guild.id
         })
 
         if guild_record is None:

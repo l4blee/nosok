@@ -4,7 +4,7 @@ from io import FileIO
 from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
-from typing import Generator, Optional, Union
+from typing import Generator, Optional
 from dataclasses import dataclass
 
 import discord
@@ -14,6 +14,7 @@ from discord_components import Button, ButtonStyle
 
 import exceptions
 from database import db
+from languages import get_phrase
 from player import BassVolumeTransformer
 from base import BASE_COLOR, ERROR_COLOR
 from core import music_handler, event_handler
@@ -38,7 +39,7 @@ class Track:
         return url, title, mention
 
     @classmethod
-    def from_list(self, data: Union[list, tuple]):
+    def from_list(self, data: list | tuple):
         return Track(*data)
 
 
@@ -186,7 +187,7 @@ class Music(commands.Cog):
         else:
             await send_embed(
                 ctx=ctx,
-                description='I am not playing yet!',
+                description=await get_phrase(ctx, 'not_playing'),
                 color=ERROR_COLOR
             )
 
@@ -203,14 +204,14 @@ class Music(commands.Cog):
         if not voice.is_playing() or current is None:
             await send_embed(
                 ctx=ctx,
-                description='I am not playing any song for now!',
+                description=await get_phrase(ctx, 'not_playing'),
                 color=ERROR_COLOR
             )
             return
 
         await send_embed(
             ctx=ctx,
-            title='Current song:',
+            title=await get_phrase(ctx, 'current'),
             description=f'[{current.title}]({current.url}) | {current.mention}',
             color=BASE_COLOR
         )
@@ -248,7 +249,7 @@ class Music(commands.Cog):
 
         current = 0
         message = await ctx.send(
-            '**Choose one of the following tracks:**',
+            f'**{await get_phrase(ctx, "choose_track")}**',
             embed=embeds[current],
             components=get_components('search')(len(embeds), current)
         )
@@ -277,7 +278,7 @@ class Music(commands.Cog):
                     current = len(embeds) - 1
 
                 await message.edit(
-                    '**Choose one of the following tracks:**',
+                    f'**{await get_phrase(ctx, "choose_track")}**',
                     embed=embeds[current],
                     components=get_components('search')(len(embeds), current)
                 )
@@ -337,7 +338,7 @@ class Music(commands.Cog):
                 if not res:
                     await send_embed(
                         ctx=ctx,
-                        description='The queue has ended.',
+                        description=await get_phrase(ctx, 'queue_ended'),
                         color=BASE_COLOR
                     )
                     event_handler.on_song_end(ctx)
@@ -407,7 +408,7 @@ class Music(commands.Cog):
             if song is None:
                 await send_embed(
                     ctx=ctx,
-                    description='Cancelled.',
+                    description=await get_phrase(ctx, 'cancelled'),
                     color=BASE_COLOR)
                 return
 
@@ -418,22 +419,23 @@ class Music(commands.Cog):
             )
             await send_embed(
                 ctx=ctx,
-                description=f'Queued: [{song.title}]({song.url})',
+                description=f'{await get_phrase(ctx, "queued")} [{song.title}]({song.url})',
                 color=BASE_COLOR
             )
         else:
             tracks = list(q.tracks)
+            now_alias = await get_phrase(ctx, 'now') + ' -> '
             if len(tracks) > 0:
                 desc = ''
                 for index, item in enumerate(tracks):
-                    desc += f'{["", "now -> "][int(index == q.now_playing)]}' \
+                    desc += f'{["", now_alias][int(index == q.now_playing)]}' \
                             f'{index + 1}.\t[{item.title}]({item.url}) | {item.mention}\n'
             else:
-                desc = 'There are no tracks in the queue for now!'
+                desc = await (ctx, 'queue_empty')
 
             await send_embed(
                 ctx=ctx,
-                title='Current queue:',
+                title=await get_phrase(ctx, 'queue'),
                 color=BASE_COLOR,
                 description=desc
             )
@@ -448,7 +450,7 @@ class Music(commands.Cog):
 
         await send_embed(
             ctx=ctx,
-            description='Queue has been successfully cleared',
+            description=await get_phrase(ctx, 'queue_cleared'),
             color=BASE_COLOR
         )
 
@@ -468,7 +470,7 @@ class Music(commands.Cog):
                 q.loop = 0
 
         await send_embed(ctx=ctx, 
-                         description=f'Now looping is set to: `{loop_setting[q.loop]}`',
+                         description=f'{await get_phrase(ctx, "current")} `{loop_setting[q.loop]}`',
                          color=BASE_COLOR)
 
     @commands.command(aliases=['rm'])
@@ -482,16 +484,14 @@ class Music(commands.Cog):
         except IndexError:
             await send_embed(
                 ctx=ctx,
-                description='No specified track in the queue.',
+                description=await get_phrase(ctx, 'remove_error'),
                 color=ERROR_COLOR
             )
             return
 
-        url, title, _ = res
-
         await send_embed(
             ctx=ctx,
-            description=f'Removed: [{title}]({url})',
+            description=f'{await get_phrase(ctx, "removed")}: [{res.title}]({res.url})',
             color=BASE_COLOR
         )
 
@@ -516,7 +516,7 @@ class Music(commands.Cog):
         if res is None:
             await send_embed(
                 ctx=ctx,
-                description=f'Index must be in range `1` to `{len(q)}`, not `{index}`',
+                description=await get_phrase(ctx, 'seek_error') % dict(max_index=len(q), index=index),
                 color=ERROR_COLOR
             )
             raise IndexError('Index out of range')
@@ -525,14 +525,14 @@ class Music(commands.Cog):
 
     @commands.command(aliases=['vol', 'v'])
     @commands.check(is_connected)
-    async def volume(self, ctx: commands.Context, volume: float):
+    async def volume(self, ctx: commands.Context, volume: int):
         """
         Adjusts the volume.
         """
         if 0 > volume > 100:
             await send_embed(
                 ctx=ctx,
-                description=f'Volume must be in the range from `0` to `100`, not {volume}',
+                description=await get_phrase(ctx, 'volume_error') % dict(volume=volume),
                 color=ERROR_COLOR
             )
             return 
@@ -541,14 +541,14 @@ class Music(commands.Cog):
         self._queues[ctx.guild.id].volume = volume / 100
         await send_embed(
             ctx=ctx,
-            description=f'Volume has been successfully changed to `{volume}%`',
+            description=await get_phrase(ctx, 'volume_set') % dict(volume=volume),
             color=BASE_COLOR
         )
 
     @commands.command(aliases=['sch'])
     async def search(self, ctx: commands.Context, *, query: str):
         """
-        Searches for a song on YouTube and gives you 5 options to choose.
+        Searches for a song and gives you 5 options to choose.
         """
         q: Queue = self._queues[ctx.guild.id]
 
@@ -578,7 +578,7 @@ class Music(commands.Cog):
         else:
             await send_embed(
                 ctx=ctx,
-                description=f'Queued: [{title}]({url})',
+                description=f'{await get_phrase(ctx, "queued")} [{title}]({url})',
                 color=BASE_COLOR
             )
 
@@ -591,7 +591,7 @@ class Music(commands.Cog):
         if ctx.voice_client is None:
             await send_embed(
                 ctx=ctx,
-                description='I am not playing anything yet!',
+                description=await get_phrase(ctx, 'not_playing'),
                 color=ERROR_COLOR
             )
             return
@@ -599,8 +599,8 @@ class Music(commands.Cog):
         ctx.voice_client.source.bass_accentuate = level
         q.bass_boost = ctx.voice_client.source.bass_accentuate
         await send_embed(
-            ctx=ctx, 
-            description=f'Bass boost level has been set to `{q.bass_boost}db`.', 
+            ctx=ctx,
+            description=await get_phrase(ctx, 'bass_boost_set') % dict(level=q.bass_boost),
             color=BASE_COLOR
         )
 
@@ -629,8 +629,8 @@ class Music(commands.Cog):
 
         if record is None:
             await send_embed(
-                ctx=ctx, 
-                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                ctx=ctx,
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name),
                 color=ERROR_COLOR)
             return
         
@@ -694,7 +694,7 @@ class Music(commands.Cog):
     async def rename_playlist(self, ctx, name):
         entry = await send_embed(
             ctx=ctx,
-            description=f'Choose new name for `{name}` playlist.',
+            description=await get_phrase(ctx, 'playlist_choose_name') % dict(name=name),
             color=BASE_COLOR
         )
 
@@ -720,8 +720,8 @@ class Music(commands.Cog):
             return
 
         await send_embed(
-            ctx=ctx, 
-            description=f'Playlist `{name}` has been renamed to `{msg.content}`!',
+            ctx=ctx,
+            description=await get_phrase(ctx, 'playlist_name_change') % dict(old_name=name, new_name=msg.content),
             color=BASE_COLOR
         )
 
@@ -734,7 +734,7 @@ class Music(commands.Cog):
         if q.is_empty:
             await send_embed(
                 ctx=ctx, 
-                description='There are not tracks in the queue!',
+                description=await get_phrase(ctx, 'queue_empty'),
                 color=ERROR_COLOR)
             return
 
@@ -752,14 +752,14 @@ class Music(commands.Cog):
         )
 
         await send_embed(
-            ctx=ctx, 
-            description=f'Playlist `{name}` has been succesfully created!', 
+            ctx=ctx,
+            description=await get_phrase(ctx, 'playlist_created') % dict(name=name),
             color=BASE_COLOR)        
 
     @playlists.command(name='load', aliases=['l'])
     async def load_playlist(self, ctx: commands.Context, *, name: str):
         """
-        Loads existing playlist.
+        Loads and existing playlist.
         """
         q: Queue = self._queues[ctx.guild.id]
 
@@ -773,7 +773,7 @@ class Music(commands.Cog):
         if record is None:
             await send_embed(
                 ctx=ctx, 
-                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name), 
                 color=ERROR_COLOR
             )
             return
@@ -790,7 +790,7 @@ class Music(commands.Cog):
 
         await send_embed(
             ctx=ctx, 
-            description=f'Playlist `{name}` has been loaded.', 
+            description=await get_phrase(ctx, 'playlist_loaded') % dict(name=name), 
             color=BASE_COLOR)
 
         await self.play(ctx)
@@ -809,13 +809,13 @@ class Music(commands.Cog):
         if result.deleted_count == 0:
             await send_embed(
                 ctx=ctx, 
-                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name), 
                 color=ERROR_COLOR)
             return
 
         await send_embed(
             ctx=ctx,
-            description=f'Playlist `{name}` has been successfully deleted.',
+            description=await get_phrase(ctx, 'playlist_deleted') % dict(name=name),
             color=BASE_COLOR
         )
 
@@ -833,11 +833,11 @@ class Music(commands.Cog):
             names = [f'**{index + 1}.** {item.get("name")}' for index, item in enumerate(record)]
             description = '\n'.join(names)
         else:
-            description = 'There are no playlists for this guild!'
+            description = await get_phrase(ctx, 'no_playlists')
         
         await send_embed(
             ctx=ctx, 
-            title='Available playlists:',
+            title=await get_phrase(ctx, 'playlists_available'),
             description=description, 
             color=BASE_COLOR
         )
@@ -858,7 +858,7 @@ class Music(commands.Cog):
         if record is None:
             await send_embed(
                 ctx=ctx, 
-                description=f'Playlist with name `{name}` doesn\'t exist.', 
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name), 
                 color=ERROR_COLOR)
             return
  
@@ -877,7 +877,7 @@ class Music(commands.Cog):
 
         await send_embed(
             ctx=ctx,
-            description=f'Playlist `{name}` has been added to your guild.',
+            description=await get_phrase(ctx, 'playlist_shared') % dict(name=name),
             color=BASE_COLOR
         )
 

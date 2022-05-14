@@ -6,6 +6,7 @@ from logging import getLogger
 from pathlib import Path
 from traceback import print_exception
 
+from discord import Game
 from discord.ext import commands
 from discord_components.client import DiscordComponents
 
@@ -59,6 +60,7 @@ class Bot(commands.Bot):
 
     async def on_ready(self):
         DiscordComponents(self)
+        await self.change_presence(activity=Game(name=f'music | {BASE_PREFIX}help'))
 
         self._logger.info(f'The bot itself has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
         delattr(self, '_start_time')

@@ -87,3 +87,10 @@ class QueryTooShort(CustomException):
     """
     description = 'Query is too short.'
     type_ = ExceptionType['ERROR']
+
+
+class WrongLocale(CustomException):
+    """
+    """
+    description = 'This language is not supported.'
+    type_ = ExceptionType['ERROR']

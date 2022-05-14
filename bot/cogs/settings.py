@@ -1,7 +1,9 @@
 from base import BASE_COLOR
 from discord.ext import commands
 
+import exceptions
 from database import db
+from languages import LOCALES, get_phrase
 from utils import send_embed
 
 
@@ -23,14 +25,16 @@ class Settings(commands.Cog):
 
         await send_embed(
             ctx=ctx,
-            description=f'Prefix has been successfully changed to `{new_prefix}`',
+            description=get_phrase(ctx, 'prefix_set') % dict(new_prefix=new_prefix),
             color=BASE_COLOR
         )
 
-    # @commands.command(aliases=['lang'])
+    @commands.command(aliases=['lang', 'setl', 'setloc', 'set_loc'])
     async def set_language(self, ctx: commands.Context, new_lang: str):
-        # TODO: check if language is available
-        # possibly do it through Enum and make replies within send_embed function
+        if new_lang not in LOCALES:
+            raise exceptions.WrongLocale
+            return
+
         db.guilds.configs.update_one(
             {'guild_id': ctx.guild.id},
             {
@@ -43,7 +47,7 @@ class Settings(commands.Cog):
 
         await send_embed(
             ctx=ctx,
-            description=f'Language has been successfully changed to `{new_lang}`',
+            description=get_phrase(ctx, 'language_set') % dict(new_lang=new_lang),
             color=BASE_COLOR
         )
 
