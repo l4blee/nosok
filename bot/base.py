@@ -6,7 +6,7 @@ from discord import Colour
 from discord.ext import commands
 
 BASE_PREFIX = getenv('BASE_PREFIX', '!')
-BASE_LANGUAGE = 'RU'
+BASE_LANGUAGE = getenv('BASE_LANGUAGE', 'EN')
 
 BASE_COLOR = Colour.from_rgb(241, 184, 19)
 ERROR_COLOR = Colour.from_rgb(255, 0, 0)
