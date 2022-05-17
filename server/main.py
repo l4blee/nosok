@@ -11,7 +11,9 @@ if getenv('APP_STATUS', 'production') != 'production':
     from dotenv import load_dotenv
     load_dotenv('bot/.env')
 
-app = Flask(__name__)
+app = Flask(
+    __name__
+)
 
 if __name__ == '__main__':
     for i in Path('server/blueprints').glob('*.py'):
@@ -20,4 +22,4 @@ if __name__ == '__main__':
         app.register_blueprint(bp)
     
     handler.launch()
-    app.run('0.0.0.0', port=getenv('PORT', 8080))
+    app.run('0.0.0.0', port=getenv('PORT', 5000))

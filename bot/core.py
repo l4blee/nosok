@@ -78,5 +78,9 @@ event_handler = EventHandler(bot)
 music_handler = YDLHandler({
     'simulate': True,
     'quiet': True,
-    'format': 'bestaudio'
+    'i': True,
+    'format': 'bestaudio',
+    'skip-download': True,
+    'age_limit': 17,
+    'youtube-skip-dash-manifest': True
 })
