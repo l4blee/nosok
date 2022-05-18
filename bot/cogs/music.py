@@ -64,10 +64,12 @@ class Queue:
             return pickle.load(f, encoding='utf-8')
     
     def _write_to_queue(self, data: list) -> None:
+        # First we get the alredy-running queue 
         with open(self.queue_file, 'rb') as f:
             previous = pickle.load(f)
 
-        with open(self.queue_file, 'wb') as f:
+        # Then concat and dump back again
+        with open(self.queue_file, 'wb') as f:  
             pickle.dump(previous + data, f, protocol=-1)
 
     def remove(self, index: int) -> Track:
@@ -427,14 +429,14 @@ class Music(commands.Cog):
             )
         else:
             tracks = list(q.tracks)
-            # now_alias = await get_phrase(ctx, 'now') + ' -> '
+            now_alias = await get_phrase(ctx, 'now') + ' -> '
             if len(tracks) > 0:
                 desc = ''
                 for index, item in enumerate(tracks):
-                    desc += f'{["", "now -> "][int(index == q.now_playing)]}' \
+                    desc += f'{["", now_alias][int(index == q.now_playing)]}' \
                             f'{index + 1}.\t[{item.title}]({item.url}) | {item.mention}\n'
             else:
-                desc = await (ctx, 'queue_empty')
+                desc = await get_phrase(ctx, 'queue_empty')
 
             await send_embed(
                 ctx=ctx,

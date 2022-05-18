@@ -1,4 +1,5 @@
 import asyncio
+from urllib.parse import urlparse, parse_qs
 from os import getcwd
 from datetime import datetime, timedelta
 from json import dump
@@ -23,6 +24,8 @@ class YDLHandler(MusicHandlerBase):
     def __init__(self, ydl_opts: dict, scheme: str = 'https'):
         self._ydl_opts = ydl_opts
         self._scheme = scheme
+
+        # Consts
         self._search_pattern = scheme + '://www.youtube.com/results?search_query='
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
         self._video_regex = comp_(r'watch\?v=(\S{11})')
@@ -58,7 +61,9 @@ class YDLHandler(MusicHandlerBase):
             for result in await asyncio.gather(*reqs)
         ]
 
-        # The code below seems to work a bit faster, need proper testing
+        # The code below seems to work a bit faster,
+        # whereas the code above looks more discord.py-stylish,
+        # need proper testing to fifure out the performance stats of both
 
         # args = [(i, False) for i in links]  # link, download=False
 
@@ -78,7 +83,11 @@ class YDLHandler(MusicHandlerBase):
             _id = next(self._video_regex.finditer(res.text))
             url = self._video_pattern + _id.group(1)
         else:
-            url = query
+            # Simple additional query parameters bypass
+            parsed = urlparse(query)
+            video_id = parse_qs(parsed.query)['v'][0]
+            # Getting proper URL to a video
+            url = self._video_pattern + video_id
 
         with YtDL(self._ydl_opts) as ydl:
             data = ydl.extract_info(url, download=False)

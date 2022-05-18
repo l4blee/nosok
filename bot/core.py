@@ -1,8 +1,8 @@
 import os
 import sys
+import logging
 from time import perf_counter
 from importlib import import_module
-from logging import getLogger
 from pathlib import Path
 from traceback import print_exception
 
@@ -24,7 +24,7 @@ class Bot(commands.Bot):
     def __init__(self, command_prefix):
         self._start_time = perf_counter()
         super().__init__(command_prefix, case_insensitive=True)
-        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
+        self._logger = logging.getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_command_error(self, ctx: commands.Context, exception):
         if isinstance(exception, CustomException):
@@ -59,6 +59,10 @@ class Bot(commands.Bot):
         super().run(os.getenv('TOKEN'), reconnect=True)
 
     async def on_ready(self):
+        # Disable Discord.py logging as it's not needed afterwards.
+        discord_logger = logging.getLogger('discord')
+        discord_logger.setLevel(logging.CRITICAL)
+
         DiscordComponents(self)
         await self.change_presence(activity=Game(name=f'music | {BASE_PREFIX}help'))
 
@@ -81,6 +85,6 @@ music_handler = YDLHandler({
     'no_warnings': True,
     'ignoreerrors': True,
     'format': 'bestaudio',
-    'skip-download': True,
+    'skip_download': True,
     'age_limit': 17,
 })

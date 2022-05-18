@@ -1,5 +1,5 @@
 {
-    "not_plaiying": "I am not playing anything yet!",
+    "not_playing": "I am not playing anything yet!",
     "current": "Current song:",
     "choose_track": "Choose one of the following tracks:",
     "now": "now",
@@ -25,6 +25,6 @@
     "playlist_shared": "Playlist `%(name)s` has been added to your guild.",
     "no_playlists": "There are no playlists for this guild!",
     "playlists_available": "Available playlists:",
-    "prefix_set": "Prefix has been successfully canged to `%(new_prefix)s`",
+    "prefix_set": "Prefix has been successfully changed to `%(new_prefix)s`",
     "language_set": "Language has been successfully changed to `%(new_lang)s`"
 }
