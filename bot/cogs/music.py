@@ -475,7 +475,7 @@ class Music(commands.Cog):
                 q.loop = 0
 
         await send_embed(ctx=ctx, 
-                         description=f'{await get_phrase(ctx, "current")} `{loop_setting[q.loop]}`',
+                         description=f'{await get_phrase(ctx, "looping_set")} `{loop_setting[q.loop]}`',
                          color=BASE_COLOR)
 
     @commands.command(aliases=['rm'])
