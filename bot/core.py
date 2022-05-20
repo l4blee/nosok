@@ -11,7 +11,7 @@ from discord.ext import commands
 from discord_components.client import DiscordComponents
 
 from base import BASE_PREFIX, ERROR_COLOR
-from handlers import YDLHandler, EventHandler, DataProcessor
+from handlers import YDLHandler, EventHandler, PerformanceProcessor
 from exceptions import CustomException
 from utils import send_embed
 
@@ -76,7 +76,7 @@ class Bot(commands.Bot):
 
 bot = Bot(db.get_prefix)
 
-data_processor = DataProcessor(bot)
+performance_processor = PerformanceProcessor(bot)
 event_handler = EventHandler(bot)
 
 music_handler = YDLHandler({

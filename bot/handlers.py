@@ -139,7 +139,7 @@ class EventHandler(Thread):
 
                 await send_embed(
                     ctx=ctx,
-                    description=get_phrase(ctx, 'afk'),
+                    description=await get_phrase(ctx, 'afk'),
                     color=BASE_COLOR
                 )
 
@@ -150,7 +150,7 @@ class EventHandler(Thread):
         self._stop.set()
 
 
-class DataProcessor(Thread):
+class PerformanceProcessor(Thread):
     __slots__ = ('_bot', '_logger', '_stop')
 
     def __init__(self, bot):
