@@ -2,7 +2,7 @@ from logging import getLogger
 from os import getenv
 
 from pymongo import MongoClient
-from discord.ext.commands import Context, Bot
+from discord.ext.commands import Context, Bot, when_mentioned_or
 from discord import Message
 
 from base import BASE_PREFIX, BASE_LANGUAGE
@@ -32,7 +32,6 @@ class MongoDB:
 
         if guild_record is None:
             return BASE_PREFIX
-        
         return guild_record.get('prefix', BASE_PREFIX)
 
     async def get_language(self, ctx: Context) -> str:
@@ -43,7 +42,7 @@ class MongoDB:
         if guild_record is None:
             return BASE_LANGUAGE
         
-        return guild_record.get('language', BASE_LANGUAGE)
+        return when_mentioned_or(guild_record.get('language', BASE_LANGUAGE))
 
 
 # Creaing DB client instance right here to use everywhere without loop imports and other issues.

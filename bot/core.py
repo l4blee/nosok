@@ -47,7 +47,7 @@ class Bot(commands.Bot):
                                 'An error occured during handling this command, please try again later.', 
                                 ERROR_COLOR)
                 
-                self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
+                self._logger.warning(f'Ignoring exception in command {ctx.command}, guild: {ctx.guild.name}, id={ctx.guild.id}:')
                 print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
     def setup(self):

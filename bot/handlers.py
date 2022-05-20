@@ -18,6 +18,7 @@ from yt_dlp import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase, Track
 from utils import send_embed
+from languages import get_phrase
 
 
 class YDLHandler(MusicHandlerBase):
@@ -76,12 +77,7 @@ class YDLHandler(MusicHandlerBase):
 
     async def get_metadata(self, query: str, is_url: bool = False) -> Track:
         if not is_url:
-            query = '+'.join(query.split())
-            with requests.Session() as session:
-                res = session.get(self._search_pattern + query)
-
-            _id = next(self._video_regex.finditer(res.text))
-            url = self._video_pattern + _id.group(1)
+            url = self.get_url(query)
         else:
             # Simple additional query parameters bypass
             parsed = urlparse(query)
@@ -125,10 +121,6 @@ class EventHandler(Thread):
         if ctx in self.to_check:
             del self.to_check[ctx]
 
-    '''async def on_message(self, message: discord.Message):
-        ctx = await self._bot.get_context(message)
-        self.to_check[ctx] = message'''
-
     async def checkall(self):
         for ctx, timestamp in self.to_check.items():
             player = ctx.voice_client
@@ -147,7 +139,7 @@ class EventHandler(Thread):
 
                 await send_embed(
                     ctx=ctx,
-                    description='I have been staying AFK for too long, so I left the voice channel',
+                    description=get_phrase(ctx, 'afk'),
                     color=BASE_COLOR
                 )
 
