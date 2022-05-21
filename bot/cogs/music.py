@@ -36,7 +36,7 @@ class Track:
     mention: str
 
     def to_list(self) -> tuple:
-        return url, title, mention
+        return self.url, self.title, self.mention
 
     @classmethod
     def from_list(self, data: list | tuple):
