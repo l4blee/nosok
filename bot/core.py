@@ -6,9 +6,8 @@ from importlib import import_module
 from pathlib import Path
 from traceback import print_exception
 
-from discord import Game
+import discord
 from discord.ext import commands
-from discord_components.client import DiscordComponents
 
 from base import BASE_PREFIX, ERROR_COLOR
 from handlers import YDLHandler, EventHandler, PerformanceProcessor
@@ -23,7 +22,11 @@ class Bot(commands.Bot):
 
     def __init__(self, command_prefix):
         self._start_time = perf_counter()
-        super().__init__(command_prefix, case_insensitive=True)
+
+        intents = discord.Intents.all()
+
+        super().__init__(command_prefix, intents=intents, case_insensitive=True)
+
         self._logger = logging.getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_command_error(self, ctx: commands.Context, exception):
@@ -50,27 +53,34 @@ class Bot(commands.Bot):
                 self._logger.warning(f'Ignoring exception in command {ctx.command}, guild: {ctx.guild.name}, id={ctx.guild.id}:')
                 print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
-    def setup(self):
+    async def start(self):
+        self._logger.info('Loading cogs...')
         for i in Path('bot/cogs/').glob('*.py'):
-            self.load_extension(f'cogs.{i.stem}')
+            await self.load_extension(f'cogs.{i.stem}')
 
-    def run(self):
-        self.setup()
-        super().run(os.getenv('TOKEN'), reconnect=True)
+        self._logger.info(f'Available cogs: {list(self.cogs.keys())}')
+
+        await super().start(os.getenv('TOKEN'))
 
     async def on_ready(self):
         # Disable Discord.py logging as it's not needed afterwards.
         discord_logger = logging.getLogger('discord')
         discord_logger.setLevel(logging.CRITICAL)
 
-        DiscordComponents(self)
-        await self.change_presence(activity=Game(name=f'music | {BASE_PREFIX}help'))
+        await self.change_presence(activity=discord.Game(name=f'music | {BASE_PREFIX}help'))
 
-        self._logger.info(f'The bot itself has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
+        performance_processor.start()
+        event_handler.start()
+
+        self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
         delattr(self, '_start_time')
 
     async def close(self):
         self._logger.info('The bot is being shut down...')
+
+        performance_processor.close()
+        event_handler.close()
+
         await super().close()
 
 

@@ -10,7 +10,6 @@ from dataclasses import dataclass
 import discord
 from discord import Embed
 from discord.ext import commands
-from discord_components import Button, ButtonStyle
 
 import exceptions
 from database import db
@@ -56,7 +55,7 @@ class Queue:
         self.bass_boost: float = 0.0
 
         self.queue_file = f'bot/queues/{guild_id}'
-        self.clear()
+        # self.clear()
 
     @property
     def tracks(self) -> list[Track]:
@@ -242,9 +241,8 @@ class Music(commands.Cog):
             raise exceptions.NoTracksBefore
 
     @staticmethod
-    async def get_pagination(ctx: commands.Context, *tracks):
+    async def get_track_pagination(ctx: commands.Context, *tracks: list[Track]):
         embeds = []
-        tracks = tracks[0]
 
         for item in tracks:
             embed = Embed(title=item.title, url=item.url, color=BASE_COLOR)
@@ -252,51 +250,21 @@ class Music(commands.Cog):
             embed.set_author(name=ctx.author)
             embeds.append(embed)
 
-        current = 0
-        message = await ctx.send(
-            f'**{await get_phrase(ctx, "choose_track")}**',
-            embed=embeds[current],
-            components=get_components('search')(len(embeds), current)
+        search_view = get_components('search')
+        view = search_view(
+            embeds=embeds,
+            timeout=15
         )
 
-        while 1:
-            try:
-                interaction = await ctx.bot.wait_for(
-                    'button_click',
-                    check=lambda i: i.component.id in ['back', 'forward', 'lock'] and\
-                                    i.message == message,
-                    timeout=20.0
-                )
+        message = await ctx.send(
+            f'**{await get_phrase(ctx, "choose_track")}**',
+            embed=embeds[0],
+            view=view
+        )
 
-                if interaction.component.id == 'back':
-                    current -= 1
-                elif interaction.component.id == 'forward':
-                    current += 1
-                elif interaction.component.id == 'lock':
-                    if (track := tracks[current]) is not None:
-                        await message.delete()
-                        return track
-
-                if current == len(embeds):
-                    current = 0
-                elif current < 0:
-                    current = len(embeds) - 1
-
-                await message.edit(
-                    f'**{await get_phrase(ctx, "choose_track")}**',
-                    embed=embeds[current],
-                    components=get_components('search')(len(embeds), current)
-                )
-
-                # Doesn't apply changes if I don't use both methods idk why
-                await interaction.respond(
-                    type=6, 
-                    embed=embeds[current],
-                    components=get_components('search')(len(embeds), current)
-                )
-            except asyncio.TimeoutError:
-                await message.delete()
-                break
+        await view.wait()
+        success = not await message.delete()
+        return tracks[view.current] if success else None
 
     @commands.command(aliases=['p', 'р', 'п'])
     async def play(self, ctx: commands.Context, *, query: str = None) -> None:
@@ -384,17 +352,9 @@ class Music(commands.Cog):
             song = await music_handler.get_metadata(query, is_url=True)
         else:
             tracks = await music_handler.get_metas(query)
-            song = await self._choose_track(ctx, tracks)
+            song = await self.get_track_pagination(ctx, *tracks)
 
         return song
-
-    async def _choose_track(self, ctx: commands.Context, tracks) -> Track:
-        track = await self.get_pagination(ctx, tracks)
-
-        if not track:
-            return
-
-        return track
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context, *, query: str = None) -> None:
@@ -557,18 +517,13 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
 
-        if not ctx.voice_client:
-            await ctx.author.voice.channel.connect()
-
-        voice = ctx.voice_client
-
         if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH', 10)):
             raise exceptions.QueryTooShort
 
         tracks = await music_handler.get_metas(query)
-        track = await self._choose_track(ctx, tracks)
+        track = await self.get_track_pagination(ctx, *tracks)
 
-        if not track:
+        if track is None:
             raise exceptions.NoTracksSpecified
 
         await q.add(
@@ -576,14 +531,20 @@ class Music(commands.Cog):
             title=track.title,
             mention=ctx.author.mention
         )
+
+        if not ctx.voice_client:
+            await ctx.author.voice.channel.connect()
+
+        voice = ctx.voice_client
+
         if not voice.is_playing():
-            stream = await music_handler.get_stream(url)
+            stream = await music_handler.get_stream(track.url)
             loop = ctx.bot.loop
             await self._play(ctx, stream, loop)
         else:
             await send_embed(
                 ctx=ctx,
-                description=f'{await get_phrase(ctx, "queued")} [{title}]({url})',
+                description=f'{await get_phrase(ctx, "queued")} [{track.title}]({track.url})',
                 color=BASE_COLOR
             )
 
@@ -650,51 +611,20 @@ class Music(commands.Cog):
             color=BASE_COLOR
         )
 
-        components = get_components('playlist')
+        playlist_view = get_components('playlist')
+        view = playlist_view(self, timeout=10)
 
         message = await ctx.send(
             embed=embed,
-            components=components
+            view=view
         )
-        flag = False
 
-        try:
-            interaction = await ctx.bot.wait_for(
-                'button_click',
-                check=lambda i: i.component.id in ['rename', 'load', 'delete'] and\
-                                i.message == message,
-                timeout=10
-            )
+        await view.wait()
+        view.disable_all()
+        await message.edit(view=view)
 
-            if interaction.component.id == 'rename':
-                components[0][0].set_disabled(True)
-                await interaction.respond(
-                    type=6,
-                    embed=embed,
-                    components=components
-                )
-
-                await self.rename_playlist(ctx, name)
-            elif interaction.component.id == 'load':
-                components[0][1].set_disabled(True)
-                await interaction.respond(
-                    type=6,
-                    embed=embed,
-                    components=components
-                )
-
-                await self.load_playlist(ctx, name=name)
-            elif interaction.component.id == 'delete':
-                await self.delete_playlist(ctx, name=name)
-                await message.delete()
-                flag = True
-        except asyncio.TimeoutError:
-            pass
-        finally:
-            if not flag:
-                for i in components[0]:
-                    i.set_disabled(True)
-                await message.edit(components=components)
+        callback = view.returned_callback
+        await callback(ctx, name=name)
 
     async def rename_playlist(self, ctx, name):
         entry = await send_embed(
@@ -887,5 +817,5 @@ class Music(commands.Cog):
         )
 
 
-def setup(bot: commands.Bot):
-    bot.add_cog(Music(bot))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(Music(bot))

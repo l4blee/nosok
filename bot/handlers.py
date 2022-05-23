@@ -11,7 +11,7 @@ from time import sleep
 from psutil import Process
 from dataclasses import dataclass
 
-import requests
+import aiohttp
 from discord.ext import commands
 import discord
 from yt_dlp import YoutubeDL as YtDL
@@ -32,21 +32,17 @@ class YDLHandler(MusicHandlerBase):
         self._video_regex = comp_(r'watch\?v=(\S{11})')
 
     async def get_url(self, query: str) -> str:  # video url
-        query = '+'.join(query.split())
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self._search_pattern + query.replace(' ', '+')) as res:
+                iterator = self._video_regex.finditer(await res.text())
 
-        with requests.Session() as session:
-            res = session.get(self._search_pattern + query)
-
-        iterator = self._video_regex.finditer(res.text)
         return self._video_pattern + next(iterator).group(1)
 
     async def get_urls(self, query: str, max_results: int = 5) -> list[str]:
-        query = '+'.join(query.split())
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self._search_pattern + query.replace(' ', '+')) as res:
+                iterator = self._video_regex.finditer(await res.text())
 
-        with requests.Session() as session:
-            res = session.get(self._search_pattern + query)
-
-        iterator = self._video_regex.finditer(res.text)
         return [self._video_pattern + next(iterator).group(1) for _ in range(max_results)]
 
     async def get_metas(self, query: str, max_results: int = 5) -> list[Track]:
@@ -61,19 +57,6 @@ class YDLHandler(MusicHandlerBase):
                   result.get('thumbnails')[0]['url'])
             for result in await asyncio.gather(*reqs)
         ]
-
-        # The code below seems to work a bit faster,
-        # whereas the code above looks more discord.py-stylish,
-        # need proper testing to fifure out the performance stats of both
-
-        # args = [(i, False) for i in links]  # link, download=False
-
-        # with YtDL(self._ydl_opts) as ydl:
-        #     p: ThreadPool = ThreadPool(max_results)
-        #     res = p.starmap(ydl.extract_info, args)
-
-        # res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
-        # return res
 
     async def get_metadata(self, query: str, is_url: bool = False) -> Track:
         if not is_url:
@@ -101,6 +84,8 @@ class YDLHandler(MusicHandlerBase):
 
 
 class EventHandler(Thread):
+    __slots__ = ('_bot', '_logger', '_stop', 'to_check')
+
     def __init__(self, bot):
         super().__init__(target=self.loop,
                          daemon=True)
@@ -108,6 +93,7 @@ class EventHandler(Thread):
 
         self._bot = bot
         self.to_check: dict = dict()
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
         while 1:
@@ -143,10 +129,15 @@ class EventHandler(Thread):
                     color=BASE_COLOR
                 )
 
+    def start(self) -> None:
+        self._logger.info('Launching Event Handler\'s thread...')
+        super().start()
+
     def stopped(self):
         return self._stop.is_set()
 
     def close(self):
+        self._logger.info('Closing Event Handler...')
         self._stop.set()
 
 
@@ -203,12 +194,12 @@ class PerformanceProcessor(Thread):
         return self._bot
 
     def start(self) -> None:
-        self._logger.info('Launching Data Processor\'s thread...')
+        self._logger.info('Launching Performance Processor\'s thread...')
         super().start()
 
     def stopped(self):
         return self._stop.is_set()
 
     def close(self):
-        self._logger.info('Closing Data Processor...')
+        self._logger.info('Closing Performance Processor...')
         self._stop.set()
