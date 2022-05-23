@@ -1,75 +1,78 @@
-import os
-from asyncio import run_coroutine_threadsafe
+import asyncio
+from urllib.parse import urlparse, parse_qs
+from os import getcwd
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
-from multiprocessing.pool import ThreadPool
+# from multiprocessing.pool import ThreadPool
 from re import compile as comp_
 from threading import Thread, Event
 from time import sleep
 from psutil import Process
+from dataclasses import dataclass
 
-import requests
+import aiohttp
 from discord.ext import commands
 import discord
 from yt_dlp import YoutubeDL as YtDL
 
-from base import BASE_COLOR, MusicHandlerBase
+from base import BASE_COLOR, MusicHandlerBase, Track
 from utils import send_embed
+from languages import get_phrase
 
 
 class YDLHandler(MusicHandlerBase):
     def __init__(self, ydl_opts: dict, scheme: str = 'https'):
         self._ydl_opts = ydl_opts
         self._scheme = scheme
+
+        # Consts
         self._search_pattern = scheme + '://www.youtube.com/results?search_query='
         self._video_pattern = scheme + '://www.youtube.com/watch?v='
         self._video_regex = comp_(r'watch\?v=(\S{11})')
 
     async def get_url(self, query: str) -> str:  # video url
-        query = '+'.join(query.split())
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self._search_pattern + query.replace(' ', '+')) as res:
+                iterator = self._video_regex.finditer(await res.text())
 
-        with requests.Session() as session:
-            res = session.get(self._search_pattern + query)
-
-        iterator = self._video_regex.finditer(res.text)
         return self._video_pattern + next(iterator).group(1)
 
-    async def get_urls(self, query: str, max_results: int = 5) -> list:
-        query = '+'.join(query.split())
+    async def get_urls(self, query: str, max_results: int = 5) -> list[str]:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self._search_pattern + query.replace(' ', '+')) as res:
+                iterator = self._video_regex.finditer(await res.text())
 
-        with requests.Session() as session:
-            res = session.get(self._search_pattern + query)
-
-        iterator = self._video_regex.finditer(res.text)
         return [self._video_pattern + next(iterator).group(1) for _ in range(max_results)]
 
-    async def get_infos(self, query: str, max_results: int = 5) -> list[tuple[str, str, str]]:
+    async def get_metas(self, query: str, max_results: int = 5) -> list[Track]:
         links = await self.get_urls(query, max_results=max_results)
-        args = [(i, False) for i in links]  # link, download=False
 
         with YtDL(self._ydl_opts) as ydl:
-            p: ThreadPool = ThreadPool(max_results)
-            res = p.starmap(ydl.extract_info, args)
+            reqs = [asyncio.to_thread(ydl.extract_info, i) for i in links]
 
-        res = [(self._video_pattern + i.get('id'), i.get('title'), i.get('thumbnails')[0]['url']) for i in res]
-        return res
+        return [
+            Track(self._video_pattern + result.get('id'), 
+                  result.get('title'), 
+                  result.get('thumbnails')[0]['url'])
+            for result in await asyncio.gather(*reqs)
+        ]
 
-    async def get_info(self, query: str, is_url: bool = False) -> tuple[str, str]:
+    async def get_metadata(self, query: str, is_url: bool = False) -> Track:
         if not is_url:
-            query = '+'.join(query.split())
-            with requests.Session() as session:
-                res = session.get(self._search_pattern + query)
-
-            _id = next(self._video_regex.finditer(res.text))
-            url = self._video_pattern + _id.group(1)
+            url = self.get_url(query)
         else:
-            url = query
+            # Simple additional query parameters bypass
+            parsed = urlparse(query)
+            video_id = parse_qs(parsed.query)['v'][0]
+            # Getting proper URL to a video
+            url = self._video_pattern + video_id
 
         with YtDL(self._ydl_opts) as ydl:
-            title = ydl.extract_info(url, download=False).get('title')
+            data = ydl.extract_info(url, download=False)
+            title, thumbnail = data.get('title'), data.get('thumbnails')[0]['url']
 
-        return url, title
+        return Track(url, title, thumbnail)
 
     async def get_stream(self, url: str):
         with YtDL(self._ydl_opts) as ydl:
@@ -81,6 +84,8 @@ class YDLHandler(MusicHandlerBase):
 
 
 class EventHandler(Thread):
+    __slots__ = ('_bot', '_logger', '_stop', 'to_check')
+
     def __init__(self, bot):
         super().__init__(target=self.loop,
                          daemon=True)
@@ -88,10 +93,11 @@ class EventHandler(Thread):
 
         self._bot = bot
         self.to_check: dict = dict()
+        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
         while 1:
-            run_coroutine_threadsafe(self.checkall(), self._bot.loop)
+            asyncio.run_coroutine_threadsafe(self.checkall(), self._bot.loop)
             sleep(60)
 
     def on_song_end(self, ctx: commands.Context):
@@ -100,10 +106,6 @@ class EventHandler(Thread):
     def on_song_start(self, ctx: commands.Context):
         if ctx in self.to_check:
             del self.to_check[ctx]
-
-    '''async def on_message(self, message: discord.Message):
-        ctx = await self._bot.get_context(message)
-        self.to_check[ctx] = message'''
 
     async def checkall(self):
         for ctx, timestamp in self.to_check.items():
@@ -123,18 +125,23 @@ class EventHandler(Thread):
 
                 await send_embed(
                     ctx=ctx,
-                    description='I have been staying AFK for too long, so I left the voice channel',
+                    description=await get_phrase(ctx, 'afk'),
                     color=BASE_COLOR
                 )
+
+    def start(self) -> None:
+        self._logger.info('Launching Event Handler\'s thread...')
+        super().start()
 
     def stopped(self):
         return self._stop.is_set()
 
     def close(self):
+        self._logger.info('Closing Event Handler...')
         self._stop.set()
 
 
-class DataProcessor(Thread):
+class PerformanceProcessor(Thread):
     __slots__ = ('_bot', '_logger', '_stop')
 
     def __init__(self, bot):
@@ -169,7 +176,7 @@ class DataProcessor(Thread):
         cpu_usage = this_proc.cpu_percent() + cpu_utils
         mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
 
-        with open(f'{os.getcwd() + "/bot/data/data.json"}', 'w') as f:
+        with open(f'{getcwd() + "/bot/data/data.json"}', 'w') as f:
             data = {
                 'status': 'online',
                 'vars': {
@@ -187,12 +194,12 @@ class DataProcessor(Thread):
         return self._bot
 
     def start(self) -> None:
-        self._logger.info('Launching Data Processor\'s thread...')
+        self._logger.info('Launching Performance Processor\'s thread...')
         super().start()
 
     def stopped(self):
         return self._stop.is_set()
 
     def close(self):
-        self._logger.info('Closing Data Processor...')
+        self._logger.info('Closing Performance Processor...')
         self._stop.set()

@@ -1,16 +1,16 @@
 import os
 import sys
+import logging
 from time import perf_counter
 from importlib import import_module
-from logging import getLogger
 from pathlib import Path
 from traceback import print_exception
 
+import discord
 from discord.ext import commands
-from discord_components.client import DiscordComponents
 
 from base import BASE_PREFIX, ERROR_COLOR
-from handlers import YDLHandler, EventHandler, DataProcessor
+from handlers import YDLHandler, EventHandler, PerformanceProcessor
 from exceptions import CustomException
 from utils import send_embed
 
@@ -22,18 +22,20 @@ class Bot(commands.Bot):
 
     def __init__(self, command_prefix):
         self._start_time = perf_counter()
-        super().__init__(command_prefix, case_insensitive=True)
-        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
-    async def on_message(self, message):
-        '''if message.author != self.user.id:
-            await event_handler.on_message(message)'''
-        # TODO: use event_handler to make bot leave a voice channel with message 
+        intents = discord.Intents.all()
 
-        await super().on_message(message)
+        super().__init__(command_prefix, intents=intents, case_insensitive=True)
+
+        self._logger = logging.getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     async def on_command_error(self, ctx: commands.Context, exception):
-        if not isinstance(exception, CustomException):
+        if isinstance(exception, CustomException):
+            await send_embed(
+                ctx=ctx, 
+                description=exception.description, 
+                color=exception.type_.value)
+        else:
             if isinstance(exception, commands.CommandNotFound):
                 await send_embed(ctx,
                                 f'Command not found, type in `{ctx.prefix}help` to get the list of all the commands available.', 
@@ -45,38 +47,54 @@ class Bot(commands.Bot):
                                 ERROR_COLOR)
             else:
                 await send_embed(ctx,
-                             'An error occured during handling this command, please try again later.', 
-                             ERROR_COLOR)
+                                'An error occured during handling this command, please try again later.', 
+                                ERROR_COLOR)
+                
+                self._logger.warning(f'Ignoring exception in command {ctx.command}, guild: {ctx.guild.name}, id={ctx.guild.id}:')
+                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
 
-        self._logger.warning('Ignoring exception in command {}:'.format(ctx.command))
-        print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
-
-    def setup(self):
+    async def start(self):
+        self._logger.info('Loading cogs...')
         for i in Path('bot/cogs/').glob('*.py'):
-            self.load_extension(f'cogs.{i.stem}')
+            await self.load_extension(f'cogs.{i.stem}')
 
-    def run(self):
-        self.setup()
-        super().run(os.getenv('TOKEN'), reconnect=True)
+        self._logger.info(f'Available cogs: {list(self.cogs.keys())}')
+
+        await super().start(os.getenv('TOKEN'))
 
     async def on_ready(self):
-        DiscordComponents(self)
+        # Disable Discord.py logging as it's not needed afterwards.
+        discord_logger = logging.getLogger('discord')
+        discord_logger.setLevel(logging.CRITICAL)
 
-        self._logger.info(f'The bot itself has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
+        await self.change_presence(activity=discord.Game(name=f'music | {BASE_PREFIX}help'))
+
+        performance_processor.start()
+        event_handler.start()
+
+        self._logger.info(f'The bot has been successfully launched in approximately {round(perf_counter() - self._start_time, 2)}s')
         delattr(self, '_start_time')
 
     async def close(self):
         self._logger.info('The bot is being shut down...')
+
+        performance_processor.close()
+        event_handler.close()
+
         await super().close()
 
 
 bot = Bot(db.get_prefix)
 
-data_processor = DataProcessor(bot)
+performance_processor = PerformanceProcessor(bot)
 event_handler = EventHandler(bot)
 
 music_handler = YDLHandler({
     'simulate': True,
     'quiet': True,
-    'format': 'bestaudio'
+    'no_warnings': True,
+    'ignoreerrors': True,
+    'format': 'bestaudio',
+    'skip_download': True,
+    'age_limit': 17,
 })
