@@ -1,5 +1,6 @@
 import time
-import urllib
+from urllib.request import urlopen
+from urllib.error import HTTPError
 import os
 
 url = os.environ.get('app_url')
@@ -7,8 +8,9 @@ url = os.environ.get('app_url')
 while True:
     try:
         print(f'accessing {url}')
-        res = urllib.request.urlopen(url)
-    except Exception:
+        res = urlopen(url)
+    except HTTPError:
         print('Request denied...')
-    
-    time.sleep(600)
+    finally:
+        print('Requested successfully')
+        time.sleep(600)
