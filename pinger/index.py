@@ -8,7 +8,7 @@ while True:
     try:
         print(f'accessing {url}')
         res = urllib.request.urlopen(url)
-    except urllib.error.HTTPError:
+    except Exception:
         print('Request denied...')
-    finally:
-        time.sleep(600)
+    
+    time.sleep(600)
