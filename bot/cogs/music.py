@@ -55,7 +55,7 @@ class Queue:
         self.bass_boost: float = 0.0
 
         self.queue_file = f'bot/queues/{guild_id}'
-        # self.clear()
+        self.clear()
 
     @property
     def tracks(self) -> list[Track]:
