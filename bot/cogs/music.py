@@ -627,11 +627,10 @@ class Music(commands.Cog):
         )
 
         await view.wait()
-        view.disable_all()
         await message.edit(view=view)
 
-        callback = view.returned_callback
-        await callback(ctx, name=name)
+        if (callback := view.returned_callback) is not None:
+            await callback(ctx, name=name)
 
     async def rename_playlist(self, ctx, name):
         entry = await send_embed(

@@ -11,6 +11,7 @@ while True:
         res = urlopen(url)
     except HTTPError:
         print('Request denied...')
-    finally:
+    else:
         print('Requested successfully')
+    finally:
         time.sleep(600)

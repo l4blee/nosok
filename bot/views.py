@@ -54,6 +54,7 @@ class Playlist(View):
     def __init__(self, cog, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cog = cog
+        self.returned_callback = None
 
     def disable_all(self):
         self.rename.disabled = True

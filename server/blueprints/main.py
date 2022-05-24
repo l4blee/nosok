@@ -27,6 +27,7 @@ def log():
         
     resp = Response(data)
     resp.headers['Content-type'] = 'application/json'
+    resp.headers['Connection'] = 'keep-alive'
     
     return resp
 

@@ -15,6 +15,7 @@ numpy = "^1.22.3"
 "discord.py" = {git = "https://github.com/Rapptz/discord.py.git", extras = ["voice"]}
 aiohttp = {extras = ["speedups"], version = "^3.8.1"}
 typing-extensions = "^4.2.0"
+scipy = "^1.8.1"
 
 [tool.poetry.dev-dependencies]
 python-dotenv = "^0.19.2"
