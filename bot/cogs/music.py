@@ -28,6 +28,12 @@ ITEM_SEPARATOR = ';;;;'
 makedirs('bot/queues', exist_ok=True)
 
 
+class Looping(Enum):
+    NONE = auto()
+    CURRENT_QUEUE = auto()
+    CURRENT_TRACK = auto()
+
+
 @dataclass(order=True, slots=True)
 class Track:
     url: str
@@ -46,10 +52,10 @@ class Queue:
     __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
 
     def __init__(self, guild_id: int):
-        self._loop: int = 0  # 0 - None; 1 - Current queue; 2 - Current track
+        self._loop: Looping = Looping.NONE  # 0 - None; 1 - Current queue; 2 - Current track
         self.now_playing: int = -1
         self.play_next: bool = True
-        self.guild_id = guild_id
+        self.guild_id: int = guild_id
 
         self.volume: float = 1.0
         self.bass_boost: float = 0.0
@@ -88,9 +94,9 @@ class Queue:
     def get_next(self) -> Optional[Track]:
         tracks = self.tracks
 
-        self.now_playing += int(self._loop != 2)
+        self.now_playing += int(self._loop is not Looping.CURRENT_TRACK)
         if self.now_playing >= len(tracks):
-            if self._loop == 0:
+            if self._loop is Looping.NONE:
                 self.now_playing = -1
                 self.play_next = False
                 return None
