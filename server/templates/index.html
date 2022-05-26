@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}NOSOK | Home page{% endblock %}
+
+{% block content %}
+<nav>
+    {% if current_user.is_authenticated %}
+        <a class="navbar-brand" href="/logout">{{ current_user.email }}</a>
+    {% else %}
+        <p>
+            <a class="btn btn-primary " href="/register">Зарегистрироваться</a>
+            <a class="btn btn-success" href="/login">Войти</a>
+        </p>
+    {% endif %}
+</nav>
+{% endblock %}

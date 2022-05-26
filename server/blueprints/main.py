@@ -1,6 +1,6 @@
 import json
 
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, Response, jsonify, render_template
 
 
 bp = Blueprint(
@@ -9,15 +9,10 @@ bp = Blueprint(
 )
 
 
+@bp.route('/index')
 @bp.route('/')
 def index():
-    with open('bot/data/data.json') as f:
-        data = json.load(f)
-        
-    resp = jsonify(status=data['status'])
-    resp.headers['Content-type'] = 'application/json'
-    
-    return resp
+    return render_template('index.html')
     
 
 @bp.route('/log')

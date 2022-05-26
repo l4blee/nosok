@@ -3,7 +3,7 @@ from json import dumps
 
 from flask import Blueprint, Response, request
 
-from handler import handler
+from handlers import bot_handler
 
 bp = Blueprint(
     'control',

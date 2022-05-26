@@ -33,7 +33,7 @@ class AlreadyPlaying(CustomException):
     type_ = ExceptionType['ERROR']
 
 
-class NoMoreTracks(CustomException):
+class QueueEnded(CustomException):
     """
     Occurs when there are no more tracks in the queue.
     """

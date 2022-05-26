@@ -8,14 +8,16 @@ authors = ["l4blee"]
 python = "3.10.4"
 psutil = "5.8.0"
 yt-dlp = "^2021.12.27"
-pymongo = {extras = ["srv"], version = "^4.0.2"}
-Flask = "^2.0.3"
 pydub = "^0.25.1"
 numpy = "^1.22.3"
+typing-extensions = "^4.2.0"
+pymongo = {extras = ["srv"], version = "^4.0.2"}
 "discord.py" = {git = "https://github.com/Rapptz/discord.py.git", extras = ["voice"]}
 aiohttp = {extras = ["speedups"], version = "^3.8.1"}
-typing-extensions = "^4.2.0"
 scipy = "^1.8.1"
+Flask = "^2.0.3"
+Flask-Login = "^0.6.1"
+Flask-WTF = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
 python-dotenv = "^0.19.2"

@@ -35,7 +35,7 @@ class Looping(Enum):
     CURRENT_TRACK = auto()
 
 
-@dataclass(order=True, slots=True)
+@dataclass(slots=True)
 class Track:
     url: str
     title: str
@@ -92,7 +92,7 @@ class Queue:
 
         self._write_to_queue([Track(url, title, mention)])
 
-    def get_next(self) -> Optional[Track]:
+    def get_next(self) -> Track:
         tracks = self.tracks
 
         self.now_playing += int(self._loop is not Looping.CURRENT_TRACK)
@@ -100,7 +100,7 @@ class Queue:
             if self._loop is Looping.NONE:
                 self.now_playing = -1
                 self.play_next = False
-                return None
+                raise exceptions.QueueEnded
             else:
                 self.now_playing = 0
             
@@ -234,7 +234,7 @@ class Music(commands.Cog):
         Skips the current track and plays the next one.
         """
         if ctx.voice_client:
-            ctx.voice_client.stop()
+            ctx.voice_client.stop()  # Triggers _after and plays again
 
     @commands.command(aliases=['prev'])
     @commands.check(is_connected)
@@ -243,8 +243,8 @@ class Music(commands.Cog):
         Plays a track before the current one.
         """
         q = self._queues[ctx.guild.id]
-        res = await self._seek(ctx, q.now_playing - 1)
-        if res is None:
+        res = await self._seek(ctx, q.now_playing)  # As now_playing is set from 0 index
+        if not res:
             raise exceptions.NoTracksBefore
 
     @staticmethod
@@ -305,31 +305,20 @@ class Music(commands.Cog):
 
             await q.add(url, ctx.author.mention)
             q.now_playing = len(q) - 1
-            stream = await music_handler.get_stream(url)
-            loop = ctx.bot.loop
-            await self._play(ctx, stream, loop)
         else:
             if voice.is_paused():
                 voice.resume()
                 return
 
             if not q.is_empty:
-                res = q.get_next()
-                if not res:
-                    await send_embed(
-                        ctx=ctx,
-                        description=await get_phrase(ctx, 'queue_ended'),
-                        color=BASE_COLOR
-                    )
-                    event_handler.on_song_end(ctx)
-                    return
+                url = q.get_next().url
             else:
                 event_handler.on_song_end(ctx)
                 raise exceptions.QueueEmpty
 
-            stream = await music_handler.get_stream(res.url)
-            loop = ctx.bot.loop
-            await self._play(ctx, stream, loop)
+        stream = await music_handler.get_stream(url)
+        loop = ctx.bot.loop
+        await self._play(ctx, stream, loop)
 
     def _after(self, ctx: commands.Context, loop: asyncio.AbstractEventLoop):
         q: Queue = self._queues[ctx.guild.id]
@@ -467,15 +456,21 @@ class Music(commands.Cog):
             color=BASE_COLOR
         )
 
-    async def _seek(self, ctx: commands.Context, index: int):
+    async def _seek(self, ctx: commands.Context, index: int) -> bool:
+        # Seeks with index given as if we counted from 1
         q: Queue = self._queues[ctx.guild.id]
+        q.play_next = True
+
         if q.is_empty:
             raise exceptions.QueueEmpty
         elif 1 <= index <= len(q):
-            q.now_playing = index - 1
+            q.now_playing = index - 2
+            # Shifting it 2 back as now_playing counts from 0
+            # and get_next method in play gonna move it 1 step further
             await self.skip(ctx)
+            return True
         
-        return
+        return False
 
     @commands.command()
     async def seek(self, ctx: commands.Context, index: int):
@@ -484,15 +479,16 @@ class Music(commands.Cog):
         """
         q = self._queues[ctx.guild.id]
 
-        res = await self._seek(ctx, index - 1)
-        if res is None:
+        res = await self._seek(ctx, index)
+        if not res:
             await send_embed(
                 ctx=ctx,
                 description=await get_phrase(ctx, 'seek_error') % dict(max_index=len(q), index=index),
                 color=ERROR_COLOR
             )
-            raise IndexError('Index out of range')
-        else:
+            return
+        
+        if not ctx.voice_client.is_playing():
             await self.play(ctx)
 
     @commands.command(aliases=['vol', 'v'])
