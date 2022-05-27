@@ -27,7 +27,7 @@ def launch():
     if not check_auth(params):
         return jsonify(status='error', message='Unathorized'), 401
         
-    resp = jsonify(**handler.launch())
+    resp = jsonify(**bot_handler.launch())
     resp.headers['Content-type'] = 'application/json'
     return resp
 
@@ -38,7 +38,7 @@ def terminate():
     if not check_auth(params):
         return jsonify(message='Unathorized'), 401
 
-    resp = jsonify(**handler.terminate())
+    resp = jsonify(**bot_handler.terminate())
     resp.headers['Content-type'] = 'application/json'
     return resp
 
@@ -49,7 +49,7 @@ def restart():
     if not check_auth(params):
         return jsonify(message='Unathorized'), 401
 
-    resp = jsonify(**handler.restart())
+    resp = jsonify(**bot_handler.restart())
     resp.headers['Content-type'] = 'application/json'
     return resp
 

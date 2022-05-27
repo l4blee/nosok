@@ -13,5 +13,5 @@ if __name__ == '__main__':
     from core import app, load_blueprints
     from handlers import bot_handler
 
-    # bot_handler.launch()
+    bot_handler.launch()
     app.run('0.0.0.0', port=os.getenv('PORT', 5000))
