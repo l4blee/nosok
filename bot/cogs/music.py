@@ -469,7 +469,6 @@ class Music(commands.Cog):
             # and get_next method in play gonna move it 1 step further
             await self.skip(ctx)
             return True
-        
         return False
 
     @commands.command()
