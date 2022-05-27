@@ -5,6 +5,9 @@ from flask_wtf import FlaskForm
 from wtforms import EmailField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired
 
+import bcrypt
+import bson
+
 from handlers import database
 from core import User
 
@@ -12,7 +15,7 @@ from core import User
 class SignInForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
-    remember_me = BooleanField('Remember me')
+    remember_me = BooleanField('Remember me')  # REMEMBER_COOKIE_DURATION param
     submit = SubmitField('Sign in')
 
 
@@ -34,11 +37,12 @@ def login():
         record = database.users.find_one({
             'email': form.email.data
         })
-        user = User.from_record(record)
 
-        if user is not None and user.check_password(form.password.data):
-            login_user(user, remember=form.remember_me.data)
-            return redirect('/')
+        if record is not None:
+            user = User.from_record(record)
+            if user.check_password(form.password.data.encode('utf-8')):
+                login_user(user, remember=form.remember_me.data)
+                return redirect('/')
 
         return render_template('login.html',
                                message='There was a problem with your login.',
@@ -54,10 +58,16 @@ def register():
         record = database.users.find_one({
             'email': form.email.data
         })
-        user = User.from_record(record)
 
-        if user is None:
-            user = User(email=form.email.data, password=form.password.data)
+        if record is None:
+            salt = bcrypt.gensalt()
+            hashed_pwd = bcrypt.hashpw(form.password.data.encode('utf-8'), salt)
+            user = User(
+                email=form.email.data,
+                password=bson.Binary(hashed_pwd),
+                salt=bson.Binary(salt)
+            )
+
             database.users.insert_one(user.to_dict())
 
             login_user(user)
