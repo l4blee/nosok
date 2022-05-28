@@ -71,6 +71,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '12312312312312312'
 app.config['REMEMBER_COOKIE_DURATION'] = 60 * 60 * 2  # equal to 2 hours
 
+if os.getenv('APP_STATUS', 'production') != 'production':
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+
 load_blueprints('server/blueprints')
 
 login_manager = LoginManager(app)

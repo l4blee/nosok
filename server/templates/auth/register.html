@@ -1,10 +1,13 @@
 {% extends "base.html" %}
-{% block title %}NOSOK | Sign in{% endblock %}
+{% block head %}
+    <title>NOSOK | Sign up</title>
+{% endblock %}
 
 {% block content %}
-    <h1>Login</h1>
+    <h1>Sign up</h1>
     <form action="" method="post">
         {{ form.hidden_tag() }}
+        <div>{{ message }}</div>
         <p>
             {{ form.email.label }}<br>
             {{ form.email(class="form-control", type="email") }}<br>
@@ -23,13 +26,11 @@
                 </div>
             {% endfor %}
         </p>
-        <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
         <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
-        <div>{{ message }}</div>
     </form>
     <div>
         <p>
-            New to NOSOK? <a href="/register">Sign up</a>
+            Already have an account? <a href="/login">Sign in</a>
         </p>
     </div>
 {% endblock %}

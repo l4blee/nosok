@@ -44,11 +44,11 @@ def login():
                 login_user(user, remember=form.remember_me.data)
                 return redirect('/')
 
-        return render_template('login.html',
+        return render_template('auth/login.html',
                                message='There was a problem with your login.',
                                form=form)
 
-    return render_template('login.html', form=form)
+    return render_template('auth/login.html', form=form)
 
 
 @bp.route('/register', methods=['GET', 'POST'])
@@ -73,16 +73,16 @@ def register():
             login_user(user)
             return redirect('/')
         else:
-            return render_template('register.html',
+            return render_template('auth/register.html',
                                     message='A user with this email already exists!',
                                     form=form)
 
         return redirect('/login')
-    return render_template('register.html', form=form)
+    return render_template('auth/register.html', form=form)
 
 
-@login_required
 @bp.route('/logout')
+@login_required
 def logout():
     logout_user()
     return redirect('/')

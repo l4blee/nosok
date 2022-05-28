@@ -1,56 +1,67 @@
 from os import getenv
-from json import dumps
+import json
 
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, render_template
+from flask_login import login_required
 
 from handlers import bot_handler
 
 bp = Blueprint(
     'control',
-    __name__
+    __name__,
+    url_prefix='/control'
 )
 
+
 def jsonify(**kwargs):
-    response = Response(dumps(kwargs, indent=4))
+    response = Response(json.dumps(kwargs, indent=4))
     response.mimetype = 'application/json'
     response.content_type = 'application/json'
     return response
 
-def check_auth(params):
-    password, username = params.get('password'), params.get('username')
-    return username == getenv('app_username') and password == getenv('app_password')
+
+@bp.route('/')
+def index():
+    return render_template('control.html')
 
 
 @bp.route('/launch')
+@login_required
 def launch():
-    params = request.args.to_dict()
-    if not check_auth(params):
-        return jsonify(status='error', message='Unathorized'), 401
-        
     resp = jsonify(**bot_handler.launch())
-    resp.headers['Content-type'] = 'application/json'
     return resp
 
 
 @bp.route('/terminate')
+@login_required
 def terminate():
-    params = request.args.to_dict()
-    if not check_auth(params):
-        return jsonify(message='Unathorized'), 401
-
     resp = jsonify(**bot_handler.terminate())
-    resp.headers['Content-type'] = 'application/json'
     return resp
 
 
 @bp.route('/restart')
+@login_required
 def restart():
-    params = request.args.to_dict()
-    if not check_auth(params):
-        return jsonify(message='Unathorized'), 401
-
     resp = jsonify(**bot_handler.restart())
-    resp.headers['Content-type'] = 'application/json'
     return resp
 
 
+@bp.route('/log')
+@login_required
+def log():
+    with open('bot/data/log.log') as f:
+        data = f.read()
+        
+    resp = Response(data)
+    resp.headers['Content-type'] = 'application/json'
+    
+    return resp
+
+
+@bp.route('/vars')
+@login_required
+def vars():
+    with open('bot/data/data.json') as f:
+        data = json.load(f)
+    
+    return jsonify(**data)
