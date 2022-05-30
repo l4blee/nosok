@@ -92,7 +92,7 @@ class Queue:
 
         self._write_to_queue([Track(url, title, mention)])
 
-    def get_next(self) -> Track:
+    def get_next(self) -> Optional[Track]:
         tracks = self.tracks
 
         self.now_playing += int(self._loop is not Looping.CURRENT_TRACK)
@@ -100,7 +100,7 @@ class Queue:
             if self._loop is Looping.NONE:
                 self.now_playing = -1
                 self.play_next = False
-                raise exceptions.QueueEnded
+                return None
             else:
                 self.now_playing = 0
             
@@ -311,10 +311,24 @@ class Music(commands.Cog):
                 return
 
             if not q.is_empty:
-                url = q.get_next().url
+                res = q.get_next()
+                if not res:
+                    await send_embed(
+                        ctx=ctx, 
+                        description=await get_phrase(ctx, 'queue_ended'), 
+                        color=BASE_COLOR)
+                    event_handler.on_song_end(ctx)
+                    return
+                    
+                url = res.url
             else:
                 event_handler.on_song_end(ctx)
-                raise exceptions.QueueEmpty
+                await send_embed(
+                    ctx=ctx, 
+                    description=await get_phrase(ctx, 'queue_empty'), 
+                    color=ERROR_COLOR
+                )
+                return
 
         stream = await music_handler.get_stream(url)
         loop = ctx.bot.loop
