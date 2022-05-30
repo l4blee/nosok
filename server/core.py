@@ -18,6 +18,10 @@ logger = logging.getLogger('core')
 
 @dataclass(slots=True)
 class User:
+    """
+    Represents a user document in MongoDB.
+    Required to be used with flask_login.
+    """
     email: str
     password: bson.Binary
     salt: bson.Binary
