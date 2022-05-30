@@ -7,10 +7,13 @@ from dataclasses import dataclass
 
 from flask import Flask, Response, jsonify
 from flask_login import LoginManager
+from flask_cors import CORS
+from flask_restful import Api
 
 import bson
 import bcrypt
 
+import api
 from handlers import database
 
 logger = logging.getLogger('core')
@@ -71,7 +74,10 @@ def load_blueprints(path: os.PathLike) -> None:
     logger.info(f'Available blueprints: {list(app.blueprints.keys())}')
 
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder='nosok-react/build/static'
+)
 app.config['SECRET_KEY'] = '12312312312312312'
 app.config['REMEMBER_COOKIE_DURATION'] = 60 * 60 * 2  # equal to 2 hours
 
@@ -81,7 +87,11 @@ if os.getenv('APP_STATUS', 'production') != 'production':
 load_blueprints('server/blueprints')
 
 login_manager = LoginManager(app)
+api_manager = Api(app)
+cors = CORS(app)
 
+api_manager.add_resource(api.PerformanceStatistics, '/api/vars')
+api_manager.add_resource(api.Log, '/api/log')
 
 @login_manager.user_loader
 def load_user(email):

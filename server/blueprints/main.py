@@ -1,7 +1,6 @@
 import json
-
 from flask import (Blueprint, Response,
-                   jsonify, render_template, request,
+                   jsonify, send_from_directory, request,
                    redirect)
 
 
@@ -10,11 +9,13 @@ bp = Blueprint(
     __name__
 )
 
+import logging
+logger = logging.getLogger('rdfsdf')
 
 @bp.route('/')
 @bp.route('/index')
 def index():
     if request.path == '/index':
         return redirect('/')
-    return render_template('index.html')
 
+    return send_from_directory('nosok-react/build', 'index.html')

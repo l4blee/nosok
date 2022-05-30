@@ -1,0 +1,17 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.NavigationBar {
+    flex-shrink: 0;
+    width: 150px;
+    height: 100vh;
+}
+
+.ButtonBar {
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}

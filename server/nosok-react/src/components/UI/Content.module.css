@@ -1,0 +1,5 @@
+.Content {
+    width: calc(100% - 150px);
+    height: 100%;
+    margin: 20px;
+}
