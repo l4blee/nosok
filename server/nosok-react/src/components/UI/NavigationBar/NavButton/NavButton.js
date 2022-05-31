@@ -8,7 +8,7 @@ export default function NavButton({children, href, callback}) {
               .catch(e => {})
     
     let output = ''
-    if (data['message'] !== 'OK') return
+    if (data === undefined) {callback(output); return}
 
     if (href === '/vars') output = JSON.stringify(data['content'], null, 4)
     else if (href === '/log') output = data['content']

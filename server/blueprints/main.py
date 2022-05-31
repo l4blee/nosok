@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Blueprint, send_from_directory
+from flask import Blueprint, send_from_directory, send_file
 
 
 bp = Blueprint(
@@ -14,3 +14,7 @@ logger = logging.getLogger('rdfsdf')
 @bp.route('/')
 def index():
     return send_from_directory('nosok-react/build', 'index.html')
+
+@bp.route('/favicon.ico')
+def favicon():
+    return send_file('favicon.ico')
