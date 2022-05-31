@@ -11,9 +11,8 @@ class PerformanceStatistics(Resource):
             data = json.load(f)
 
         return {
-            'message': 'success',
-            'content': 'vars',
-            'data': data
+            'message': 'OK',
+            'content': data
         }
 
 
@@ -23,7 +22,6 @@ class Log(Resource):
             data = f.read()
         
         return {
-            'message': 'success',
-            'content': 'log',
-            'data': data
+            'message': 'OK',
+            'content': data
         }

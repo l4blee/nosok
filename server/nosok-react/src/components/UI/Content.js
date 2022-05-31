@@ -1,14 +1,12 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import classes from './Content.module.css'
-import DataContext from './DataContext'
 
-export default function Content() {
-    const [data,] = useContext(DataContext)
-    
+export default function Content({data}) {    
     return (
         <div className={classes.Content}>
-            <div dangerouslySetInnerHTML={{'__html': data['data']}}>
-            </div>
+            <pre>
+                {data}
+            </pre>
         </div>
     )
 }

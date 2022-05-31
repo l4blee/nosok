@@ -66,6 +66,7 @@ class User:
 
 
 def load_blueprints(path: os.PathLike) -> None:
+    logger.info(f'Loading blueprints from {path}')
     for i in Path(path).glob('*.py'):
         mod = import_module(f'blueprints.{i.stem}')
         bp = mod.__dict__['bp']

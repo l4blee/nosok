@@ -46,9 +46,4 @@ class MongoDB:
 
 
 # Creaing DB client instance right here to use everywhere without loop imports and other issues.
-db = MongoDB(
-    getenv('DATABASE_URL') % {
-        'username': getenv('DB_USERNAME'),
-        'password': getenv('DB_PASSWORD')
-    }
-)
+db = MongoDB(getenv('DATABASE_URL'))

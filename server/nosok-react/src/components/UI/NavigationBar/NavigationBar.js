@@ -5,13 +5,13 @@ import NavButton from './NavButton/NavButton'
 
 import classes from './Sidebar.module.css'
 
-export default function NavigationBar() {
+export default function NavigationBar({callback}) {
   return (
     <div className={classes.NavigationBar}>
         <Logo/>
         <nav className={classes.ButtonBar}>
-          <NavButton href='/vars'>Overview</NavButton>
-          <NavButton href='/log'>Log</NavButton>
+          <NavButton href='/vars' callback={callback}>Overview</NavButton>
+          <NavButton href='/log' callback={callback}>Log</NavButton>
         </nav>
     </div>
   )

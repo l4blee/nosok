@@ -1,25 +1,20 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import classes from './NavButton.module.css'
-import DataContext from '../../DataContext'
 
-export default function NavButton({children, ...props}) {
-  const [, setContent] = useContext(DataContext)
-
+export default function NavButton({children, href, callback}) {
   async function redirect() {
-    let data = await fetch('/api' + props.href)
+    let data = await fetch('/api' + href)
               .then(res => res.json())
               .catch(e => {})
-        
-    if (data['content'] === 'vars') {
-      setContent(data['data']['status'])
-    } else if (data['content'] === 'log') {
-      let log = data['data'].replace('\n', '<br>')
-      setContent(
-        <div>
-          {`${log}`}
-        </div>
-      )
-    }
+    
+    let output = ''
+    if (data['message'] !== 'OK') return
+
+    if (href === '/vars') output = JSON.stringify(data['content'], null, 4)
+    else if (href === '/log') output = data['content']
+    console.log(output)
+    
+    callback(output)
   }
 
   return (

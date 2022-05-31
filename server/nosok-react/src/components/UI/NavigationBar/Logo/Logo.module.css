@@ -1,6 +1,7 @@
 .Logo {
     line-height: 50px;
     margin: 0;
+    margin-top: 20px;
     justify-content: center;
     display: flex;
 }
