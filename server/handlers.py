@@ -87,5 +87,8 @@ class MongoDB:
         self._logger.info('Successfully connected to Mongo, going further...')
 
 
-database = MongoDB(os.getenv('DATABASE_URL'))
+database = MongoDB(os.getenv('DATABASE_URL') % {
+    'username': os.getenv('DB_USERNAME'),
+    'password': os.getenv('DB_PASSWORD')
+})
 bot_handler = BotHandler()

@@ -32,7 +32,8 @@ class MongoDB:
 
         if guild_record is None:
             return BASE_PREFIX
-        return guild_record.get('prefix', BASE_PREFIX)
+
+        return when_mentioned_or(guild_record.get('prefix', BASE_PREFIX))
 
     async def get_language(self, ctx: Context) -> str:
         guild_record = self.guilds.configs.find_one({
@@ -42,8 +43,11 @@ class MongoDB:
         if guild_record is None:
             return BASE_LANGUAGE
         
-        return when_mentioned_or(guild_record.get('language', BASE_LANGUAGE))
+        return guild_record.get('language', BASE_LANGUAGE)
 
 
 # Creaing DB client instance right here to use everywhere without loop imports and other issues.
-db = MongoDB(getenv('DATABASE_URL'))
+db = MongoDB(getenv('DATABASE_URL') % {
+    'username': getenv('DB_USERNAME'),
+    'password': getenv('DB_PASSWORD')
+})
