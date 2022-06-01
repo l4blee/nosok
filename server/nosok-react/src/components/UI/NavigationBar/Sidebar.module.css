@@ -1,12 +1,15 @@
 .NavigationBar {
-    flex-shrink: 0;
-    width: 150px;
-    height: 100%;
+    padding: 20px;
+    min-width: 150px;
+    height: calc(100% - 40px);
 }
 
 .ButtonBar {
-    margin: 20px;
+    margin-top: 20px;
+    height: 100%;
+}
+
+.NavigationBar, .ButtonBar {
     display: flex;
     flex-direction: column;
-    height: 100%;
 }

@@ -1,20 +1,19 @@
 .Logo {
     line-height: 50px;
     margin: 0;
-    margin-top: 20px;
     justify-content: center;
+    align-items: center;
     display: flex;
 }
 
 .Logo img {
     height: 30px;
     width: 30px;
-    margin: 10px;
     border-radius: 20px;
 }
 
 .Logo div {
-    display: inline-block;
+    margin-left: 10px;
     vertical-align: middle;
     text-align: center;
 }

@@ -4,6 +4,8 @@ from flask_restful import Resource, Api
 from flask import send_from_directory
 
 
+api_manager = Api(prefix='/api')
+
 
 class PerformanceStatistics(Resource):
     def get(self):
@@ -25,3 +27,7 @@ class Log(Resource):
             'message': 'OK',
             'content': data
         }
+
+
+api_manager.add_resource(PerformanceStatistics, '/vars')
+api_manager.add_resource(Log, '/log')

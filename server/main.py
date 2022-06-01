@@ -1,11 +1,11 @@
 import os
 import logging
 
-os.chdir('../')
-
 if os.getenv('APP_STATUS', 'production') != 'production':
     from dotenv import load_dotenv
     load_dotenv('server/.env')
+else:
+    os.chdir('../')
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',

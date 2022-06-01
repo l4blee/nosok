@@ -1,8 +1,12 @@
 .Content {
-    width: 100%;
-    margin: 20px;
-}
+    margin: 0;
+    padding: 20px;
 
-.Content pre {
+    width: 100%;
+    height: calc(100% - 40px);
+
+    display: flex;
+
     white-space: break-spaces;
+    overflow-y: scroll;
 }
