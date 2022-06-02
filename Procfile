@@ -1,2 +1,2 @@
-web: gunicorn --chdir server --bind 0.0.0.0:$PORT main:app --preload
+web: python server/main.py
 worker: python pinger/index.py
