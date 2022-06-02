@@ -13,6 +13,7 @@ import bson
 import bcrypt
 
 from api import api_manager
+from polling import socket
 from handlers import database
 
 logger = logging.getLogger('core')
@@ -86,9 +87,10 @@ if os.getenv('APP_STATUS', 'production') != 'production':
 
 load_blueprints('server/blueprints')
 
+cors = CORS(app)
 login_manager = LoginManager(app)
 api_manager.init_app(app)
-cors = CORS(app)
+socket.init_app(app)
 
 
 @login_manager.user_loader

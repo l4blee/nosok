@@ -1,33 +1,63 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import NavigationBar from './components/UI/NavigationBar/NavigationBar'
 import Content from './components/UI/Content'
-import useInterval from './utils'
-
+import { io } from 'socket.io-client'
 import classes from './App.module.css'
 
+
+async function fetchAPI(href) {
+  if (href === '') return ''
+  let response = await fetch('/api' + href)
+  .then(res => res.json())
+  
+  if (response === undefined) return ''
+  return response['content']
+}
+
+const socket = io('http://localhost:5000')
+var href = '/log'
+
 export default function App() {
-  const [content, setContent] = useState()
-  const [href, setHref] = useState('')
+  const [content, setContent] = useState('')
 
-  async function fetchAPI() {
-    if (href === '') return ''
-    let response = await fetch('/api' + href)
-                        .then(res => res.json())
-                        
-    if (response === undefined) return ''
-                        
-    let output = ''
-    if (href === '/vars') output = JSON.stringify(response['content'], null, 4)
-    else if (href === '/log') output = response['content']
+  const updContent = (ctn) => {
+    switch (href) {
+      case '/vars':
+        setContent(JSON.stringify(ctn, null, 4))
+        break;
 
-    return output
+      case '/log':
+        setContent(ctn)
+        break;
+
+      default:
+        break;
+    }
   }
 
-  useInterval(
-    () => {
-      fetchAPI().then(setContent)
-    }, 1000
-  )
+  function onDataChange(payload) {
+    const reqHref = payload.href
+    if (reqHref === href) {
+      updContent(payload.content)
+    }
+  }
+  
+  useEffect(() => {
+    fetchAPI(href).then(updContent)
+
+    socket.on('log_changed', onDataChange)
+    socket.on('vars_changed', onDataChange)
+    
+    return () => {
+      socket.off('log_changed', onDataChange)
+      socket.off('vars_changed', onDataChange)
+    }
+  }, [])
+
+  function setHref(newHref) {
+    href = newHref
+    fetchAPI(href).then(updContent)
+  }
 
   return (
     <div className={classes.App}>
