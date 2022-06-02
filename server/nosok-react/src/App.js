@@ -14,7 +14,7 @@ async function fetchAPI(href) {
   return response['content']
 }
 
-const socket = io('http://localhost:5000')
+const socket = io('')
 var href = '/log'
 
 export default function App() {
