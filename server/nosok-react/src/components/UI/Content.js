@@ -1,10 +1,10 @@
 import React from 'react'
 import classes from './Content.module.css'
 
-export default function Content({data}) {
+export default function Content({ children, ...props }) {
     return (
         <pre className={classes.Content}>
-            {data}
+            {children}
         </pre>
     )
 }

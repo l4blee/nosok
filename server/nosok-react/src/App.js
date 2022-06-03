@@ -62,7 +62,7 @@ export default function App() {
   return (
     <div className={classes.App}>
       <NavigationBar callback={setHref}/>
-      <Content data={content}/>
+      <Content>{content}</Content>
     </div>
   )
 }
