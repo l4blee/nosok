@@ -1,12 +1,11 @@
 import React from 'react'
-import logo from './logo.png'
-import classes from './Logo.module.css'
+import logo from './icons/logo.png'
 
 export default function Logo({children, ...props}) {
   return (
-    <div className={classes.Logo}>
+    <div {...props}>
       <img src={logo} alt='logo'/>
-      <div>NOSOK</div>
+      <span>NOSOK</span>
     </div>
   )
 };

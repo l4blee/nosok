@@ -1,7 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+
 * {
     font-size: 16px;
     font-family: 'Montserrat', sans-serif;
-    font-weight: 600;
+    font-weight: 500;
+    box-sizing: border-box;
+}
+
+@media (max-width: 500px) {
+    * {
+        font-size: 14px;
+    }
 }
 
 html, body {

@@ -154,24 +154,25 @@ class PerformanceProcessor(Thread):
 
     def loop(self):
         while 1:
-            self.read_and_collect()
+            self.compute_stats()
             sleep(5)
     
-    def read_and_collect(self):
+    def compute_stats(self):
+        cpu_utils = 0
+        mem_utils = 0
+        
         this_proc = Process()
 
         voices = [i.voice_client for i in self._bot.guilds]
         procs = [i.source.original._process
                     for i in voices
                     if i and i.source]
-        cpu_utils = 0
-        mem_utils = 0
-
+        
         for i in filter(bool, procs):
             proc = Process(i.pid)
 
             cpu_utils += proc.cpu_percent()
-            mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
+            mem_utils += round(proc.memory_info().rss / (10 ** 6), 2)
 
         cpu_usage = this_proc.cpu_percent() + cpu_utils
         mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils

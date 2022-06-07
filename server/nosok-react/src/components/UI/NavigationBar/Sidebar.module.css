@@ -1,15 +1,77 @@
-.NavigationBar {
-    padding: 20px;
-    min-width: 150px;
-    height: calc(100% - 40px);
-}
-
-.ButtonBar {
-    margin-top: 20px;
-    height: 100%;
-}
-
 .NavigationBar, .ButtonBar {
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
+}
+
+.NavigationBar {
+    padding: 20px;
+    width: 175px;
+    height: 100%;
+}
+
+.ButtonBar {
+    margin-top: 30px;
+    height: 100%;
+}
+
+.Logo {
+    line-height: 50px;
+    margin: 0;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+}
+
+.Logo img {
+    height: 30px;
+    width: 30px;
+    border-radius: 30px;
+}
+
+.Logo span {
+    line-height: 30px;
+    margin-left: 10px;
+    text-align: center;
+}
+
+.NavButton {
+    
+    display: flex;
+
+    line-height: 30px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 25px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+}
+
+.NavButton img {
+    width: 15px;
+    height: 15px;
+}
+
+.NavButton span {
+    margin-left: 5px;
+}
+
+.NavButton:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+@media (max-width: 500px) {
+    .NavButton span, .Logo span{
+        display: none;
+    }
+
+    .NavButton {
+        height: 30px;
+        width: 30px;
+    }
+
+    .NavigationBar {
+        width: 70px;
+    }
 }
