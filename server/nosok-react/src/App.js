@@ -36,10 +36,7 @@ export default function App() {
   }
 
   function onDataChange(payload) {
-    const reqHref = payload.href
-    if (reqHref === href) {
-      updContent(payload.content)
-    }
+    if (payload.href === href) updContent(payload.content)
   }
   
   useEffect(() => {
@@ -54,14 +51,9 @@ export default function App() {
     }
   }, [])
 
-  function setHref(newHref) {
-    href = newHref
-    fetchAPI(href).then(updContent)
-  }
-
   return (
     <div className={classes.App}>
-      <NavigationBar callback={setHref}/>
+      <NavigationBar callback={(newHref) => {href = newHref; fetchAPI(newHref).then(updContent)}}/>
       <Content>{content}</Content>
     </div>
   )
