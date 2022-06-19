@@ -17,4 +17,7 @@ from core import performance_processor, event_handler, bot
 os.makedirs('bot/data', exist_ok=True)
 os.makedirs('bot/queues', exist_ok=True)
 
-bot.run(os.getenv('TOKEN'))
+bot.run(
+    os.getenv('TOKEN'),
+    log_level=logging.CRITICAL
+)

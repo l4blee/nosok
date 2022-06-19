@@ -50,22 +50,20 @@ class Bot(commands.Bot):
                                 ERROR_COLOR)
                 
                 self._logger.warning(f'Ignoring exception in command {ctx.command}, guild: name={ctx.guild.name}, id={ctx.guild.id}:')
-                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)  
+                print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
-    async def start(self):
+    async def setup(self):
         self._logger.info('Loading cogs...')
         for i in Path('bot/cogs/').glob('*.py'):
             await self.load_extension(f'cogs.{i.stem}')
 
         self._logger.info(f'Available cogs: {list(self.cogs.keys())}')
 
-        await super().start(os.getenv('TOKEN'))
+    async def start(self, *args, **kwargs):
+        await self.setup()
+        await super().start(*args, **kwargs)
 
     async def on_ready(self):
-        # Disable Discord.py logging as it's not needed afterwards.
-        discord_logger = logging.getLogger('discord')
-        discord_logger.setLevel(logging.CRITICAL)
-
         await self.change_presence(activity=discord.Game(name=f'music | {BASE_PREFIX}help'))
 
         performance_processor.start()
