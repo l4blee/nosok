@@ -26,7 +26,7 @@ def bg_thread():
 
             if log_stamp != cached_stamp_log:
                 with open('bot/data/log.log') as f:
-                    socket.emit('log_changed', {
+                    socket.emit('data_changed', {
                         'href': '/log',
                         'content': f.read()
                     })
@@ -34,7 +34,7 @@ def bg_thread():
 
             if vars_stamp != cached_stamp_vars:
                 with open('bot/data/data.json') as f:
-                    socket.emit('vars_changed', {
+                    socket.emit('data_changed', {
                         'href': '/vars',
                         'content': json.load(f)
                     })

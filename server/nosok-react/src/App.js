@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import NavigationBar from './components/UI/NavigationBar/NavigationBar'
-import Content from './components/UI/Content'
+import Sidebar from './components/Sidebar/Sidebar'
+import Header from './components/Header/Header'
+import Content from './components/Content'
 import { io } from 'socket.io-client'
 import classes from './App.module.css'
 
@@ -8,9 +9,9 @@ import classes from './App.module.css'
 async function fetchAPI(href) {
   if (href === '') return ''
   let response = await fetch('/api' + href)
-  .then(res => res.json())
+                       .then(res => res.json())
+                       .catch(e => {return ''})
   
-  if (response === undefined) return ''
   return response['content']
 }
 
@@ -34,26 +35,22 @@ export default function App() {
         break;
     }
   }
-
-  function onDataChange(payload) {
-    if (payload.href === href) updContent(payload.content)
-  }
   
   useEffect(() => {
-    fetchAPI(href).then(updContent)
+    let onDataChange = (payload) => {if (payload.href === href) updContent(payload.content)}
 
-    socket.on('log_changed', onDataChange)
-    socket.on('vars_changed', onDataChange)
+    fetchAPI(href).then(updContent)
+    socket.on('data_changed', onDataChange)
     
     return () => {
-      socket.off('log_changed', onDataChange)
-      socket.off('vars_changed', onDataChange)
+      socket.off('data_changed', onDataChange)
     }
   }, [])
 
   return (
     <div className={classes.App}>
-      <NavigationBar callback={(newHref) => {href = newHref; fetchAPI(newHref).then(updContent)}}/>
+      <Header/>
+      <Sidebar callback={(newHref) => {href = newHref; fetchAPI(newHref).then(updContent)}}/>
       <Content>{content}</Content>
     </div>
   )

@@ -1,7 +1,7 @@
 import React from 'react'
-import logo from './icons/logo.png'
+import logo from '../icons/logo.png'
 
-export default function Logo({children, ...props}) {
+export default function Logo(props) {
   return (
     <div {...props}>
       <img src={logo} alt='logo'/>
