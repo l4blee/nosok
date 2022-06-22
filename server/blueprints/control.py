@@ -1,4 +1,3 @@
-from os import getenv
 import json
 
 from flask import Blueprint, Response, render_template
@@ -51,10 +50,10 @@ def restart():
 def log():
     with open('bot/data/log.log') as f:
         data = f.read()
-        
+
     resp = Response(data)
     resp.headers['Content-type'] = 'application/json'
-    
+
     return resp
 
 
@@ -63,5 +62,5 @@ def log():
 def vars():
     with open('bot/data/data.json') as f:
         data = json.load(f)
-    
+
     return jsonify(**data)

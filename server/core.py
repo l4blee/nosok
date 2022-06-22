@@ -1,11 +1,10 @@
-import json
 import os
 import logging
 from pathlib import Path
 from importlib import import_module
 from dataclasses import dataclass
 
-from flask import Flask, Response, jsonify
+from flask import Flask
 from flask_login import LoginManager
 from flask_cors import CORS
 
@@ -14,7 +13,7 @@ import bcrypt
 
 from api import api_manager
 from polling import socket
-from handlers import database
+from handlers import database, bot_handler
 
 logger = logging.getLogger('core')
 
@@ -41,7 +40,7 @@ class User:
     @property
     def is_anonymous(self):
         return False
-    
+
     def get_id(self) -> str:
         return self.email
 
@@ -51,7 +50,7 @@ class User:
             return None
 
         return cls(
-            email=record.get('email'), 
+            email=record.get('email'),
             password=record.get('password'),
             salt=record.get('salt'),
             is_admin=record.get('is_admin', False)
@@ -71,7 +70,7 @@ def load_blueprints(path: os.PathLike) -> None:
         mod = import_module(f'blueprints.{i.stem}')
         bp = mod.__dict__['bp']
         app.register_blueprint(bp)
-    
+
     logger.info(f'Available blueprints: {list(app.blueprints.keys())}')
 
 
@@ -98,5 +97,13 @@ def load_user(email):
     record = database.users.find_one({
         'email': email
     })
-    
+
     return User.from_record(record)
+
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(name)s:\t%(message)s',
+                    datefmt='%d.%b.%Y %H:%M:%S')
+
+bot_handler.launch()
+logger.info('Initialized `core` module')

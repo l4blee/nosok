@@ -1,8 +1,6 @@
 import json
 
 from flask_restful import Resource, Api
-from flask import send_from_directory
-
 
 api_manager = Api(prefix='/api')
 
@@ -22,7 +20,7 @@ class Log(Resource):
     def get(self):
         with open('bot/data/log.log') as f:
             data = f.read()
-        
+
         return {
             'message': 'OK',
             'content': data

@@ -13,6 +13,7 @@ connected_clients: int = 0
 thread_lock = Lock()
 thread = None
 
+
 def bg_thread():
     global connected_clients
 

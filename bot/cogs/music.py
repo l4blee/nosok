@@ -1,10 +1,9 @@
 import asyncio
-import _pickle as pickle
-from io import FileIO
+import pickle
 from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
-from typing import Generator, Optional
+from typing import Optional
 from enum import Enum, auto
 from dataclasses import dataclass
 
@@ -50,10 +49,12 @@ class Track:
 
 
 class Queue:
-    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume', 'guild_id', 'queue_file', 'bass_boost')
+    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume',
+                 'guild_id', 'queue_file', 'bass_boost')
 
     def __init__(self, guild_id: int):
-        self._loop: Looping = Looping.NONE  # 0 - None; 1 - Current queue; 2 - Current track
+        # 0 - None; 1 - Current queue; 2 - Current track
+        self._loop: Looping = Looping.NONE
         self.now_playing: int = -1
         self.play_next: bool = True
         self.guild_id: int = guild_id
@@ -68,14 +69,14 @@ class Queue:
     def tracks(self) -> list[Track]:
         with open(self.queue_file, 'rb') as f:
             return pickle.load(f, encoding='utf-8')
-    
+
     def _write_to_queue(self, data: list) -> None:
-        # First we get the alredy-running queue 
+        # First we get the alredy-running queue
         with open(self.queue_file, 'rb') as f:
             previous = pickle.load(f)
 
         # Then concat and dump back again
-        with open(self.queue_file, 'wb') as f:  
+        with open(self.queue_file, 'wb') as f:
             pickle.dump(previous + data, f, protocol=-1)
 
     def remove(self, index: int) -> Track:
@@ -103,7 +104,7 @@ class Queue:
                 return None
             else:
                 self.now_playing = 0
-            
+
         return tracks[self.now_playing]
 
     def __len__(self) -> int:
@@ -155,11 +156,11 @@ class Music(commands.Cog):
 
         if voice_channel:
             await voice_channel.connect()
-            return 
+            return
 
         if not (voice := ctx.author.voice):
             raise exceptions.UserNotConnected
-        
+
         await voice.channel.connect()
 
     @commands.command(aliases=['s'])
@@ -243,7 +244,8 @@ class Music(commands.Cog):
         Plays a track before the current one.
         """
         q = self._queues[ctx.guild.id]
-        res = await self._seek(ctx, q.now_playing)  # As now_playing is set from 0 index
+        # As now_playing is set from 0 index
+        res = await self._seek(ctx, q.now_playing)
         if not res:
             raise exceptions.NoTracksBefore
 
@@ -314,18 +316,18 @@ class Music(commands.Cog):
                 res = q.get_next()
                 if not res:
                     await send_embed(
-                        ctx=ctx, 
-                        description=await get_phrase(ctx, 'queue_ended'), 
+                        ctx=ctx,
+                        description=await get_phrase(ctx, 'queue_ended'),
                         color=BASE_COLOR)
                     event_handler.on_song_end(ctx)
                     return
-                    
+
                 url = res.url
             else:
                 event_handler.on_song_end(ctx)
                 await send_embed(
-                    ctx=ctx, 
-                    description=await get_phrase(ctx, 'queue_empty'), 
+                    ctx=ctx,
+                    description=await get_phrase(ctx, 'queue_empty'),
                     color=ERROR_COLOR
                 )
                 return
@@ -349,7 +351,8 @@ class Music(commands.Cog):
                                               before_options='-reconnect 1'
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
-        audio_source = BassVolumeTransformer(audio_source, volume=q.volume, bass_accentuate=q.bass_boost)
+        audio_source = BassVolumeTransformer(
+            audio_source, volume=q.volume, bass_accentuate=q.bass_boost)
 
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
 
@@ -374,10 +377,10 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         if query:
             if len(query) < int(getenv('MINIMAL_QUEURY_LENGTH', 10)):
-                raise exception.QueryTooShort()
+                raise exceptions.QueryTooShort()
             song = await self._get_track(ctx, query)
-            
-            if not song:                
+
+            if not song:
                 raise exceptions.NoTracksSpecified
 
             if song is None:
@@ -444,7 +447,7 @@ class Music(commands.Cog):
             if q.loop > 2:
                 q.loop = 0
 
-        await send_embed(ctx=ctx, 
+        await send_embed(ctx=ctx,
                          description=f'{await get_phrase(ctx, "looping_set")} `{loop_setting[q.loop]}`',
                          color=BASE_COLOR)
 
@@ -500,7 +503,7 @@ class Music(commands.Cog):
                 color=ERROR_COLOR
             )
             return
-        
+
         if not ctx.voice_client.is_playing():
             await self.play(ctx)
 
@@ -516,7 +519,7 @@ class Music(commands.Cog):
                 description=await get_phrase(ctx, 'volume_error') % dict(volume=volume),
                 color=ERROR_COLOR
             )
-            return 
+            return
 
         ctx.voice_client.source.volume = volume / 100
         self._queues[ctx.guild.id].volume = volume / 100
@@ -615,7 +618,7 @@ class Music(commands.Cog):
                 description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name),
                 color=ERROR_COLOR)
             return
-        
+
         playlist = [Track.from_list(i) for i in record.get('playlist')]
         description = ''
         for index, item in enumerate(playlist):
@@ -683,7 +686,7 @@ class Music(commands.Cog):
         q: Queue = self._queues[ctx.guild.id]
         if q.is_empty:
             await send_embed(
-                ctx=ctx, 
+                ctx=ctx,
                 description=await get_phrase(ctx, 'queue_empty'),
                 color=ERROR_COLOR)
             return
@@ -704,7 +707,7 @@ class Music(commands.Cog):
         await send_embed(
             ctx=ctx,
             description=await get_phrase(ctx, 'playlist_created') % dict(name=name),
-            color=BASE_COLOR)        
+            color=BASE_COLOR)
 
     @playlists.command(name='load', aliases=['l'])
     async def load_playlist(self, ctx: commands.Context, *, name: str):
@@ -722,8 +725,8 @@ class Music(commands.Cog):
 
         if record is None:
             await send_embed(
-                ctx=ctx, 
-                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name), 
+                ctx=ctx,
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name),
                 color=ERROR_COLOR
             )
             return
@@ -739,27 +742,27 @@ class Music(commands.Cog):
             )
 
         await send_embed(
-            ctx=ctx, 
-            description=await get_phrase(ctx, 'playlist_loaded') % dict(name=name), 
+            ctx=ctx,
+            description=await get_phrase(ctx, 'playlist_loaded') % dict(name=name),
             color=BASE_COLOR)
 
         await self.play(ctx)
-     
+
     @playlists.command(name='delete', aliases=['rm', 'remove', 'del'])
     async def delete_playlist(self, ctx: commands.Context, *, name: str):
         """
         Deletes a playlist with the name given.
         """
         result = db.guilds.playlists.delete_one(
-            {   
+            {
                 'guild_id': ctx.guild.id,
                 'name': name
             }
         )
         if result.deleted_count == 0:
             await send_embed(
-                ctx=ctx, 
-                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name), 
+                ctx=ctx,
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name),
                 color=ERROR_COLOR)
             return
 
@@ -780,15 +783,16 @@ class Music(commands.Cog):
         )
 
         if record.explain()['executionStats']['nReturned'] > 0:
-            names = [f'**{index + 1}.** {item.get("name")}' for index, item in enumerate(record)]
+            names = [
+                f'**{index + 1}.** {item.get("name")}' for index, item in enumerate(record)]
             description = '\n'.join(names)
         else:
             description = await get_phrase(ctx, 'no_playlists')
-        
+
         await send_embed(
-            ctx=ctx, 
+            ctx=ctx,
             title=await get_phrase(ctx, 'playlists_available'),
-            description=description, 
+            description=description,
             color=BASE_COLOR
         )
 
@@ -807,11 +811,11 @@ class Music(commands.Cog):
         )
         if record is None:
             await send_embed(
-                ctx=ctx, 
-                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name), 
+                ctx=ctx,
+                description=await get_phrase(ctx, 'playlist_doesnt_exist') % dict(name=name),
                 color=ERROR_COLOR)
             return
- 
+
         db.guilds.playlists.replace_one(
             {
                 'guild_id': ctx.guild.id,

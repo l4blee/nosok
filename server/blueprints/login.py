@@ -30,6 +30,7 @@ bp = Blueprint(
     __name__
 )
 
+
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     form = SignInForm()
@@ -61,7 +62,8 @@ def register():
 
         if record is None:
             salt = bcrypt.gensalt()
-            hashed_pwd = bcrypt.hashpw(form.password.data.encode('utf-8'), salt)
+            hashed_pwd = bcrypt.hashpw(
+                form.password.data.encode('utf-8'), salt)
             user = User(
                 email=form.email.data,
                 password=bson.Binary(hashed_pwd),
@@ -74,10 +76,9 @@ def register():
             return redirect('/')
         else:
             return render_template('auth/register.html',
-                                    message='A user with this email already exists!',
-                                    form=form)
+                                   message='A user with this email already exists!',
+                                   form=form)
 
-        return redirect('/login')
     return render_template('auth/register.html', form=form)
 
 

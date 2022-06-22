@@ -7,8 +7,8 @@ from database import db
 
 LOCALES = {}
 for i in Path('bot/translated/').glob('*.json'):
-        with open(i.absolute(), encoding='utf-8') as f:
-            LOCALES[i.stem] = json.load(f)
+    with open(i.absolute(), encoding='utf-8') as f:
+        LOCALES[i.stem] = json.load(f)
 
 
 async def get_phrase(ctx: commands.Context, key: str) -> str:
