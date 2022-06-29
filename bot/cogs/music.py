@@ -513,6 +513,7 @@ class Music(commands.Cog):
         """
         Adjusts the volume.
         """
+        q: Queue = self._queues[ctx.guild.id]
         if 0 > volume > 100:
             await send_embed(
                 ctx=ctx,
@@ -521,8 +522,10 @@ class Music(commands.Cog):
             )
             return
 
-        ctx.voice_client.source.volume = volume / 100
-        self._queues[ctx.guild.id].volume = volume / 100
+        q.volume = volume / 100
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+            ctx.voice_client.source.volume = volume / 100
+
         await send_embed(
             ctx=ctx,
             description=await get_phrase(ctx, 'volume_set') % dict(volume=volume),
@@ -568,21 +571,17 @@ class Music(commands.Cog):
             )
 
     @commands.command(aliases=['bb'])
+    @commands.check(is_connected)
     async def bass_boost(self, ctx: commands.Context, level: float):
         """
         Boosts a bass line for the track.
         """
         q: Queue = self._queues[ctx.guild.id]
-        if ctx.voice_client is None:
-            await send_embed(
-                ctx=ctx,
-                description=await get_phrase(ctx, 'not_playing'),
-                color=ERROR_COLOR
-            )
-            return
 
-        ctx.voice_client.source.bass_accentuate = level
-        q.bass_boost = ctx.voice_client.source.bass_accentuate
+        q.bass_boost = level
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+            ctx.voice_client.source.bass_accentuate = level
+
         await send_embed(
             ctx=ctx,
             description=await get_phrase(ctx, 'bass_boost_set') % dict(level=q.bass_boost),

@@ -4,7 +4,6 @@ from os import getcwd
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
-# from multiprocessing.pool import ThreadPool
 from re import compile as comp_
 from threading import Thread, Event
 from time import sleep
@@ -17,6 +16,8 @@ from yt_dlp import YoutubeDL as YtDL
 from base import BASE_COLOR, MusicHandlerBase, Track
 from utils import send_embed
 from languages import get_phrase
+
+logger = getLogger('handlers')
 
 
 class YDLHandler(MusicHandlerBase):
@@ -62,7 +63,8 @@ class YDLHandler(MusicHandlerBase):
         else:
             # Simple additional query parameters bypass
             parsed = urlparse(query)
-            video_id = parse_qs(parsed.query)['v'][0]
+            video_id = parse_qs(parsed.query).get('v')
+            video_id = video_id[0] if video_id is not None else parsed.path[1:]
             # Getting proper URL to a video
             url = self._video_pattern + video_id
 

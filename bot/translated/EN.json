@@ -15,7 +15,7 @@
     "cancelled": "Cancelled.",
     "seek_error": "Index must be in range `1` to `%(max_index)s`, not %(index)s.",
     "volume_error": "Volume must be in the range from `0` to `100`, not `%(volume)s`.",
-    "volume_set": "Volume level has been successfully changed to `%(volume)s%`.",
+    "volume_set": "Volume level has been successfully changed to `%(volume)s⁒`.",
     "bass_boost_set": "Bass boost level has been set to `%(level)sdb`.",
     "playlist_doesnt_exist": "Playlist with name `%(name)s` doesn't exist.",
     "playlist_choose_name": "Choose new name for the `%(name)s` playlist.",

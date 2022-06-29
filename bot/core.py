@@ -58,7 +58,7 @@ class Bot(commands.Bot):
         for i in Path('bot/cogs/').glob('*.py'):
             await self.load_extension(f'cogs.{i.stem}')
 
-        self._logger.info(f'Available cogs: {list(self.cogs.keys())}')
+        self._logger.info(f'Available cogs: {", ".join(self.cogs.keys())}')
 
     async def start(self, *args, **kwargs):
         await self.setup()
