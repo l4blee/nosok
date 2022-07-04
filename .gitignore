@@ -2,6 +2,8 @@ bot/.env
 bot/__pycache__
 bot/data
 bot/queues
+nginx.conf
+nosok.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
