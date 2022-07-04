@@ -3,7 +3,7 @@ import pickle
 from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
-from typing import Optional
+from typing import Optional, Union
 from enum import Enum, auto
 from dataclasses import dataclass
 
@@ -44,7 +44,7 @@ class Track:
         return self.url, self.title, self.mention
 
     @classmethod
-    def from_list(self, data: list | tuple):
+    def from_list(self, data: Union[list, tuple]):
         return Track(*data)
 
 
@@ -132,7 +132,7 @@ class Queue:
         if 0 > value > 2:
             raise ValueError('Loop value is out of range')
 
-        self._loop = value
+        self._loop = Looping(value)
 
 
 class Music(commands.Cog):
