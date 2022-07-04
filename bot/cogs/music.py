@@ -4,7 +4,7 @@ from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
 from typing import Optional, Union
-from enum import Enum, auto
+from enum import Enum
 from dataclasses import dataclass
 
 import discord
@@ -29,9 +29,9 @@ makedirs('bot/queues', exist_ok=True)
 
 
 class Looping(Enum):
-    NONE = auto()
-    CURRENT_QUEUE = auto()
-    CURRENT_TRACK = auto()
+    NONE = 0
+    CURRENT_QUEUE = 1
+    CURRENT_TRACK = 2
 
 
 @dataclass(slots=True)
