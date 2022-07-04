@@ -30,7 +30,6 @@ RUN pip install -r requirements.txt
 # Copy directories with actual code
 COPY bot/ ./bot
 COPY server/ ./server
-COPY pinger/ ./pinger
 
 ENV FLASK_APP='server/wsgi:application'
 
