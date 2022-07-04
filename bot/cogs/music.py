@@ -130,7 +130,7 @@ class Queue:
     @loop.setter
     def loop(self, value: int):
         if 0 > value > 2:
-            raise ValueError('Loop value is out of range')
+            value = 0
 
         self._loop = Looping(value)
 
