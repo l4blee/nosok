@@ -124,7 +124,7 @@ class Queue:
         return tracks[self.now_playing] if len(tracks) > 0 else None
 
     @property
-    def loop(self):
+    def loop(self) -> Looping:
         return self._loop
 
     @loop.setter
@@ -448,7 +448,7 @@ class Music(commands.Cog):
                 q.loop = 0
 
         await send_embed(ctx=ctx,
-                         description=f'{await get_phrase(ctx, "looping_set")} `{loop_setting[q.loop]}`',
+                         description=f'{await get_phrase(ctx, "looping_set")} `{loop_setting[q.loop.value]}`',
                          color=BASE_COLOR)
 
     @commands.command(aliases=['rm'])
