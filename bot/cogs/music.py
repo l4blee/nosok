@@ -1,5 +1,4 @@
 import asyncio
-from logging import getLogger
 import pickle
 from os import makedirs, getenv
 from re import compile
@@ -25,8 +24,6 @@ URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^
 URL_REGEX = compile(URL_REGEX)
 
 makedirs('bot/queues', exist_ok=True)
-
-logger = getLogger('music.py')
 
 
 class Looping(Enum):
