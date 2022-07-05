@@ -15,7 +15,7 @@
     "cancelled": "Отменено.",
     "seek_error": "Индекс должен быть в диапазоне от `1` до `%(max_index)s`",
     "volume_error": "Громкость должна быть в диапазоне от `0` до `100`, не %(volume)s",
-    "volume_set": "Громкость установлена на `%(volume)s%`",
+    "volume_set": "Громкость установлена на `%(volume)s⁒`",
     "bass_boost_set": "Усиление басса установлено на `%(level)sdb`.",
     "playlist_doesnt_exist": "Плейлист с именем `%(name)s` не существует.",
     "playlist_choose_name": "Выберите новое имя для `%(name)s`.",

@@ -1,23 +1,25 @@
 import json
 from io import FileIO
-from os import makedirs
-from logging import getLogger
+import os
+import logging
 from subprocess import Popen, TimeoutExpired
 from sys import executable
+
+from pymongo import MongoClient
 
 SUBPROCESS_CMD = [executable, 'bot/index.py']
 
 
 class BotHandler:
     def __init__(self):
-        self._logger = getLogger(self.__class__.__qualname__)
+        self._logger = logging.getLogger(self.__class__.__qualname__)
         self.check_dirs()
 
         self.bot_proc = None
         self.pout = FileIO('bot/data/log.log', mode='a+')
 
     def check_dirs(self):
-        makedirs('bot/data/', exist_ok=True)
+        os.makedirs('bot/data/', exist_ok=True)
 
         with open('bot/data/data.json', 'w') as f:
             f.write('{"status": "offline"}')
@@ -28,7 +30,7 @@ class BotHandler:
     def set_status(self, status: str) -> None:
         with open('bot/data/data.json') as f:
             data = json.load(f)
-        
+
         with open('bot/data/data.json', 'w') as f:
             data['status'] = status
             json.dump(data, f, indent=4)
@@ -37,7 +39,7 @@ class BotHandler:
         self._logger.info('Launching bot...')
         if self.bot_proc is not None:
             return dict(status='error', message='The bot is already online!')
-        
+
         self.bot_proc = Popen(
             SUBPROCESS_CMD,
             stdout=self.pout,
@@ -58,7 +60,7 @@ class BotHandler:
             self.bot_proc.kill()
         finally:
             self.bot_proc = None
-        
+
         self.set_status('offline')
         return dict(status='success', message=None)
 
@@ -71,4 +73,25 @@ class BotHandler:
         return dict(status='success', message=None)
 
 
-handler = BotHandler()
+class MongoDB:
+    def __init__(self, conn_url):
+        self._logger = logging.getLogger(
+            self.__class__.__module__ + '.' + self.__class__.__qualname__)
+        self.connect(conn_url)
+
+    def connect(self, conn_url: str):
+        self._logger.info('Connecting to MongoDB...')
+
+        self.client = MongoClient(conn_url)
+        self.users = self.client.web.users  # Main database
+
+        self._logger.info('Successfully connected to Mongo, going further...')
+
+
+database = MongoDB(
+    os.getenv('DATABASE_URL').format(
+        os.getenv('DB_USERNAME'),
+        os.getenv('DB_PASSWORD')
+    )
+)
+bot_handler = BotHandler()

@@ -12,7 +12,8 @@ class Search(View):
 
         # 0 row
         self.back = Button(emoji='◀', row=0)
-        self.page = Button(label=f'Page {self.current + 1}/{len(self.embeds)}', disabled=True, row=0)
+        self.page = Button(
+            label=f'Page {self.current + 1}/{len(self.embeds)}', disabled=True, row=0)
         self.fwd = Button(emoji='▶', row=0)
 
         self.add_item(self.back)
@@ -31,7 +32,7 @@ class Search(View):
 
     async def followup_callback(self, interaction):
         if self.current == len(self.embeds):
-                self.current = 0
+            self.current = 0
         elif self.current < 0:
             self.current = len(self.embeds) - 1
 
@@ -41,11 +42,11 @@ class Search(View):
     async def back_callback(self, interaction: Interaction):
         self.current -= 1
         await self.followup_callback(interaction)
-        
+
     async def fwd_callback(self, interaction: Interaction):
         self.current += 1
         await self.followup_callback(interaction)
-    
+
     async def lock_callback(self, interaction: Interaction):
         self.stop()
 
@@ -54,6 +55,7 @@ class Playlist(View):
     def __init__(self, cog, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cog = cog
+        self.returned_callback = None
 
     def disable_all(self):
         self.rename.disabled = True
@@ -66,7 +68,7 @@ class Playlist(View):
         await interaction.response.edit_message(view=self)
         self.returned_callback = self.cog.rename_playlist
         self.stop()
-    
+
     @button(label='Load', style=ButtonStyle.green)
     async def load(self, interaction: Interaction, button: Button):
         button.disabled = True

@@ -1,3 +1,4 @@
+from xxlimited import new
 from base import BASE_COLOR
 from discord.ext import commands
 
@@ -34,9 +35,9 @@ class Settings(commands.Cog):
         """
         Sets language for the current guild.
         """
+        new_lang = new_lang.lower()
         if new_lang not in LOCALES:
             raise exceptions.WrongLocale
-            return
 
         db.guilds.configs.update_one(
             {'guild_id': ctx.guild.id},

@@ -4,21 +4,20 @@ from os import getcwd
 from datetime import datetime, timedelta
 from json import dump
 from logging import getLogger
-# from multiprocessing.pool import ThreadPool
 from re import compile as comp_
 from threading import Thread, Event
 from time import sleep
 from psutil import Process
-from dataclasses import dataclass
 
 import aiohttp
 from discord.ext import commands
-import discord
 from yt_dlp import YoutubeDL as YtDL
 
 from base import BASE_COLOR, MusicHandlerBase, Track
 from utils import send_embed
 from languages import get_phrase
+
+logger = getLogger('handlers')
 
 
 class YDLHandler(MusicHandlerBase):
@@ -52,8 +51,8 @@ class YDLHandler(MusicHandlerBase):
             reqs = [asyncio.to_thread(ydl.extract_info, i) for i in links]
 
         return [
-            Track(self._video_pattern + result.get('id'), 
-                  result.get('title'), 
+            Track(self._video_pattern + result.get('id'),
+                  result.get('title'),
                   result.get('thumbnails')[0]['url'])
             for result in await asyncio.gather(*reqs)
         ]
@@ -64,13 +63,15 @@ class YDLHandler(MusicHandlerBase):
         else:
             # Simple additional query parameters bypass
             parsed = urlparse(query)
-            video_id = parse_qs(parsed.query)['v'][0]
+            video_id = parse_qs(parsed.query).get('v')
+            video_id = video_id[0] if video_id is not None else parsed.path[1:]
             # Getting proper URL to a video
             url = self._video_pattern + video_id
 
         with YtDL(self._ydl_opts) as ydl:
             data = ydl.extract_info(url, download=False)
-            title, thumbnail = data.get('title'), data.get('thumbnails')[0]['url']
+            title, thumbnail = data.get(
+                'title'), data.get('thumbnails')[0]['url']
 
         return Track(url, title, thumbnail)
 
@@ -93,7 +94,8 @@ class EventHandler(Thread):
 
         self._bot = bot
         self.to_check: dict = dict()
-        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
+        self._logger = getLogger(
+            self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
         while 1:
@@ -150,31 +152,34 @@ class PerformanceProcessor(Thread):
         self._stop = Event()
 
         self._bot = bot
-        self._logger = getLogger(self.__class__.__module__ + '.' + self.__class__.__qualname__)
+        self._logger = getLogger(
+            self.__class__.__module__ + '.' + self.__class__.__qualname__)
 
     def loop(self):
         while 1:
-            self.read_and_collect()
+            self.compute_stats()
             sleep(5)
-    
-    def read_and_collect(self):
+
+    def compute_stats(self):
+        cpu_utils = 0
+        mem_utils = 0
+
         this_proc = Process()
 
         voices = [i.voice_client for i in self._bot.guilds]
         procs = [i.source.original._process
-                    for i in voices
-                    if i and i.source]
-        cpu_utils = 0
-        mem_utils = 0
+                 for i in voices
+                 if i and i.source]
 
         for i in filter(bool, procs):
             proc = Process(i.pid)
 
             cpu_utils += proc.cpu_percent()
-            mem_utils += round(proc.memory_info().rss / float(10 ** 6), 2)
+            mem_utils += round(proc.memory_info().rss / (10 ** 6), 2)
 
         cpu_usage = this_proc.cpu_percent() + cpu_utils
-        mem_usage = round(this_proc.memory_info().rss / (10 ** 6), 2) + mem_utils
+        mem_usage = round(this_proc.memory_info().rss /
+                          (10 ** 6), 2) + mem_utils
 
         with open(f'{getcwd() + "/bot/data/data.json"}', 'w') as f:
             data = {

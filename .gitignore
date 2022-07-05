@@ -2,7 +2,8 @@ bot/.env
 bot/__pycache__
 bot/data
 bot/queues
-bot/dev-dpy.py
+nginx.conf
+nosok.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -14,7 +15,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/

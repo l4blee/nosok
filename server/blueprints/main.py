@@ -1,6 +1,6 @@
-import json
+import logging
 
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, send_from_directory, send_file
 
 
 bp = Blueprint(
@@ -8,35 +8,14 @@ bp = Blueprint(
     __name__
 )
 
+logger = logging.getLogger('rdfsdf')
+
 
 @bp.route('/')
 def index():
-    with open('bot/data/data.json') as f:
-        data = json.load(f)
-        
-    resp = jsonify(status=data['status'])
-    resp.headers['Content-type'] = 'application/json'
-    
-    return resp
-    
-
-@bp.route('/log')
-def log():
-    with open('bot/data/log.log') as f:
-        data = f.read()
-        
-    resp = Response(data)
-    resp.headers['Content-type'] = 'application/json'
-    
-    return resp
+    return send_from_directory('nosok-react/build', 'index.html')
 
 
-@bp.route('/vars')
-def vars():
-    with open('bot/data/data.json') as f:
-        data = json.load(f)
-
-    resp = jsonify(**data)
-    resp.headers['Content-type'] = 'application/json'
-    
-    return resp
+@bp.route('/favicon.ico')
+def favicon():
+    return send_file('favicon.ico')

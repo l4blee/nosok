@@ -1,11 +1,10 @@
 from enum import Enum
 
-from discord.ext import commands
-
 from base import CustomException, ERROR_COLOR, BASE_COLOR
 
+
 class ExceptionType(Enum):
-    NOTIFICATION  = BASE_COLOR
+    NOTIFICATION = BASE_COLOR
     ERROR = ERROR_COLOR
 
 
@@ -33,7 +32,7 @@ class AlreadyPlaying(CustomException):
     type_ = ExceptionType['ERROR']
 
 
-class NoMoreTracks(CustomException):
+class QueueEnded(CustomException):
     """
     Occurs when there are no more tracks in the queue.
     """

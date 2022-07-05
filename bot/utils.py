@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Callable, Any, Union
 
 from discord import Colour, Embed
 from discord.ui import View
@@ -7,7 +6,6 @@ from discord.ext import commands
 
 import exceptions
 import views
-from base import ERROR_COLOR
 
 
 async def send_embed(ctx: commands.Context, description: str, color: Colour, title: str = '') -> Embed:

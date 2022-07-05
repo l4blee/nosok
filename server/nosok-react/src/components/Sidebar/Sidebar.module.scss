@@ -1,0 +1,16 @@
+.Sidebar {
+    grid-area: sb;
+
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+
+    padding: 20px;
+    padding-top: 0;
+    width: 175px;
+}
+
+@media (max-width: 500px) {
+    .Sidebar {
+        width: 70px;
+    }
+}
