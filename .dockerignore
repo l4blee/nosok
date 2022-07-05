@@ -1,0 +1,6 @@
+.venv/
+**/.env
+**/__pycache__
+server/nosok-react/node_modules
+bot/data
+bot/queues
