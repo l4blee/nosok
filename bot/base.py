@@ -12,7 +12,7 @@ BASE_COLOR = Colour.from_rgb(241, 184, 19)
 ERROR_COLOR = Colour.from_rgb(255, 0, 0)
 
 
-@dataclass(order=True, slots=True)
+@dataclass(order=True)
 class Track:
     url: str
     title: str

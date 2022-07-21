@@ -1,4 +1,3 @@
-from xxlimited import new
 from base import BASE_COLOR
 from discord.ext import commands
 

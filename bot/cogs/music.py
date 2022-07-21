@@ -3,7 +3,7 @@ import pickle
 from os import makedirs, getenv
 from re import compile
 from subprocess import DEVNULL
-from typing import Optional
+from typing import Optional, Union
 from enum import Enum
 from dataclasses import dataclass
 
@@ -30,7 +30,7 @@ class Looping(Enum):
     NONE, CURRENT_QUEUE, CURRENT_TRACK = range(3)
 
 
-@dataclass(slots=True)
+@dataclass()
 class Track:
     url: str
     title: str
@@ -40,7 +40,7 @@ class Track:
         return self.url, self.title, self.mention
 
     @classmethod
-    def from_list(self, data: list | tuple):
+    def from_list(self, data: Union[list, tuple]):
         return Track(*data)
 
 
@@ -494,7 +494,8 @@ class Music(commands.Cog):
             )
             return
 
-        if not ctx.voice_client.is_playing():
+        voice_client = ctx.voice_client
+        if not voice_client or not voice_client.is_playing():
             await self.play(ctx)
 
     @commands.command(aliases=['vol', 'v'])
@@ -766,7 +767,6 @@ class Music(commands.Cog):
         """
         Displays all playlists from the current guild or the one mentioned.
         """
-        q: Queue = self._queues[ctx.guild.id]
         record = db.guilds.playlists.find(
             {'guild_id': ctx.guild.id}
         )

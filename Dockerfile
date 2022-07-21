@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 FROM jrottenberg/ffmpeg:3.3-ubuntu AS ffmpeg
-FROM python:3.10.5-slim-bullseye AS python
+FROM python:3.9.6-slim-bullseye AS python
 
 # Move ffmpeg
 COPY --from=ffmpeg /usr/local /usr/local
@@ -29,8 +29,7 @@ RUN pip install -r requirements.txt
 
 # Copy directories with actual code
 COPY bot/ ./bot
-COPY server/ ./server
+COPY web_platform/ ./web_platform
 
-ENV FLASK_APP='server/wsgi:application'
-
-CMD flask run --host=0.0.0.0 --port=$PORT --with-threads
+# CMD flask run --host=0.0.0.0 --port=$PORT --with-threads
+CMD python web_platform/asgi.py
