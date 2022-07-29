@@ -30,6 +30,6 @@ RUN pip install -r requirements.txt
 # Copy directories with actual code
 COPY bot/ ./bot
 COPY backend/ ./backend
-COPY frontend/ ./frontend
+COPY frontend/dist/ ./frontend/dist
 
 CMD python backend/asgi.py
