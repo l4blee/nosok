@@ -1,0 +1,57 @@
+.Topbar {
+    display: flex;
+    padding: 20px;
+    align-items: center;
+    justify-content: right;
+}
+
+.Auth {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+.LoginButton {
+    display: flex;
+    background-color: #ffffff;
+    text-decoration: none !important;
+    color: black !important;
+    border: none;
+    border-radius: 10px;
+
+    height: 35px;
+    width: 115px;
+    padding: 0 10px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+
+    img {
+        width: 15px;
+        height: 15px;
+    }
+
+    span {
+        margin-left: 5px;
+    }
+
+    &:hover {
+        background-color: #f2f2f2; 
+    }
+
+    &:active {
+        background-color: #b3b3b3;
+    }
+}
+
+
+@media (max-width: 700px) {
+    .LoginButton {
+        height: 30px;
+        width: 30px;
+
+        span {
+            display: none;
+        }
+    }
+}

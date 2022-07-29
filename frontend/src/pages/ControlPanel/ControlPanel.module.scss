@@ -1,0 +1,11 @@
+.ControlPanel {
+    height: 100vh;
+    display: grid;
+    grid-template-areas: 
+    "hd hd"
+    "sb ctn";
+  
+    grid-template-rows: auto 1fr;
+    grid-template-columns: auto 1fr;
+  }
+  

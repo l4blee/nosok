@@ -45,19 +45,35 @@ class Track:
 
 
 class Queue:
-    __slots__ = ('_loop', 'now_playing', 'play_next', 'volume',
-                 'queue_file', 'bass_boost')
+    __slots__ = ('_loop', 'now_playing', 'play_next', '_volume',
+                 'queue_file', '_bass')
 
     def __init__(self, guild_id: int):
         self._loop: Looping = Looping.NONE
         self.now_playing: int = -1
         self.play_next: bool = True
 
-        self.volume: float = 1.0
-        self.bass_boost: float = 0.0
+        self._volume: float = 1.0
+        self._bass: float = 0.0
 
         self.queue_file = f'bot/queues/{guild_id}'
         self.clear()
+
+    @property
+    def volume(self) -> float:
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float):
+        self._volume = max(min(value, 2.0),0.0)
+
+    @property
+    def bass_accentuate(self) -> float:
+        return self._bass
+
+    @bass_accentuate.setter
+    def bass_accentuate(self, value: float):
+        self._bass = min(max(value, -20), 200)
 
     @property
     def tracks(self) -> list[Track]:
@@ -274,7 +290,7 @@ class Music(commands.Cog):
         """
         voice = ctx.voice_client
         if not voice:
-            if not ctx.author.voice:
+            if not ctx.author.voice or not ctx.author.voice.channel:
                 raise exceptions.UserNotConnected
 
             await ctx.author.voice.channel.connect()
@@ -344,7 +360,7 @@ class Music(commands.Cog):
                                                              ' -reconnect_streamed 1'
                                                              ' -reconnect_delay_max 5')
         audio_source = BassVolumeTransformer(
-            audio_source, volume=q.volume, bass_accentuate=q.bass_boost)
+            audio_source, volume=q.volume, bass_accentuate=q.bass_accentuate)
 
         voice.play(audio_source, after=lambda _: self._after(ctx, loop))
 
@@ -505,7 +521,7 @@ class Music(commands.Cog):
         Adjusts the volume.
         """
         q: Queue = self._queues[ctx.guild.id]
-        if 0 > volume > 100:
+        if 0 > float(volume) > 100:
             await send_embed(
                 ctx=ctx,
                 description=await get_phrase(ctx, 'volume_error') % dict(volume=volume),
@@ -519,7 +535,7 @@ class Music(commands.Cog):
 
         await send_embed(
             ctx=ctx,
-            description=await get_phrase(ctx, 'volume_set') % dict(volume=volume),
+            description=await get_phrase(ctx, 'volume_set') % dict(volume=q.volume * 100),
             color=BASE_COLOR
         )
 
@@ -569,13 +585,13 @@ class Music(commands.Cog):
         """
         q: Queue = self._queues[ctx.guild.id]
 
-        q.bass_boost = level
+        q.bass_accentuate = level
         if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
             ctx.voice_client.source.bass_accentuate = level
 
         await send_embed(
             ctx=ctx,
-            description=await get_phrase(ctx, 'bass_boost_set') % dict(level=q.bass_boost),
+            description=await get_phrase(ctx, 'bass_boost_set') % dict(level=q.bass_accentuate),
             color=BASE_COLOR
         )
 

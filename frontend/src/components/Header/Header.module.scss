@@ -1,0 +1,39 @@
+.Header {
+    grid-area: hd;
+    display: grid;
+    grid-template-columns: auto 1fr;
+}
+
+.Logo {
+    width: 175px;
+    display: flex;
+    flex-direction: row;
+
+    justify-content: center;
+    align-items: center;
+
+    margin: 0;
+    padding: 20px;
+
+    img {
+        height: 30px;
+        width: 30px;
+        border-radius: 30px; 
+    }
+
+    span {
+        line-height: 30px;
+        margin-left: 15px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 550px) {
+    .Logo {
+        width: 70px;
+
+        span {
+            display: none;
+        }
+    }
+}

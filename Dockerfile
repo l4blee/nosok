@@ -13,7 +13,7 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=100
 
-# Install needed packages as using -slim pckg
+# Install essential packages as using -slim pckg
 RUN apt update -y && apt upgrade -y
 RUN apt install git -y
 RUN apt install g++ -y
@@ -23,13 +23,13 @@ RUN apt clean && apt autoremove -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /nosok/
 
-# Copy poetry stuff to install everything later
+# Install requirements
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copy directories with actual code
 COPY bot/ ./bot
-COPY web_platform/ ./web_platform
+COPY backend/ ./backend
+COPY frontend/ ./frontend
 
-# CMD flask run --host=0.0.0.0 --port=$PORT --with-threads
-CMD python web_platform/asgi.py
+CMD python backend/asgi.py
