@@ -3,7 +3,7 @@ bot/__pycache__
 bot/data
 bot/queues
 **/node_modules
-!web_platform/nosok-solid/dist
+!frontend/dist
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

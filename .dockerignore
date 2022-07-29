@@ -1,7 +1,7 @@
 .venv/
 **/.env
 **/__pycache__
-web_platform/nosok-solid/node_modules
-!web_platform/nosok-solid/dist
+frontend/node_modules
+!frontend/dist
 bot/data
 bot/queues
