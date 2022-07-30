@@ -8,5 +8,6 @@ bp = Blueprint(
 
 
 @bp.route('/')
-async def index(request):
+@bp.route('/<path:path>')
+async def index(request, path: str = None):
     return await file('frontend/dist/index.html')

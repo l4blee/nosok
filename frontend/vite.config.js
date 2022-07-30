@@ -6,10 +6,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:5000',
-      '/signin': 'http://localhost:5000',
-      '/signup': 'http://localhost:5000',
+      '/auth': 'http://localhost:5000',
       '/logout': 'http://localhost:5000',
-      '/secret': 'http://localhost:5000',
       '/socket.io': {
         target: 'ws://localhost:5000',
         changeOrigin: true,
