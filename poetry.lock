@@ -156,7 +156,7 @@ unicode_backport = ["unicodedata2"]
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a4437+gdc8cbc07"
+version = "2.0.0a4441+g5527de68"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -177,7 +177,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "dc8cbc073e92a5a325d60e460efc59ba7809312e"
+resolved_reference = "5527de688afe789266d4c2b1f6c5373985232dff"
 
 [[package]]
 name = "dnspython"
@@ -343,6 +343,20 @@ description = "Manipulate audio with an simple and easy high level interface"
 category = "main"
 optional = false
 python-versions = "*"
+
+[[package]]
+name = "pyjwt"
+version = "2.4.0"
+description = "JSON Web Token implementation in Python"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
+docs = ["zope.interface", "sphinx-rtd-theme", "sphinx"]
+dev = ["pre-commit", "mypy", "coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)", "cryptography (>=3.3.1)", "zope.interface", "sphinx-rtd-theme", "sphinx"]
+crypto = ["cryptography (>=3.3.1)"]
 
 [[package]]
 name = "pymongo"
@@ -525,7 +539,7 @@ websockets = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.11"
-content-hash = "2a041cdbce6cab306a83a5ed275771313cc9a32cff4b8a7dcc58d38b7545d3f4"
+content-hash = "e7322d6bcb0ff5e302af3ac9b1e0b54515b8d699b1365e3f03c63cc60e8fe2ab"
 
 [metadata.files]
 aiodns = [
@@ -1142,6 +1156,10 @@ pycryptodomex = [
 pydub = [
     {file = "pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6"},
     {file = "pydub-0.25.1.tar.gz", hash = "sha256:980a33ce9949cab2a569606b65674d748ecbca4f0796887fd6f46173a7b0d30f"},
+]
+pyjwt = [
+    {file = "PyJWT-2.4.0-py3-none-any.whl", hash = "sha256:72d1d253f32dbd4f5c88eaf1fdc62f3a19f676ccbadb9dbc5d07e951b2b26daf"},
+    {file = "PyJWT-2.4.0.tar.gz", hash = "sha256:d42908208c699b3b973cbeb01a969ba6a96c821eefb1c5bfe4c390c01d67abba"},
 ]
 pymongo = [
     {file = "pymongo-4.2.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:1c81414b706627f15e921e29ae2403aab52e33e36ed92ed989c602888d7c3b90"},

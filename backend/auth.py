@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from functools import wraps
+from typing import Optional
 import bson
-import uuid
 
 import bcrypt
+import jwt
 from sanic import Sanic
 from sanic.response import text
 
@@ -18,21 +19,6 @@ class User:
     salt: bson.Binary
     is_admin: bool = False
 
-    @property
-    def is_active(self):
-        return True
-
-    @property
-    def is_authenticated(self):
-        return self.is_active
-
-    @property
-    def is_anonymous(self):
-        return False
-
-    def get_id(self) -> str:
-        return self.email
-
     @classmethod
     def from_record(cls, record: dict):
         if record is None:
@@ -46,7 +32,12 @@ class User:
         )
 
     def to_dict(self) -> dict:
-        return {i: getattr(self, i) for i in self.__slots__}
+        return {
+            'email': self.email,
+            'password': self.password.decode('utf-8'),
+            'salt': self.salt.decode('utf-8'),
+            'is_admin': self.is_admin
+        }
 
     def check_password(self, password: bytes) -> bool:
         hashed_pwd = bcrypt.hashpw(password, self.salt)
@@ -60,44 +51,59 @@ class LoginManager:
         self.COOKIE_MAX_AGE = 2 * 60 * 60  # 2 hours in seconds
 
     def init_app(self, app: Sanic) -> None:
-        async def request(request):
+        async def extract_user(request):
             '''
             Middleware to be called before request
             '''
-            if request.cookies.get('session', None) is not None:
-                user = manager.get_user(request)
-                
-                request.ctx.is_authenticated = user is not None
-                request.ctx.user = user
-            else:
-                request.ctx.is_authenticated = False
-                request.ctx.user = None
+            user = None
 
-        app.middleware(request)
+            token = request.cookies.get('session', None)
+            if token is not None:
+                user = manager.get_user(token)
+
+            request.ctx.user = user if type(user) is User else None
+
+        app.register_middleware(extract_user, 'request')
         self.app = app
+        self._COOKIE_MAX_AGE = app.config.REMEMBER_COOKIE_DURATION
+        self._SECRET = app.config.SECRET
 
     def login_user(self, user: User) -> str:
-        if user in self._storage.values():
-            return [i for i, j in self._storage.items() if j is user][0]
+        token = jwt.encode({
+                'user': user.to_dict()
+            },
+            self._SECRET,
+            'HS256'
+        )
 
-        unique_uid = uuid.uuid1().hex
-        self._storage[unique_uid] = user
-
-        return unique_uid
+        return token
     
-    def get_user(self, request):
-        uid = request.cookies.get('session', None)
-        if uid is None:
-            return None
+    def get_user(self, token: str) -> Optional[User]:
+        try:
+            serialized = jwt.decode(
+                token,
+                self._SECRET,
+                algorithms=['HS256']
+            ).get('user')
 
-        return self._storage.get(uid)
+            user = User(
+                email=serialized.get('email'),
+                password=serialized.get('password').encode('utf-8'),
+                salt=serialized.get('salt').encode('utf-8'),
+                is_admin=serialized.get('is_admin')
+            )
+        except Exception:
+            return None
+        
+        return user
+
 
 
 def login_required(wrapped):
     def decorator(f):
         @wraps(f)
         async def decorated_function(request, *args, **kwargs):
-            if request.ctx.is_authenticated:
+            if request.ctx.user:
                 response = await f(request, *args, **kwargs)
                 return response
             else:

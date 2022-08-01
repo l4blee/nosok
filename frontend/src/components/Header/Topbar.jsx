@@ -30,7 +30,7 @@ export default function Topbar() {
   return (
     <div className={classes.Topbar}>
       <div className={classes.Auth}>
-        {sID() && <span style={'margin-right:15px'}>Session ID: {sID}</span>}
+        {/* {sID() && <span style={'margin-right:15px'}>Session ID: {sID}</span>} */}
         { redirPath() === '/login' ?
           <Link href={redirPath()} className={classes.LoginButton}>
             <img src={login} alt='login'/>

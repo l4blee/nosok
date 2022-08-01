@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import re
 import bcrypt
 import bson
 from sanic import Blueprint
@@ -39,11 +38,11 @@ async def login(request):
     if record is not None:
         user = User.from_record(record)
         if user.check_password(payload.password.encode('utf-8')):
-            uuid = manager.login_user(request)  
+            # Server-to-client side auth
+            token = manager.login_user(user)  
             resp = redirect('/')
-            if request.cookies.get('session', None) is None or manager.get_user(request) is None:
-                resp.cookies['session'] = uuid
-                resp.cookies['session']['max-age'] = manager.COOKIE_MAX_AGE
+            resp.cookies['session'] = token
+            resp.cookies['session']['max-age'] = manager.COOKIE_MAX_AGE
 
             return resp
 
@@ -52,7 +51,7 @@ async def login(request):
     })
 
 @bp.route('/signup', methods=['POST'])
-async def login(request):
+async def register(request):
     payload = LoginRegisterPayload.from_request(request)
     record = database.users.find_one({
         'email': payload.email
@@ -71,8 +70,9 @@ async def login(request):
         salt=bson.Binary(salt)
     )
 
+    # Server-to-client side auth
     database.users.insert_one(user.to_dict())
-    uuid = manager.login_user(request)  
+    uuid = manager.login_user(user)  
     resp = redirect('/')
     resp.cookies['session'] = uuid
     resp.cookies['session']['max-age'] = manager.COOKIE_MAX_AGE

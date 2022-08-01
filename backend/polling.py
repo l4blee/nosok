@@ -1,4 +1,4 @@
-from asyncio import CancelledError
+from asyncio import CancelledError, sleep
 import os
 import json
 
@@ -33,6 +33,8 @@ async def background_emitter():
                     })
                 cached_stamp_vars = vars_stamp
 
-            await socket.sleep(1)
+            await sleep(0.2)
         except CancelledError:
             return
+        except Exception:
+            pass
