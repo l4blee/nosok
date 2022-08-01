@@ -9,6 +9,8 @@
     display: flex;
     align-items: center;
     flex-direction: row;
+    padding: 0;
+    margin: 0;
 }
 
 .LoginButton {
@@ -20,8 +22,8 @@
     border-radius: 10px;
 
     height: 35px;
-    width: 115px;
-    padding: 0 10px;
+    padding: 0 7px;
+    width: fit-content;
     text-align: center;
     align-items: center;
     justify-content: center;
