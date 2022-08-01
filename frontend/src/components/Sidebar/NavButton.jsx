@@ -6,9 +6,9 @@ const [global_href, _] = link
 
 export default function NavButton({children, src, href, callback, alt}) {
   return (
-    <div className={`${classes.NavButton} ${Boolean(href === global_href()) ? classes.NavButtonSelected : ''}`} onClick={() => callback(href)}>
+    <button className={`${classes.NavButton} ${Boolean(href === global_href()) ? classes.NavButtonSelected : ''}`} onClick={() => callback(href)}>
       <img src={src} alt={alt}/>
       <span>{children}</span>
-    </div>
+    </button>
   )
 }
