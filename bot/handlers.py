@@ -184,12 +184,12 @@ class PerformanceProcessor(Thread):
         with open(f'{getcwd() + "/bot/data/data.json"}', 'w') as f:
             data = {
                 'status': 'online',
+                'servers': len(self.bot.guilds),
                 'vars': {
-                    'servers': len(self.bot.guilds),
                     'cpu_used': cpu_usage,
-                    'memory_used': str(mem_usage) + 'M'
+                    'memory_used': mem_usage
                 },
-                'last_updated': datetime.now().strftime('%d.%b.%Y %H:%M:%S')
+                # 'last_updated': datetime.now().strftime('%d.%b.%Y %H:%M:%S')
             }
 
             dump(data, f, indent=4)

@@ -1,13 +1,11 @@
 import { createSignal, onMount } from 'solid-js'
-import { auth, sid } from '../../global_ctx'
+import { auth } from '../../global_ctx'
 import login from '../../assets/icons/login.png'
 
 import classes from './Topbar.module.scss'
 import { Link } from '@solidjs/router'
 
-const [isAuth, __] = auth
-const [sID, _] = sid
-
+const [isAuth, _] = auth
 
 export default function Topbar() {
   const [redirPath, setRP] = createSignal('')
@@ -28,16 +26,20 @@ export default function Topbar() {
   })
 
   return (
-    <div className={classes.Topbar}>
-      <div className={classes.Auth}>
-        {/* {sID() && <span style={'margin-right:15px'}>Session ID: {sID}</span>} */}
-        { redirPath() === '/login' ?
-          <Link href={redirPath()} className={classes.LoginButton}>
+    <div class={classes.Topbar}>
+      <div class={classes.Auth}>
+        { 
+          redirPath() === '/login'
+          ?
+          <Link href='/login'
+                class={classes.LoginButton}>
             <img src={login} alt='login'/>
             <span>{loginButtonLabel}</span>
-          </Link> :
-          <button className={classes.LoginButton} onClick={() => {window.location = redirPath()}}> 
-            <img src={login} alt='login'/>
+          </Link> 
+          :
+          <button class={classes.LoginButton}
+                  onClick={() => {window.location.assign('/logout')}}> 
+            <img src={login} alt='logout'/>
             <span>{loginButtonLabel}</span>
           </button>
         }

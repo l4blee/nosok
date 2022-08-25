@@ -1,31 +1,40 @@
 import { Link } from '@solidjs/router'
+import { UnionToIntersection } from 'chart.js/types/utils'
 import { createSignal, onMount } from 'solid-js'
+import { } from 'solid-js/types'
 import classes from './Register.module.scss'
 
 export default function Login() {
-  const [form, updateForm] = createSignal({
-    email: null,
-    password: null,
-    password_retype: null
+  const [form, updateForm] = createSignal<{
+    email: string,
+    password: string,
+    password_retype: string
+  }>({
+    email: '',
+    password: '',
+    password_retype: ''
   })
 
-  const [signUpError, setError] = createSignal({
+  const [signUpError, setError] = createSignal<{
+    state: boolean,
+    msg: string
+  }>({
     state: false,
-    msg: null
+    msg: ''
   })
 
   onMount(() => {
     document.title = 'NOSOK | Sign up'
   })
 
-  function onChange(event) {
+  function onChange(event: Event) {
     updateForm({
       ...form(),
-      [event.target.name]: event.target.value,
+      [(event.target as HTMLTextAreaElement).name]: (event.target as HTMLTextAreaElement).value
     })
   }
 
-  function submitForm(event) {
+  function submitForm(event: SubmitEvent) {
     event.preventDefault()
 
     const form_data = form()
@@ -86,12 +95,12 @@ export default function Login() {
   }
 
   return (
-    <div className={classes.Container}>
-      <form className={classes.Form} onSubmit={submitForm}>
-        <div className={classes.Content}>
+    <div class={classes.Container}>
+      <form class={classes.Form} onSubmit={submitForm}>
+        <div class={classes.Content}>
           <header>Sign Up</header>
           { signUpError().state ?
-            <div className={classes.error}>{signUpError().msg}</div> :
+            <div class={classes.error}>{signUpError().msg}</div> :
             '' 
           }
           <div>
@@ -99,35 +108,35 @@ export default function Login() {
             <input type='email'
                    name='email'
                    required
-                   className='form-control mt-1'
+                   class='form-control mt-1'
                    placeholder='Enter email'
                    onChange={onChange}/>
           </div>
-          <div className='mt-3'>
+          <div class='mt-3'>
             <label>Password</label>
             <input type='password'
                    name='password_retype'
                    required
-                   className='form-control mt-1'
+                   class='form-control mt-1'
                    placeholder='Enter password'
                    onChange={onChange}/>
           </div>
-          <div className='mt-3'>
+          <div class='mt-3'>
             <label>Repeat your password</label>
             <input type='password'
                    name='password'
                    required
-                   className='form-control mt-1'
+                   class='form-control mt-1'
                    placeholder='Enter password'
                    onPaste={e => e.preventDefault()}
                    onChange={onChange}/>
           </div>
-          <div className='mt-3'>
-            <button type='submit' className='btn'>
+          <div class='mt-3'>
+            <button type='submit' class='btn'>
               Submit
             </button>
           </div>
-          <div className={`${classes.link} mt-3`}>
+          <div class={`${classes.link} mt-3`}>
             <label>Aleady have an account?</label><Link href='/login'>Login</Link>
           </div>
         </div>

@@ -18,14 +18,14 @@ export default function Login() {
     document.title = 'NOSOK | Sign in'
   })
 
-  function onChange(event) {
+  function onChange(event: Event) {
     updateForm({
       ...form(),
-      [event.target.name]: event.target.value,
+      [(event.target as HTMLTextAreaElement).name]: (event.target as HTMLTextAreaElement).value
     })
   }
 
-  function submitForm(event) {
+  function submitForm(event: SubmitEvent) {
     event.preventDefault()
     
     fetch(
@@ -48,12 +48,12 @@ export default function Login() {
   }
 
   return (
-    <div className={classes.Container}>
-      <form className={classes.Form} onSubmit={submitForm}>
-        <div className={classes.Content}>
+    <div class={classes.Container}>
+      <form class={classes.Form} onSubmit={submitForm}>
+        <div class={classes.Content}>
           <header>Sign In</header>
           { unauthErr() ?
-            <div className={classes.error}>There was a problem with your login.</div> :
+            <div class={classes.error}>There was a problem with your login.</div> :
             '' 
           }
           <div>
@@ -61,17 +61,17 @@ export default function Login() {
             <input type='email'
                    name='email'
                    required
-                   className='form-control mt-1'
+                   class='form-control mt-1'
                    placeholder='Enter email'
                    onChange={onChange}/>
           </div>
-          <div className='mt-3'>
+          <div class='mt-3'>
             <label>Password</label>
-            <label className={`${classes.password} mt-1`}>
+            <label class={`${classes.password} mt-1`}>
               <input type={showPwd() ? 'text' : 'password'}
                     name='password'
                     required
-                    className='form-control'
+                    class='form-control'
                     placeholder='Enter password'
                     onChange={onChange}/>
               <label>
@@ -80,15 +80,15 @@ export default function Login() {
               </label>
             </label>
           </div>
-          <div className='mt-3'>
-            <button type='submit' className='btn'>
+          <div class='mt-3'>
+            <button type='submit' class='btn'>
               Submit
             </button>
           </div>
-          <div className={`${classes.link} mt-3`}>
+          <div class={`${classes.link} mt-3`}>
             <label>New to NOSOK?</label><Link href='/register'>Sign up</Link>
           </div>
-          <div className={`${classes.link} mt-2`}>
+          <div class={`${classes.link} mt-2`}>
             {/* <a href='#'>Forgot password?</a> TODO: forgot password */}
           </div>
         </div>

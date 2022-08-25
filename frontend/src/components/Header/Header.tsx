@@ -5,8 +5,8 @@ import classes from './Header.module.scss'
 
 export default function Header() {
   return (
-    <header className={classes.Header}>
-        <Logo className={classes.Logo}/>
+    <header class={classes.Header}>
+        <Logo class={classes.Logo}/>
         <Topbar/>
     </header>
   )

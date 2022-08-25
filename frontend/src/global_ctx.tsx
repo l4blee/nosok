@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js"
+import { Accessor, createSignal, Setter } from "solid-js"
 
 const [sID, setSID] = createSignal(
     document.cookie
@@ -20,10 +20,10 @@ function updAuth() {
 
 updAuth()
 
-const [href, setHref] = createSignal('/log')
+const [nav, setNav] = createSignal('dashboard')
 
-const auth = [isAuth, updAuth]
-const sid = [sID, setSID]
-const link = [href, setHref]
+const auth: [Accessor<boolean>, () => void] = [isAuth, updAuth]
+const sid: [Accessor<string | undefined>, Setter<string>] = [sID, setSID]
+const selectedButton: [Accessor<string>, Setter<string>] = [nav, setNav]
 
-export {auth, sid, link}
+export {auth, sid, selectedButton}

@@ -20,7 +20,7 @@ async def background_emitter():
             if log_stamp != cached_stamp_log:
                 with open('bot/data/log.log') as f:
                     await socket.emit('data_changed', {
-                        'href': '/log',
+                        'changed': 'log',
                         'content': f.read()
                     })
                 cached_stamp_log = log_stamp
@@ -28,7 +28,7 @@ async def background_emitter():
             if vars_stamp != cached_stamp_vars:
                 with open('bot/data/data.json') as f:
                     await socket.emit('data_changed', {
-                        'href': '/vars',
+                        'changed': 'variables',
                         'content': json.load(f)
                     })
                 cached_stamp_vars = vars_stamp

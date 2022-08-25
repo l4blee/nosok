@@ -5,7 +5,7 @@ description = "Discord music bot"
 authors = ["l4blee"]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.11"
+python = ">=3.9,<3.10"
 psutil = "^5.8.0"
 yt-dlp = "^2021.12.27"
 pydub = "^0.25.1"
