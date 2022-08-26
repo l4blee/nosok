@@ -1,5 +1,5 @@
-import { Routes, Route } from '@solidjs/router'
 import { lazy } from 'solid-js'
+import { Routes, Route } from '@solidjs/router'
 
 const ControlPanel = lazy(() => import('./pages/ControlPanel/ControlPanel'))
 const Login = lazy(() => import('./pages/Auth/Login'))

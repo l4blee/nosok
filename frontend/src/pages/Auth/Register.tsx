@@ -1,10 +1,10 @@
-import { Link } from '@solidjs/router'
-import { UnionToIntersection } from 'chart.js/types/utils'
 import { createSignal, onMount } from 'solid-js'
-import { } from 'solid-js/types'
+import { Link } from '@solidjs/router'
+
 import classes from './Register.module.scss'
 
-export default function Login() {
+
+export default function Register() {
   const [form, updateForm] = createSignal<{
     email: string,
     password: string,

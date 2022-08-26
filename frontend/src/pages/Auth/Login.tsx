@@ -1,8 +1,9 @@
 import { createSignal, onMount } from 'solid-js'
+import { Link } from '@solidjs/router'
+
 import classes from './Login.module.scss'
 import visible from '../../assets/icons/visible.png'
 import invisible from '../../assets/icons/invisible.png'
-import { Link } from '@solidjs/router'
 
 
 export default function Login() {

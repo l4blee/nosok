@@ -12,7 +12,7 @@ import classes from './Dashboard.module.scss'
 import {socket, data, refreshData} from '../../../../runtimeData'
 
 
-export default function Content() {
+export default function Dashboard() {
     const chartSettings: ChartConfiguration = {
         type: 'line',
         data: {
