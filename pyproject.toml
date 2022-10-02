@@ -12,7 +12,7 @@ pydub = "^0.25.1"
 numpy = "^1.22.3"
 typing-extensions = "^4.2.0"
 pymongo = {extras = ["srv"], version = "^4.0.2"}
-"discord.py" = {git = "https://github.com/Rapptz/discord.py.git", extras = ["voice"]}
+"discord.py" = {extras = ["voice"], version = "^2.0.0"}
 aiohttp = {extras = ["speedups"], version = "^3.8.1"}
 bcrypt = "^3.2.2"
 sanic = "20.12.6"

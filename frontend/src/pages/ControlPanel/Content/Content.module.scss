@@ -1,16 +1,11 @@
 .Content {
-    grid-area: ctn;
     margin: 0;
     padding: 20px;
-    padding-top: 0;
 
     width: 100%;
     height: 100%;
 
-    display: grid;
-    grid-template-areas: 
-        "memory stats"
-        "cpu stats";
+    display: flex;
 
     white-space: break-spaces;
     overflow-y: scroll;

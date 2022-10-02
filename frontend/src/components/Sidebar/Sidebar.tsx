@@ -1,6 +1,5 @@
 import NavButton from './NavButton'
 
-// Importing icons
 import home from '../../assets/icons/home.png'
 import control from '../../assets/icons/control.png'
 

@@ -5,7 +5,7 @@ import { io } from 'socket.io-client'
 type VarsBlock = {cpu_used: number, memory_used: number}
 type VarsPayload = {status: string, servers: number, vars: VarsBlock}
 
-type RuntimeData = {status: string, servers: number, vars: VarsBlock[]}
+type RuntimeData = {status: string, servers: number, vars: VarsBlock}
 type RuntimeStatsStorage = {log: string, overview: RuntimeData}
 
 type PollingPayload = {changed: string, content: string | VarsPayload}
@@ -18,7 +18,10 @@ const [data, setData] = createStore<RuntimeStatsStorage>({
     overview: {
         status: 'offline',
         servers: 0,
-        vars: []
+        vars: {
+            cpu_used: 0, 
+            memory_used: 0
+        }
     }
 })
 
@@ -54,7 +57,7 @@ async function refreshData() {
             overview: {
                 status: vars.status,
                 servers: vars.servers,
-                vars: [vars.vars]
+                vars: vars.vars
             }
         })
     })
@@ -69,15 +72,12 @@ function onWSPayload(payload: PollingPayload) {
     } else if (payload.changed === 'variables') {
         const payloadData = payload.content as VarsPayload
     
-        var varsArray = [...data.overview.vars, payloadData.vars]
-        if(varsArray.length > 10) varsArray = varsArray.slice(1, 11)
-    
         setData({
             ...data,
             overview: {
                 status: payloadData.status,
                 servers: payloadData.servers,
-                vars: varsArray
+                vars: payloadData.vars
             }
         })
     }
@@ -85,3 +85,4 @@ function onWSPayload(payload: PollingPayload) {
 socket.on('data_changed', onWSPayload)
 
 export {socket, data, refreshData}
+export type { VarsBlock }

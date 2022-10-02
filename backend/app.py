@@ -18,7 +18,6 @@ manager.init_app(app)
 load_blueprints(app, 'backend/blueprints')
 
 
-
 @app.listener('before_server_start')
 async def before_server_start(app: Sanic, loop):
     socket.start_background_task(background_emitter)

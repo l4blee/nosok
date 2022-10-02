@@ -9,10 +9,7 @@
     text-align: center;
     align-items: center;
     justify-content: left;
-
-    &:not(:last-child) {
-        margin-bottom: 10px;
-    }
+    margin-top: 10px;
 
     img {
         width: 15px;
