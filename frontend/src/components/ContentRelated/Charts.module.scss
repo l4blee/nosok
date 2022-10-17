@@ -1,0 +1,13 @@
+.Charts {
+    display: flex;
+    flex-direction: column;
+
+    width: fit-content;
+    height: fit-content;
+}
+
+@media (max-width: 500px) {
+    .Charts {
+        flex-direction: row;
+    }
+}
