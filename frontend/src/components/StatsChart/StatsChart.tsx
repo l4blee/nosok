@@ -1,7 +1,7 @@
 import { Chart, ChartConfiguration, ChartItem } from 'chart.js'
 import { onCleanup, onMount, createSignal } from 'solid-js'
 
-import { refreshData, socket, data } from '../../runtimeData'
+import { socket, data } from '../../runtimeData'
 
 import classes from './StatsChart.module.scss'
 
@@ -32,25 +32,32 @@ const chartSettings: ChartConfiguration = {
     },
 }
 
-export default function Graph({id, label, area}: {id: string, label: string, area: string}) {
+export default function Graph({id, label}: {id: string, label: string}) {
     var self: Chart
     const [dataLabel, setLabel] = createSignal<string>('0')
     const chartID = `chart-${id}`
+    const base = id === 'cpu'  ? 100 : 512
+    const measurmentUnit = id === 'cpu'  ? '%' : 'MB'
 
     const settings: ChartConfiguration = {
         ...chartSettings,
         options: {
             plugins: {
+                ...chartSettings.options.plugins,
                 title: {
                     ...chartSettings.options.plugins.title,
                     text: label
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (item) => `${item.parsed}${measurmentUnit} ${item.label}`
+                    }
                 }
             }
-        }
+        },
     }
 
     function updateData() {
-        const base = id === 'cpu'  ? 100 : 512
         data; const used = eval(`data.overview.vars.${id}_used`)
         
         self.data.datasets[0].data = [used, base - used]
@@ -64,8 +71,7 @@ export default function Graph({id, label, area}: {id: string, label: string, are
             (document.getElementById(chartID) as HTMLCanvasElement)?.getContext('2d') as ChartItem, 
             settings
         )
-
-        refreshData().then(updateData)
+        updateData()
 
         socket.on('data_changed', updateData)
     })
@@ -77,7 +83,7 @@ export default function Graph({id, label, area}: {id: string, label: string, are
     return (
         <div class={classes.Stats}>
             <div class={classes.Label}>{dataLabel() + '%'}</div>
-            <canvas id={chartID} style={`grid-area: ${area}`}/>
+            <canvas id={chartID}/>
         </div>
     )
 }

@@ -4,6 +4,8 @@ import solidPlugin from 'vite-plugin-solid';
 export default defineConfig({
   plugins: [solidPlugin()],
   server: {
+    host: true,
+    port: 3000,
     proxy: {
       '/api': 'http://localhost:5000',
       '/auth': 'http://localhost:5000',
@@ -13,8 +15,7 @@ export default defineConfig({
         changeOrigin: true,
         ws: true
       }
-    },
-    port: 3000,
+    }
   },
   build: {
     target: 'esnext',

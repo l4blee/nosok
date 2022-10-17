@@ -43,13 +43,15 @@ async function fetchAPI(href: string): Promise<string | VarsPayload> {
            })
 }
 
-async function refreshData() {
+async function refreshLog() {
     await fetchAPI('/log').then(log => {
         setData({
             log: log as string,
         })  
     })
+}
 
+async function refreshVars() {
     await fetchAPI('/vars').then(vars => {
         vars = vars as VarsPayload            
 
@@ -61,6 +63,11 @@ async function refreshData() {
             }
         })
     })
+}
+
+async function refreshData() {
+    await refreshLog()
+    await refreshVars()
 }
 
 function onWSPayload(payload: PollingPayload) {
@@ -84,5 +91,5 @@ function onWSPayload(payload: PollingPayload) {
 }
 socket.on('data_changed', onWSPayload)
 
-export {socket, data, refreshData}
+export {socket, data, refreshData, refreshLog, refreshVars}
 export type { VarsBlock }

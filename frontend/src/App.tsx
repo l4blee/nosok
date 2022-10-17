@@ -8,11 +8,6 @@ Chart.defaults.font = {
     size: 14
 }
 
-Chart.overrides['doughnut'].plugins.legend = {
-  ...Chart.overrides['doughnut'].plugins.legend,
-  display: false
-}
-
 const ControlPanel = lazy(() => import('./pages/ControlPanel/ControlPanel'))
 const Login = lazy(() => import('./pages/Auth/Login'))
 const Register = lazy(() => import('./pages/Auth/Register'))

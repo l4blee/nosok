@@ -2,7 +2,7 @@ import { onMount } from 'solid-js'
 
 import Sidebar from '../../components/Sidebar/Sidebar'
 import Header from '../../components/Header/Header'
-import Content from './Content/Content'
+import Dashboard from './Dashboard/Dashboard'
 import classes from './ControlPanel.module.scss'
 
 
@@ -15,7 +15,7 @@ export default function ControlPanel() {
     <div class={classes.ControlPanel}>
       <Header/>
       <Sidebar/>
-      <Content/>
+      <Dashboard/>
     </div>
   )
 }
